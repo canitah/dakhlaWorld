@@ -20,6 +20,7 @@ model User {
   student_profile     StudentProfile?
   institution_profile InstitutionProfile?
   otp_tokens          OtpToken[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -185,4 +186,21 @@ model City {
   name String @unique
 
   @@map("cities")
+}
+
+// ─── Notifications ───────────────────────────────────────
+model Notification {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  title      String
+  message    String
+  type       String   // institution_registered | institution_approved | application_submitted | application_accepted | application_rejected
+  is_read    Boolean  @default(false)
+  link       String?
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("notifications")
 }

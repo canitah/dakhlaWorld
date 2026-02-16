@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { approvalSchema } from "@/lib/validations";
+import { sendInstitutionApprovalEmail } from "@/lib/mail";
 
 // PUT /api/admin/institutions/[id] — Approve or reject an institution
 export async function PUT(
@@ -24,6 +25,7 @@ export async function PUT(
 
         const institution = await prisma.institutionProfile.findUnique({
             where: { id: parseInt(id) },
+            include: { user: { select: { id: true, email: true } } },
         });
 
         if (!institution) {
@@ -33,6 +35,30 @@ export async function PUT(
         const updated = await prisma.institutionProfile.update({
             where: { id: parseInt(id) },
             data: { status: parsed.data.status },
+        });
+
+        // Send email notification and create in-app notification
+        const statusText = parsed.data.status === "approved" ? "approved" : "rejected";
+
+        if (institution.user.email) {
+            sendInstitutionApprovalEmail(
+                institution.user.email,
+                institution.name,
+                statusText
+            ).catch(() => { });
+        }
+
+        // Create in-app notification for the institution user
+        await prisma.notification.create({
+            data: {
+                user_id: institution.user.id,
+                title: `Institution ${statusText === "approved" ? "Approved" : "Rejected"}`,
+                message: statusText === "approved"
+                    ? `Your institution "${institution.name}" has been approved! You can now post programs and manage applications.`
+                    : `Your institution "${institution.name}" registration has been rejected. Please contact support for details.`,
+                type: `institution_${statusText}`,
+                link: "/institution",
+            },
         });
 
         return NextResponse.json({

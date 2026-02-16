@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { applicationStatusSchema } from "@/lib/validations";
+import { sendApplicationStatusEmail } from "@/lib/mail";
 
 // PUT /api/institutions/applications/[id] — Update application status
 export async function PUT(
@@ -32,6 +33,15 @@ export async function PUT(
                 id: parseInt(id),
                 program: { institution_id: profile!.id },
             },
+            include: {
+                program: { select: { title: true } },
+                student: {
+                    select: {
+                        user_id: true,
+                        user: { select: { email: true } },
+                    },
+                },
+            },
         });
 
         if (!application) {
@@ -42,6 +52,32 @@ export async function PUT(
             where: { id: parseInt(id) },
             data: { status: parsed.data.status },
         });
+
+        // Send email and notification to student on status change
+        const newStatus = parsed.data.status;
+        if (newStatus === "accepted" || newStatus === "rejected") {
+            // Send email to student
+            if (application.student.user.email) {
+                sendApplicationStatusEmail(
+                    application.student.user.email,
+                    application.program.title,
+                    newStatus
+                ).catch(() => { });
+            }
+
+            // Create in-app notification for the student
+            await prisma.notification.create({
+                data: {
+                    user_id: application.student.user_id,
+                    title: `Application ${newStatus === "accepted" ? "Accepted" : "Rejected"}`,
+                    message: newStatus === "accepted"
+                        ? `Congratulations! Your application for "${application.program.title}" has been accepted!`
+                        : `Your application for "${application.program.title}" has been rejected.`,
+                    type: `application_${newStatus}`,
+                    link: "/student/applications",
+                },
+            });
+        }
 
         return NextResponse.json({ application: updated, message: "Status updated" });
     } catch (error) {

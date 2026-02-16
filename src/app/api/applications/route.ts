@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { applicationSchema } from "@/lib/validations";
+import { sendApplicationSubmittedEmail } from "@/lib/mail";
 
 // GET /api/applications — List student's applications
 export async function GET(request: Request) {
@@ -66,6 +67,11 @@ export async function POST(request: Request) {
         // Check program exists and is active
         const program = await prisma.program.findUnique({
             where: { id: parsed.data.program_id },
+            include: {
+                institution: {
+                    select: { id: true, name: true, user_id: true },
+                },
+            },
         });
 
         if (!program || !program.is_active) {
@@ -101,6 +107,31 @@ export async function POST(request: Request) {
                         institution: { select: { name: true } },
                     },
                 },
+            },
+        });
+
+        // Send confirmation email to student (fire-and-forget)
+        const studentUser = await prisma.user.findUnique({
+            where: { id: authResult.user.userId },
+            select: { email: true },
+        });
+
+        if (studentUser?.email) {
+            sendApplicationSubmittedEmail(
+                studentUser.email,
+                program.title,
+                program.institution.name
+            ).catch(() => { });
+        }
+
+        // Create in-app notification for the institution
+        await prisma.notification.create({
+            data: {
+                user_id: program.institution.user_id,
+                title: "New Application Received",
+                message: `A student has applied to your program "${program.title}".`,
+                type: "application_submitted",
+                link: "/institution/applications",
             },
         });
 
