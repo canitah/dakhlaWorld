@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 interface Institution {
@@ -13,10 +14,32 @@ interface Institution {
     name: string;
     category: string | null;
     city: string | null;
+    description: string | null;
     contact_email: string | null;
     status: string;
     created_at: string;
-    user: { email: string | null };
+    user: { email: string | null; phone: string | null };
+    _count: { programs: number };
+}
+
+const REQUIRED_FIELDS: { key: keyof Institution; label: string }[] = [
+    { key: "name", label: "Name" },
+    { key: "category", label: "Category" },
+    { key: "city", label: "City" },
+    { key: "description", label: "Description" },
+    { key: "contact_email", label: "Contact Email" },
+];
+
+function isProfileComplete(inst: Institution): boolean {
+    return REQUIRED_FIELDS.every(
+        (f) => inst[f.key] && String(inst[f.key]).trim() !== ""
+    );
+}
+
+function getMissingFields(inst: Institution): string[] {
+    return REQUIRED_FIELDS
+        .filter((f) => !inst[f.key] || String(inst[f.key]).trim() === "")
+        .map((f) => f.label);
 }
 
 export default function AdminInstitutionsPage() {
@@ -24,6 +47,8 @@ export default function AdminInstitutionsPage() {
     const [institutions, setInstitutions] = useState<Institution[]>([]);
     const [filter, setFilter] = useState("pending");
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
 
     useEffect(() => {
         loadInstitutions();
@@ -46,8 +71,17 @@ export default function AdminInstitutionsPage() {
         });
         if (res.ok) {
             toast.success(`Institution ${status}`);
+            setIsDetailOpen(false);
             loadInstitutions();
+        } else {
+            const data = await res.json();
+            toast.error(data.error || "Action failed");
         }
+    };
+
+    const viewDetail = (inst: Institution) => {
+        setSelectedInst(inst);
+        setIsDetailOpen(true);
     };
 
     return (
@@ -91,44 +125,155 @@ export default function AdminInstitutionsPage() {
                                         <th className="pb-3 text-sm font-semibold text-gray-600">Email</th>
                                         <th className="pb-3 text-sm font-semibold text-gray-600">Category</th>
                                         <th className="pb-3 text-sm font-semibold text-gray-600">City</th>
+                                        <th className="pb-3 text-sm font-semibold text-gray-600">Profile</th>
                                         <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
                                         <th className="pb-3 text-sm font-semibold text-gray-600">Registered</th>
-                                        {filter === "pending" && (
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Actions</th>
-                                        )}
+                                        <th className="pb-3 text-sm font-semibold text-gray-600">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {institutions.map((inst) => (
-                                        <tr key={inst.id} className="border-b last:border-0 hover:bg-gray-50">
-                                            <td className="py-3 text-sm font-medium">{inst.name}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{inst.user.email || inst.contact_email || "—"}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{inst.category || "—"}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{inst.city || "—"}</td>
-                                            <td className="py-3"><StatusBadge status={inst.status} /></td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {new Date(inst.created_at).toLocaleDateString()}
-                                            </td>
-                                            {filter === "pending" && (
+                                    {institutions.map((inst) => {
+                                        const complete = isProfileComplete(inst);
+                                        return (
+                                            <tr key={inst.id} className="border-b last:border-0 hover:bg-gray-50">
+                                                <td className="py-3 text-sm font-medium">{inst.name}</td>
+                                                <td className="py-3 text-sm text-muted-foreground">{inst.user.email || inst.contact_email || "—"}</td>
+                                                <td className="py-3 text-sm text-muted-foreground">{inst.category || "—"}</td>
+                                                <td className="py-3 text-sm text-muted-foreground">{inst.city || "—"}</td>
                                                 <td className="py-3">
-                                                    <div className="flex gap-1">
-                                                        <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleAction(inst.id, "approved")}>
-                                                            Approve
-                                                        </Button>
-                                                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => handleAction(inst.id, "rejected")}>
-                                                            Reject
-                                                        </Button>
-                                                    </div>
+                                                    {complete ? (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                                            ✓ Complete
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                            ⚠ Incomplete
+                                                        </span>
+                                                    )}
                                                 </td>
-                                            )}
-                                        </tr>
-                                    ))}
+                                                <td className="py-3"><StatusBadge status={inst.status} /></td>
+                                                <td className="py-3 text-sm text-muted-foreground">
+                                                    {new Date(inst.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="py-3">
+                                                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => viewDetail(inst)}>
+                                                        View Details
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     )}
                 </CardContent>
             </Card>
+
+            {/* Institution Detail Dialog */}
+            <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Institution Details</DialogTitle>
+                    </DialogHeader>
+                    {selectedInst && (() => {
+                        const complete = isProfileComplete(selectedInst);
+                        const missing = getMissingFields(selectedInst);
+                        return (
+                            <div className="space-y-4">
+                                {/* Profile Completeness Banner */}
+                                {!complete && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                        <p className="text-sm font-medium text-amber-800">
+                                            ⚠️ Profile Incomplete — Cannot be approved
+                                        </p>
+                                        <p className="text-xs text-amber-600 mt-1">
+                                            Missing: {missing.join(", ")}
+                                        </p>
+                                    </div>
+                                )}
+                                {complete && (
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                                        <p className="text-sm font-medium text-emerald-800">
+                                            ✅ Profile Complete — Ready for review
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Profile Fields */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Institution Name</p>
+                                        <p className="text-sm font-medium">{selectedInst.name || "—"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Account Email</p>
+                                        <p className="text-sm">{selectedInst.user.email || "—"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Contact Email</p>
+                                        <p className="text-sm">{selectedInst.contact_email || <span className="text-amber-600 italic">Not provided</span>}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Category</p>
+                                        <p className="text-sm capitalize">{selectedInst.category || <span className="text-amber-600 italic">Not provided</span>}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">City</p>
+                                        <p className="text-sm">{selectedInst.city || <span className="text-amber-600 italic">Not provided</span>}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Phone</p>
+                                        <p className="text-sm">{selectedInst.user.phone || "—"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Programs Listed</p>
+                                        <p className="text-sm font-medium">{selectedInst._count.programs}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Registered</p>
+                                        <p className="text-sm">{new Date(selectedInst.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Description</p>
+                                    <p className="text-sm mt-1">
+                                        {selectedInst.description || <span className="text-amber-600 italic">Not provided</span>}
+                                    </p>
+                                </div>
+
+                                {/* Status */}
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs text-muted-foreground">Current Status:</p>
+                                    <StatusBadge status={selectedInst.status} />
+                                </div>
+
+                                {/* Action Buttons */}
+                                {selectedInst.status === "pending" && (
+                                    <div className="flex gap-2 pt-2">
+                                        <Button
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                                            disabled={!complete}
+                                            onClick={() => handleAction(selectedInst.id, "approved")}
+                                        >
+                                            {complete ? "✓ Approve" : "Cannot Approve (Incomplete Profile)"}
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            className="flex-1"
+                                            onClick={() => handleAction(selectedInst.id, "rejected")}
+                                        >
+                                            Reject
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

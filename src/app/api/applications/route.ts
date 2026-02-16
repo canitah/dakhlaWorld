@@ -64,18 +64,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Complete your profile first" }, { status: 400 });
         }
 
-        // Check program exists and is active
+        // Check program exists, is active, and institution is approved
         const program = await prisma.program.findUnique({
             where: { id: parsed.data.program_id },
             include: {
                 institution: {
-                    select: { id: true, name: true, user_id: true },
+                    select: { id: true, name: true, user_id: true, status: true },
                 },
             },
         });
 
         if (!program || !program.is_active) {
             return NextResponse.json({ error: "Program not found or inactive" }, { status: 404 });
+        }
+
+        if (program.institution.status !== "approved") {
+            return NextResponse.json(
+                { error: "This institution is not yet approved. Applications are not accepted." },
+                { status: 403 }
+            );
         }
 
         // Check duplicate application

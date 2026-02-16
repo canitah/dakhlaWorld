@@ -32,6 +32,23 @@ export async function PUT(
             return NextResponse.json({ error: "Institution not found" }, { status: 404 });
         }
 
+        // Block approval if profile is incomplete
+        if (parsed.data.status === "approved") {
+            const requiredFields = ["name", "category", "city", "description", "contact_email"] as const;
+            const missingFields = requiredFields.filter(
+                (f) => !institution[f] || (institution[f] as string).trim() === ""
+            );
+            if (missingFields.length > 0) {
+                return NextResponse.json(
+                    {
+                        error: `Cannot approve: institution profile is incomplete. Missing fields: ${missingFields.join(", ")}`,
+                        missingFields,
+                    },
+                    { status: 400 }
+                );
+            }
+        }
+
         const updated = await prisma.institutionProfile.update({
             where: { id: parseInt(id) },
             data: { status: parsed.data.status },

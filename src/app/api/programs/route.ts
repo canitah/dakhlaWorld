@@ -14,6 +14,7 @@ export async function GET(request: Request) {
 
         const where: Record<string, unknown> = {
             is_active: true,
+            institution: { status: "approved" },
         };
 
         if (search) {

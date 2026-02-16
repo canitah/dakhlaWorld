@@ -43,10 +43,20 @@ export default function InstitutionProgramsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form, setForm] = useState(emptyProgram);
+    const [instStatus, setInstStatus] = useState<string>("pending");
 
     useEffect(() => {
         loadPrograms();
+        loadStatus();
     }, []);
+
+    async function loadStatus() {
+        const res = await fetchWithAuth("/institutions/profile");
+        if (res.ok) {
+            const data = await res.json();
+            setInstStatus(data.profile.status);
+        }
+    }
 
     async function loadPrograms() {
         const res = await fetchWithAuth("/institutions/programs");
@@ -105,6 +115,8 @@ export default function InstitutionProgramsPage() {
         }
     };
 
+    const isApproved = instStatus === "approved";
+
     if (isLoading) {
         return (
             <DashboardLayout role="institution">
@@ -117,11 +129,28 @@ export default function InstitutionProgramsPage() {
 
     return (
         <DashboardLayout role="institution">
+            {/* Approval Warning */}
+            {!isApproved && (
+                <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 flex items-start gap-3">
+                    <span className="text-xl mt-0.5">⚠️</span>
+                    <div>
+                        <p className="text-sm font-semibold text-amber-900">
+                            Your Institution is Not Yet Approved
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                            You cannot post new programs until your institution has been approved by an admin. Please complete your profile and wait for approval.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold">My Programs</h1>
                 <Dialog open={isDialogOpen} onOpenChange={(v) => { setIsDialogOpen(v); if (!v) { setEditingId(null); setForm(emptyProgram); } }}>
                     <DialogTrigger asChild>
-                        <Button className="bg-blue-600 hover:bg-blue-700">+ Post New Program</Button>
+                        <Button className="bg-blue-600 hover:bg-blue-700" disabled={!isApproved}>
+                            {isApproved ? "+ Post New Program" : "🔒 Posting Disabled"}
+                        </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                         <DialogHeader>

@@ -72,11 +72,11 @@ export async function sendInstitutionWelcomeEmail(to: string, institutionName: s
                 </p>
                 <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
                     <p style="color: #92400e; font-size: 14px; margin: 0;">
-                        ⏳ Our admin team will review your registration shortly. You will be notified via email once your account has been approved.
+                        ⚠️ <strong>Important:</strong> Please complete your institution profile as soon as possible. Your registration <strong>cannot be approved</strong> until your profile is fully filled out (name, category, city, description, and contact email).
                     </p>
                 </div>
                 <p style="color: #6b7280; font-size: 14px;">
-                    In the meantime, you can explore the platform and prepare your institution profile.
+                    Log in to your dashboard and go to <strong>Profile</strong> to complete your details. Our admin team will review your registration once your profile is complete.
                 </p>`
             ),
         });
