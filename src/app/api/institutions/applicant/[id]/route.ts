@@ -25,6 +25,9 @@ export async function GET(
                 student_id: parseInt(id),
                 program: { institution_id: profile!.id },
             },
+            include: {
+                program: { select: { title: true } },
+            },
         });
 
         if (!hasApplication) {
@@ -43,6 +46,28 @@ export async function GET(
 
         if (!student) {
             return NextResponse.json({ error: "Student not found" }, { status: 404 });
+        }
+
+        // Notify student that institution viewed their profile (once per institution per application, avoid spam)
+        const existingViewNotif = await prisma.notification.findFirst({
+            where: {
+                user_id: student.user_id,
+                type: "profile_viewed",
+                message: { contains: profile!.name },
+                link: "/student/applications",
+            },
+        });
+
+        if (!existingViewNotif) {
+            await prisma.notification.create({
+                data: {
+                    user_id: student.user_id,
+                    title: "Profile Viewed",
+                    message: `${profile!.name} has viewed your profile for "${hasApplication.program.title}".`,
+                    type: "profile_viewed",
+                    link: "/student/applications",
+                },
+            });
         }
 
         return NextResponse.json({ student });

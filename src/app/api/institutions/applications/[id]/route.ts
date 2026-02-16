@@ -55,6 +55,14 @@ export async function PUT(
 
         // Send email and notification to student on status change
         const newStatus = parsed.data.status;
+
+        // Get institution name for notification message
+        const instProfile = await prisma.institutionProfile.findUnique({
+            where: { user_id: authResult.user.userId },
+            select: { name: true },
+        });
+        const instName = instProfile?.name || "An institution";
+
         if (newStatus === "accepted" || newStatus === "rejected") {
             // Send email to student
             if (application.student.user.email) {
@@ -71,9 +79,20 @@ export async function PUT(
                     user_id: application.student.user_id,
                     title: `Application ${newStatus === "accepted" ? "Accepted" : "Rejected"}`,
                     message: newStatus === "accepted"
-                        ? `Congratulations! Your application for "${application.program.title}" has been accepted!`
-                        : `Your application for "${application.program.title}" has been rejected.`,
+                        ? `Congratulations! Your application for "${application.program.title}" has been accepted by ${instName}!`
+                        : `Your application for "${application.program.title}" has been rejected by ${instName}.`,
                     type: `application_${newStatus}`,
+                    link: "/student/applications",
+                },
+            });
+        } else if (newStatus === "viewed") {
+            // Create in-app notification for the student (no email for viewed)
+            await prisma.notification.create({
+                data: {
+                    user_id: application.student.user_id,
+                    title: "Application Viewed",
+                    message: `${instName} has viewed your application for "${application.program.title}".`,
+                    type: "application_viewed",
                     link: "/student/applications",
                 },
             });
