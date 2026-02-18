@@ -15,7 +15,19 @@ export async function GET(request: Request) {
             orderBy: { name: "asc" },
         });
 
-        return NextResponse.json({ categories });
+        // Count programs per category name (category is stored as a plain string on Program)
+        const programCounts = await prisma.program.groupBy({
+            by: ["category"],
+            _count: { category: true },
+        });
+        const countMap = new Map(programCounts.map((pc) => [pc.category, pc._count.category]));
+
+        const categoriesWithCounts = categories.map((cat) => ({
+            ...cat,
+            _count: { programs: countMap.get(cat.name) || 0 },
+        }));
+
+        return NextResponse.json({ categories: categoriesWithCounts });
     } catch (error) {
         console.error("List categories error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

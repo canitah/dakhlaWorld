@@ -97,8 +97,8 @@ export default function InstitutionBillingPage() {
                     <Card
                         key={plan.id}
                         className={`cursor-pointer transition-all ${selectedPlan === plan.id
-                                ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
-                                : "hover:shadow-md"
+                            ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
+                            : "hover:shadow-md"
                             } ${plan.name === "Featured" ? "border-amber-300" : ""}`}
                         onClick={() => setSelectedPlan(plan.id)}
                     >
@@ -109,7 +109,7 @@ export default function InstitutionBillingPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-center">
-                            <p className="text-3xl font-bold text-blue-700 mb-2">
+                            <p className="text-3xl font-bold text-blue-700 dark:text-blue-400 mb-2">
                                 PKR {plan.price_pkr.toLocaleString()}
                             </p>
                             {plan.features_json && (
@@ -131,8 +131,8 @@ export default function InstitutionBillingPage() {
                         <CardTitle>Submit Payment Proof</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                            <p className="text-sm text-blue-700 font-medium">
+                        <div className="bg-blue-500/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                            <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">
                                 📱 Scan the QR code or transfer to our bank account and paste your transaction reference & screenshot URL below.
                             </p>
                         </div>
@@ -174,11 +174,11 @@ export default function InstitutionBillingPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Plan</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Amount</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Reference</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Date</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Plan</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Amount</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Reference</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>

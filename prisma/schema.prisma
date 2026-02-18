@@ -58,9 +58,10 @@ model InstitutionProfile {
   city          String?
   description   String?
   contact_email String?
-  status        String   @default("pending") // pending | approved | rejected
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  status           String   @default("pending") // pending | approved | rejected
+  rejection_reason String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
   user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   programs         Program[]

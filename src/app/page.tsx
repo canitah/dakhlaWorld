@@ -147,24 +147,24 @@ import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Navigation Bar */}
-      
+
 
       {/* Hero Section */}
-      <section className="bg-white border-b border-gray-200">
+      <section className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-4 py-2 mb-6">
-              <span className="text-sm font-medium text-blue-700">🇵🇰 Pakistan-first, Global-ready</span>
+            <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-200 dark:border-blue-800 px-4 py-2 mb-6">
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-400">🇵🇰 Pakistan-first, Global-ready</span>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
               Education Admissions
               <span className="block text-blue-600 mt-2">
                 Marketplace Platform
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
               Discover programs, apply to top institutions, and track your journey — all in one platform built for students and institutions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -178,7 +178,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold text-base px-8 h-12"
+                className="border-border text-muted-foreground hover:bg-accent font-semibold text-base px-8 h-12"
                 asChild
               >
                 <Link href="/login">Sign In</Link>
@@ -189,49 +189,49 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="bg-gray-50 py-12 border-b border-gray-200">
+      <section className="bg-background py-12 border-b border-border">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">500+</div>
-              <div className="text-sm text-gray-600 font-medium">Active Programs</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">500+</div>
+              <div className="text-sm text-muted-foreground font-medium">Active Programs</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">150+</div>
-              <div className="text-sm text-gray-600 font-medium">Partner Institutions</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">150+</div>
+              <div className="text-sm text-muted-foreground font-medium">Partner Institutions</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">10K+</div>
-              <div className="text-sm text-gray-600 font-medium">Active Students</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">10K+</div>
+              <div className="text-sm text-muted-foreground font-medium">Active Students</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">95%</div>
-              <div className="text-sm text-gray-600 font-medium">Success Rate</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">95%</div>
+              <div className="text-sm text-muted-foreground font-medium">Success Rate</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-card">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               One Platform, Three Roles
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
               Whether you&apos;re a student exploring options, an institution seeking talent, or an admin managing the ecosystem.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             {/* Student Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-8 hover:shadow-lg transition-all duration-300">
-              <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-2xl mb-6">
+            <div className="bg-card rounded-lg border border-border p-8 hover:shadow-lg transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center text-2xl mb-6">
                 🎓
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Student Dashboard</h3>
-              <p className="text-gray-600 text-sm mb-6">
+              <h3 className="text-xl font-bold text-foreground mb-2">Student Dashboard</h3>
+              <p className="text-muted-foreground text-sm mb-6">
                 Explore programs and manage your applications
               </p>
               <ul className="space-y-3 mb-8">
@@ -239,30 +239,30 @@ export default function HomePage() {
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Search and discover programs worldwide</span>
+                  <span className="text-foreground text-sm">Search and discover programs worldwide</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Apply with one-click submission</span>
+                  <span className="text-foreground text-sm">Apply with one-click submission</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Track real-time application status</span>
+                  <span className="text-foreground text-sm">Track real-time application status</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Manage profile and upload documents</span>
+                  <span className="text-foreground text-sm">Manage profile and upload documents</span>
                 </li>
               </ul>
               <Button
                 variant="outline"
-                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 font-medium"
+                className="w-full border-blue-600 text-blue-600 hover:bg-blue-500/10 font-medium"
                 asChild
               >
                 <Link href="/signup?role=student">Student Login</Link>
@@ -270,12 +270,12 @@ export default function HomePage() {
             </div>
 
             {/* Institution Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-8 hover:shadow-lg transition-all duration-300">
-              <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-2xl mb-6">
+            <div className="bg-card rounded-lg border border-border p-8 hover:shadow-lg transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center text-2xl mb-6">
                 🏫
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Institute Dashboard</h3>
-              <p className="text-gray-600 text-sm mb-6">
+              <h3 className="text-xl font-bold text-foreground mb-2">Institute Dashboard</h3>
+              <p className="text-muted-foreground text-sm mb-6">
                 Manage programs and review applications
               </p>
               <ul className="space-y-3 mb-8">
@@ -283,30 +283,30 @@ export default function HomePage() {
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Post and manage unlimited programs</span>
+                  <span className="text-foreground text-sm">Post and manage unlimited programs</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Receive and review applications</span>
+                  <span className="text-foreground text-sm">Receive and review applications</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Access detailed student profiles</span>
+                  <span className="text-foreground text-sm">Access detailed student profiles</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Upgrade to Featured visibility plan</span>
+                  <span className="text-foreground text-sm">Upgrade to Featured visibility plan</span>
                 </li>
               </ul>
               <Button
                 variant="outline"
-                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 font-medium"
+                className="w-full border-blue-600 text-blue-600 hover:bg-blue-500/10 font-medium"
                 asChild
               >
                 <Link href="/signup?role=institution">Institute Login</Link>
@@ -314,12 +314,12 @@ export default function HomePage() {
             </div>
 
             {/* Admin Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-8 hover:shadow-lg transition-all duration-300">
-              <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-2xl mb-6">
+            <div className="bg-card rounded-lg border border-border p-8 hover:shadow-lg transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center text-2xl mb-6">
                 🛡️
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Admin Panel</h3>
-              <p className="text-gray-600 text-sm mb-6">
+              <h3 className="text-xl font-bold text-foreground mb-2">Admin Panel</h3>
+              <p className="text-muted-foreground text-sm mb-6">
                 Oversee and manage the entire platform
               </p>
               <ul className="space-y-3 mb-8">
@@ -327,30 +327,30 @@ export default function HomePage() {
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Approve institution registrations</span>
+                  <span className="text-foreground text-sm">Approve institution registrations</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Verify payment transactions</span>
+                  <span className="text-foreground text-sm">Verify payment transactions</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Manage categories and locations</span>
+                  <span className="text-foreground text-sm">Manage categories and locations</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700 text-sm">Access platform analytics</span>
+                  <span className="text-foreground text-sm">Access platform analytics</span>
                 </li>
               </ul>
               <Button
                 variant="outline"
-                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 font-medium"
+                className="w-full border-blue-600 text-blue-600 hover:bg-blue-500/10 font-medium"
                 asChild
               >
                 <Link href="/admin">Admin Access</Link>
@@ -361,13 +361,13 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 bg-gray-50 border-t border-gray-200">
+      <section className="py-20 bg-background border-t border-border">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               How It Works
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
               Get started in three simple steps
             </p>
           </div>
@@ -377,8 +377,8 @@ export default function HomePage() {
               <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold mx-auto mb-6">
                 1
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Create Account</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-bold text-foreground mb-3">Create Account</h3>
+              <p className="text-muted-foreground">
                 Sign up as a student or institution in seconds. Complete your profile with relevant information.
               </p>
             </div>
@@ -387,8 +387,8 @@ export default function HomePage() {
               <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold mx-auto mb-6">
                 2
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Explore & Connect</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-bold text-foreground mb-3">Explore & Connect</h3>
+              <p className="text-muted-foreground">
                 Browse programs or post opportunities. Use filters to find the perfect match for your goals.
               </p>
             </div>
@@ -397,8 +397,8 @@ export default function HomePage() {
               <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold mx-auto mb-6">
                 3
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Apply & Track</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-bold text-foreground mb-3">Apply & Track</h3>
+              <p className="text-muted-foreground">
                 Submit applications or review candidates. Track everything in one centralized dashboard.
               </p>
             </div>
@@ -407,12 +407,12 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-white border-t border-gray-200">
+      <section className="py-20 bg-card border-t border-border">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
             Ready to Get Started?
           </h2>
-          <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
             Join thousands of students and institutions using GAP to connect and grow.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -426,7 +426,7 @@ export default function HomePage() {
             <Button
               size="lg"
               variant="outline"
-              className="border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold text-base px-8 h-12"
+              className="border-border text-muted-foreground hover:bg-accent font-semibold text-base px-8 h-12"
               asChild
             >
               <Link href="/login">Sign In</Link>
@@ -436,7 +436,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-12">
+      <footer className="bg-card border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-2">
@@ -445,18 +445,18 @@ export default function HomePage() {
                   <span className="text-white font-bold text-lg">G</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">GAP</h3>
-                  <p className="text-xs text-gray-500">Global Admissions Platform</p>
+                  <h3 className="text-lg font-bold text-foreground">GAP</h3>
+                  <p className="text-xs text-muted-foreground">Global Admissions Platform</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Pakistan-first, Global-ready education marketplace connecting students with institutions worldwide.
               </p>
             </div>
 
             <div>
-              <h4 className="font-bold text-gray-900 mb-4">Platform</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <h4 className="font-bold text-foreground mb-4">Platform</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/programs" className="hover:text-blue-600">Browse Programs</Link></li>
                 <li><Link href="/institutions" className="hover:text-blue-600">Institutions</Link></li>
                 <li><Link href="/about" className="hover:text-blue-600">About Us</Link></li>
@@ -465,8 +465,8 @@ export default function HomePage() {
             </div>
 
             <div>
-              <h4 className="font-bold text-gray-900 mb-4">Support</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <h4 className="font-bold text-foreground mb-4">Support</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/help" className="hover:text-blue-600">Help Center</Link></li>
                 <li><Link href="/terms" className="hover:text-blue-600">Terms of Service</Link></li>
                 <li><Link href="/privacy" className="hover:text-blue-600">Privacy Policy</Link></li>
@@ -475,11 +475,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-600">
+          <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
               © 2026 Global Admissions Platform. All rights reserved.
             </p>
-            <div className="flex items-center gap-6 text-sm text-gray-600">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <Link href="/terms" className="hover:text-blue-600">Terms</Link>
               <Link href="/privacy" className="hover:text-blue-600">Privacy</Link>
               <Link href="/cookies" className="hover:text-blue-600">Cookies</Link>

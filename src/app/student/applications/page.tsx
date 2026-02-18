@@ -65,16 +65,16 @@ export default function StudentApplicationsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Program</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Institution</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Category</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Applied</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Program</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Category</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Applied</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {applications.map((app) => (
-                                        <tr key={app.id} className="border-b last:border-0 hover:bg-gray-50">
+                                        <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
                                             <td className="py-3 text-sm font-medium">{app.program.title}</td>
                                             <td className="py-3 text-sm text-muted-foreground">
                                                 {app.program.institution.name}

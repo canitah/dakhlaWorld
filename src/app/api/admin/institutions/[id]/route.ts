@@ -51,7 +51,12 @@ export async function PUT(
 
         const updated = await prisma.institutionProfile.update({
             where: { id: parseInt(id) },
-            data: { status: parsed.data.status },
+            data: {
+                status: parsed.data.status,
+                rejection_reason: parsed.data.status === "rejected"
+                    ? (parsed.data.reason || null)
+                    : null,
+            },
         });
 
         // Send email notification and create in-app notification
@@ -61,18 +66,22 @@ export async function PUT(
             sendInstitutionApprovalEmail(
                 institution.user.email,
                 institution.name,
-                statusText
+                statusText,
+                parsed.data.reason
             ).catch(() => { });
         }
 
         // Create in-app notification for the institution user
+        const rejectionNote = parsed.data.reason
+            ? ` Reason: ${parsed.data.reason}`
+            : "";
         await prisma.notification.create({
             data: {
                 user_id: institution.user.id,
                 title: `Institution ${statusText === "approved" ? "Approved" : "Rejected"}`,
                 message: statusText === "approved"
                     ? `Your institution "${institution.name}" has been approved! You can now post programs and manage applications.`
-                    : `Your institution "${institution.name}" registration has been rejected. Please contact support for details.`,
+                    : `Your institution "${institution.name}" registration has been rejected.${rejectionNote}`,
                 type: `institution_${statusText}`,
                 link: "/institution",
             },

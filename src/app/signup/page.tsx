@@ -273,7 +273,7 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
             <div className="w-full max-w-md">
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
@@ -292,26 +292,25 @@ export default function SignupPage() {
                             />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-                    <p className="text-gray-600">Join GAP and start your journey</p>
+                    <h1 className="text-3xl font-bold text-foreground mb-2">Create Account</h1>
+                    <p className="text-muted-foreground">Join GAP and start your journey</p>
                 </div>
 
-                <Card className="border border-gray-200 shadow-sm">
+                <Card className="border border-border shadow-sm">
                     <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {/* Role Selector */}
                             <div>
-                                <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                                <Label className="text-sm font-medium text-foreground mb-3 block">
                                     I am a
                                 </Label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         type="button"
-                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${
-                                            formData.role === "student"
-                                                ? "border-blue-600 bg-blue-50 text-blue-700"
-                                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                                        }`}
+                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${formData.role === "student"
+                                                ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                                : "border-border bg-card text-foreground hover:border-muted-foreground"
+                                            }`}
                                         onClick={() =>
                                             setFormData({ ...formData, role: "student" })
                                         }
@@ -333,11 +332,10 @@ export default function SignupPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${
-                                            formData.role === "institution"
-                                                ? "border-blue-600 bg-blue-50 text-blue-700"
-                                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                                        }`}
+                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${formData.role === "institution"
+                                                ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                                : "border-border bg-card text-foreground hover:border-muted-foreground"
+                                            }`}
                                         onClick={() =>
                                             setFormData({ ...formData, role: "institution" })
                                         }
@@ -362,13 +360,13 @@ export default function SignupPage() {
 
                             {/* Email Field */}
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                                <Label htmlFor="email" className="text-sm font-medium text-foreground">
                                     Email Address
                                 </Label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-5 w-5 text-muted-foreground"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -385,7 +383,7 @@ export default function SignupPage() {
                                         id="email"
                                         type="email"
                                         placeholder="your@email.com"
-                                        className="pl-10 h-11 border-gray-300"
+                                        className="pl-10 h-11 border-border"
                                         value={formData.email}
                                         onChange={(e) =>
                                             setFormData({ ...formData, email: e.target.value })
@@ -396,13 +394,13 @@ export default function SignupPage() {
 
                             {/* Phone Field */}
                             <div className="space-y-2">
-                                <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                                    Phone Number <span className="text-gray-400">(optional)</span>
+                                <Label htmlFor="phone" className="text-sm font-medium text-foreground">
+                                    Phone Number <span className="text-muted-foreground">(optional)</span>
                                 </Label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-5 w-5 text-muted-foreground"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -419,7 +417,7 @@ export default function SignupPage() {
                                         id="phone"
                                         type="tel"
                                         placeholder="+92 300 1234567"
-                                        className="pl-10 h-11 border-gray-300"
+                                        className="pl-10 h-11 border-border"
                                         value={formData.phone}
                                         onChange={(e) =>
                                             setFormData({ ...formData, phone: e.target.value })
@@ -430,13 +428,13 @@ export default function SignupPage() {
 
                             {/* Password Field */}
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                                <Label htmlFor="password" className="text-sm font-medium text-foreground">
                                     Password
                                 </Label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-5 w-5 text-muted-foreground"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -453,7 +451,7 @@ export default function SignupPage() {
                                         id="password"
                                         type="password"
                                         placeholder="Min 8 characters"
-                                        className="pl-10 h-11 border-gray-300"
+                                        className="pl-10 h-11 border-border"
                                         value={formData.password}
                                         onChange={(e) =>
                                             setFormData({ ...formData, password: e.target.value })
@@ -462,7 +460,7 @@ export default function SignupPage() {
                                         minLength={8}
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-muted-foreground">
                                     Must be at least 8 characters long
                                 </p>
                             </div>
@@ -471,14 +469,14 @@ export default function SignupPage() {
                             <div className="space-y-2">
                                 <Label
                                     htmlFor="confirmPassword"
-                                    className="text-sm font-medium text-gray-700"
+                                    className="text-sm font-medium text-foreground"
                                 >
                                     Confirm Password
                                 </Label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-5 w-5 text-muted-foreground"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -495,7 +493,7 @@ export default function SignupPage() {
                                         id="confirmPassword"
                                         type="password"
                                         placeholder="Re-enter password"
-                                        className="pl-10 h-11 border-gray-300"
+                                        className="pl-10 h-11 border-border"
                                         value={formData.confirmPassword}
                                         onChange={(e) =>
                                             setFormData({
@@ -543,7 +541,7 @@ export default function SignupPage() {
                         </form>
 
                         <div className="mt-6 text-center">
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                                 Already have an account?{" "}
                                 <Link
                                     href="/login"
@@ -554,8 +552,8 @@ export default function SignupPage() {
                             </p>
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                            <p className="text-xs text-center text-gray-500">
+                        <div className="mt-6 pt-6 border-t border-border">
+                            <p className="text-xs text-center text-muted-foreground">
                                 By creating an account, you agree to our{" "}
                                 <Link href="/terms" className="text-blue-600 hover:underline">
                                     Terms of Service
@@ -573,7 +571,7 @@ export default function SignupPage() {
                 <div className="mt-6 text-center">
                     <Link
                         href="/"
-                        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                     >
                         <svg
                             className="w-4 h-4"

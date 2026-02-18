@@ -49,6 +49,10 @@ export default function AdminInstitutionsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [rejectTarget, setRejectTarget] = useState<Institution | null>(null);
+    const [rejectReason, setRejectReason] = useState("");
+    const [isRejectOpen, setIsRejectOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         loadInstitutions();
@@ -64,19 +68,33 @@ export default function AdminInstitutionsPage() {
         setIsLoading(false);
     }
 
-    const handleAction = async (id: number, status: "approved" | "rejected") => {
-        const res = await fetchWithAuth(`/admin/institutions/${id}`, {
-            method: "PUT",
-            body: JSON.stringify({ status }),
-        });
-        if (res.ok) {
-            toast.success(`Institution ${status}`);
-            setIsDetailOpen(false);
-            loadInstitutions();
-        } else {
-            const data = await res.json();
-            toast.error(data.error || "Action failed");
+    const handleAction = async (id: number, status: "approved" | "rejected", reason?: string) => {
+        setIsSubmitting(true);
+        try {
+            const res = await fetchWithAuth(`/admin/institutions/${id}`, {
+                method: "PUT",
+                body: JSON.stringify({ status, ...(reason ? { reason } : {}) }),
+            });
+            if (res.ok) {
+                toast.success(`Institution ${status}`);
+                setIsDetailOpen(false);
+                setIsRejectOpen(false);
+                setRejectReason("");
+                setRejectTarget(null);
+                loadInstitutions();
+            } else {
+                const data = await res.json();
+                toast.error(data.error || "Action failed");
+            }
+        } finally {
+            setIsSubmitting(false);
         }
+    };
+
+    const openRejectDialog = (inst: Institution) => {
+        setRejectTarget(inst);
+        setRejectReason("");
+        setIsRejectOpen(true);
     };
 
     const viewDetail = (inst: Institution) => {
@@ -121,32 +139,32 @@ export default function AdminInstitutionsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Name</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Email</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Category</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">City</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Profile</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Registered</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Actions</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Name</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Email</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Category</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">City</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Profile</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Registered</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {institutions.map((inst) => {
                                         const complete = isProfileComplete(inst);
                                         return (
-                                            <tr key={inst.id} className="border-b last:border-0 hover:bg-gray-50">
+                                            <tr key={inst.id} className="border-b last:border-0 hover:bg-accent/50">
                                                 <td className="py-3 text-sm font-medium">{inst.name}</td>
                                                 <td className="py-3 text-sm text-muted-foreground">{inst.user.email || inst.contact_email || "—"}</td>
                                                 <td className="py-3 text-sm text-muted-foreground">{inst.category || "—"}</td>
                                                 <td className="py-3 text-sm text-muted-foreground">{inst.city || "—"}</td>
                                                 <td className="py-3">
                                                     {complete ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                                                             ✓ Complete
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                                                             ⚠ Incomplete
                                                         </span>
                                                     )}
@@ -156,9 +174,32 @@ export default function AdminInstitutionsPage() {
                                                     {new Date(inst.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="py-3">
-                                                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => viewDetail(inst)}>
-                                                        View Details
-                                                    </Button>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => viewDetail(inst)}>
+                                                            View
+                                                        </Button>
+                                                        {inst.status === "pending" && (
+                                                            <>
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700"
+                                                                    disabled={!isProfileComplete(inst) || isSubmitting}
+                                                                    onClick={() => handleAction(inst.id, "approved")}
+                                                                >
+                                                                    Approve
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    className="text-xs h-7"
+                                                                    disabled={isSubmitting}
+                                                                    onClick={() => openRejectDialog(inst)}
+                                                                >
+                                                                    Reject
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -183,18 +224,18 @@ export default function AdminInstitutionsPage() {
                             <div className="space-y-4">
                                 {/* Profile Completeness Banner */}
                                 {!complete && (
-                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-amber-800">
+                                    <div className="bg-amber-500/10 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
                                             ⚠️ Profile Incomplete — Cannot be approved
                                         </p>
-                                        <p className="text-xs text-amber-600 mt-1">
+                                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
                                             Missing: {missing.join(", ")}
                                         </p>
                                     </div>
                                 )}
                                 {complete && (
-                                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-emerald-800">
+                                    <div className="bg-emerald-500/10 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3">
+                                        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-400">
                                             ✅ Profile Complete — Ready for review
                                         </p>
                                     </div>
@@ -263,7 +304,7 @@ export default function AdminInstitutionsPage() {
                                         <Button
                                             variant="destructive"
                                             className="flex-1"
-                                            onClick={() => handleAction(selectedInst.id, "rejected")}
+                                            onClick={() => { setIsDetailOpen(false); openRejectDialog(selectedInst); }}
                                         >
                                             Reject
                                         </Button>
@@ -272,6 +313,39 @@ export default function AdminInstitutionsPage() {
                             </div>
                         );
                     })()}
+                </DialogContent>
+            </Dialog>
+            {/* Rejection Reason Dialog */}
+            <Dialog open={isRejectOpen} onOpenChange={(open) => { if (!open) { setIsRejectOpen(false); setRejectTarget(null); setRejectReason(""); } }}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Reject Institution</DialogTitle>
+                    </DialogHeader>
+                    {rejectTarget && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                You are rejecting <strong>{rejectTarget.name}</strong>. Please provide a reason for the rejection (optional but recommended).
+                            </p>
+                            <textarea
+                                className="w-full min-h-[100px] rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                placeholder="e.g. Incomplete documentation, unverifiable institution details..."
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="outline" onClick={() => { setIsRejectOpen(false); setRejectTarget(null); setRejectReason(""); }}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    disabled={isSubmitting}
+                                    onClick={() => handleAction(rejectTarget.id, "rejected", rejectReason.trim() || undefined)}
+                                >
+                                    {isSubmitting ? "Rejecting..." : "Confirm Rejection"}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </DashboardLayout>

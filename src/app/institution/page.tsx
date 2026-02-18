@@ -1,3 +1,253 @@
+// "use client";
+
+// import { useEffect, useState } from "react";
+// import { useApi } from "@/hooks/use-api";
+// import { DashboardLayout } from "@/components/dashboard-layout";
+// import { StatsCard, StatusBadge } from "@/components/stats-card";
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Button } from "@/components/ui/button";
+// import { Badge } from "@/components/ui/badge";
+// import Link from "next/link";
+// import { toast } from "sonner";
+
+// interface InstitutionProfile {
+//     id: number;
+//     name: string;
+//     status: string;
+//     payment_requests: Array<{ plan: { name: string } }>;
+//     _count: { programs: number };
+// }
+
+// interface Application {
+//     id: number;
+//     status: string;
+//     created_at: string;
+//     student: {
+//         id: number;
+//         full_name: string | null;
+//         user: { email: string | null };
+//     };
+//     program: { id: number; title: string };
+// }
+
+// interface Program {
+//     id: number;
+//     title: string;
+//     category: string | null;
+//     is_active: boolean;
+//     _count: { applications: number };
+// }
+
+// export default function InstitutionDashboard() {
+//     const { fetchWithAuth } = useApi();
+//     const [profile, setProfile] = useState<InstitutionProfile | null>(null);
+//     const [applications, setApplications] = useState<Application[]>([]);
+//     const [programs, setPrograms] = useState<Program[]>([]);
+//     const [isLoading, setIsLoading] = useState(true);
+
+//     useEffect(() => {
+//         loadData();
+//     }, []);
+
+//     async function loadData() {
+//         try {
+//             const [profRes, appRes, progRes] = await Promise.all([
+//                 fetchWithAuth("/institutions/profile"),
+//                 fetchWithAuth("/institutions/applications"),
+//                 fetchWithAuth("/institutions/programs"),
+//             ]);
+
+//             if (profRes.ok) {
+//                 const data = await profRes.json();
+//                 setProfile(data.profile);
+//             }
+//             if (appRes.ok) {
+//                 const data = await appRes.json();
+//                 setApplications(data.applications);
+//             }
+//             if (progRes.ok) {
+//                 const data = await progRes.json();
+//                 setPrograms(data.programs);
+//             }
+//         } catch {
+//             toast.error("Failed to load data");
+//         } finally {
+//             setIsLoading(false);
+//         }
+//     }
+
+//     const handleStatusUpdate = async (appId: number, status: string) => {
+//         const res = await fetchWithAuth(`/institutions/applications/${appId}`, {
+//             method: "PUT",
+//             body: JSON.stringify({ status }),
+//         });
+//         if (res.ok) {
+//             toast.success(`Application ${status}`);
+//             loadData();
+//         }
+//     };
+
+//     if (isLoading) {
+//         return (
+//             <DashboardLayout role="institution">
+//                 <div className="flex items-center justify-center h-64">
+//                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+//                 </div>
+//             </DashboardLayout>
+//         );
+//     }
+
+//     // Pending approval gate
+//     if (profile && profile.status === "pending") {
+//         return (
+//             <DashboardLayout role="institution">
+//                 <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+//                     <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center text-4xl mb-6">
+//                         ⏳
+//                     </div>
+//                     <h1 className="text-2xl font-bold mb-3">Pending Approval</h1>
+//                     <p className="text-muted-foreground max-w-md mb-6">
+//                         Your institution is currently under review by our admin team.
+//                         You&apos;ll get access to the full dashboard once approved.
+//                     </p>
+//                     <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-500/10 px-4 py-1">
+//                         Status: Awaiting Approval
+//                     </Badge>
+//                 </div>
+//             </DashboardLayout>
+//         );
+//     }
+
+//     if (profile && profile.status === "rejected") {
+//         return (
+//             <DashboardLayout role="institution">
+//                 <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+//                     <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center text-4xl mb-6">
+//                         ❌
+//                     </div>
+//                     <h1 className="text-2xl font-bold mb-3">Application Rejected</h1>
+//                     <p className="text-muted-foreground max-w-md">
+//                         Unfortunately, your institution registration was not approved.
+//                         Please contact support for more information.
+//                     </p>
+//                 </div>
+//             </DashboardLayout>
+//         );
+//     }
+
+//     const currentPlan = profile?.payment_requests?.[0]?.plan?.name || "Free";
+//     const totalLeads = applications.length;
+//     const newApps = applications.filter((a) => a.status === "submitted").length;
+
+//     return (
+//         <DashboardLayout role="institution">
+//             <h1 className="text-2xl font-bold mb-2">Welcome, {profile?.name}!</h1>
+//             <p className="text-muted-foreground mb-6">Manage your programs and applications</p>
+
+//             {/* Stats */}
+//             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+//                 <StatsCard title="Active Programs" value={programs.filter((p) => p.is_active).length} icon="📚" />
+//                 <StatsCard title="New Applications" value={newApps} icon="📩" />
+//                 <StatsCard
+//                     title="Current Plan"
+//                     value={currentPlan}
+//                     icon="💎"
+//                     className={currentPlan === "Featured" ? "border-amber-300 dark:border-amber-700 bg-amber-500/10" : ""}
+//                 />
+//                 <StatsCard title="Total Leads" value={totalLeads} icon="👥" />
+//             </div>
+
+//             {/* Applications Overview */}
+//             <Card className="mb-8">
+//                 <CardHeader className="flex flex-row items-center justify-between">
+//                     <CardTitle>Applications Overview</CardTitle>
+//                     <Link href="/institution/applications">
+//                         <Button variant="ghost" size="sm" className="text-blue-600">
+//                             View All →
+//                         </Button>
+//                     </Link>
+//                 </CardHeader>
+//                 <CardContent>
+//                     {applications.length === 0 ? (
+//                         <p className="text-center py-6 text-muted-foreground">No applications yet</p>
+//                     ) : (
+//                         <div className="overflow-x-auto">
+//                             <table className="w-full">
+//                                 <thead>
+//                                     <tr className="border-b text-left">
+//                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Applicant</th>
+//                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Program</th>
+//                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+//                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
+//                                     </tr>
+//                                 </thead>
+//                                 <tbody>
+//                                     {applications.slice(0, 5).map((app) => (
+//                                         <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
+//                                             <td className="py-3 text-sm font-medium">
+//                                                 {app.student.full_name || app.student.user.email || "Unknown"}
+//                                             </td>
+//                                             <td className="py-3 text-sm text-muted-foreground">{app.program.title}</td>
+//                                             <td className="py-3">
+//                                                 <StatusBadge status={app.status} />
+//                                             </td>
+//                                             <td className="py-3">
+//                                                 <div className="flex gap-1">
+//                                                     <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleStatusUpdate(app.id, "viewed")}>
+//                                                         View
+//                                                     </Button>
+//                                                     {app.status !== "accepted" && (
+//                                                         <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusUpdate(app.id, "accepted")}>
+//                                                             Accept
+//                                                         </Button>
+//                                                     )}
+//                                                 </div>
+//                                             </td>
+//                                         </tr>
+//                                     ))}
+//                                 </tbody>
+//                             </table>
+//                         </div>
+//                     )}
+//                 </CardContent>
+//             </Card>
+
+//             {/* Manage Programs */}
+//             <div className="flex items-center justify-between mb-4">
+//                 <h2 className="text-xl font-bold">Manage Programs</h2>
+//                 <Link href="/institution/programs">
+//                     <Button className="bg-blue-600 hover:bg-blue-700">+ Post New Program</Button>
+//                 </Link>
+//             </div>
+//             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+//                 {programs.slice(0, 6).map((program) => (
+//                     <Card key={program.id} className="hover:shadow-lg transition-all">
+//                         <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+//                         <CardHeader className="pb-2">
+//                             <CardTitle className="text-base">{program.title}</CardTitle>
+//                         </CardHeader>
+//                         <CardContent>
+//                             <div className="flex flex-wrap gap-1.5 mb-3">
+//                                 {program.category && <Badge variant="secondary">{program.category}</Badge>}
+//                                 <Badge variant="outline">{program._count.applications} applications</Badge>
+//                                 <Badge variant={program.is_active ? "default" : "secondary"}>
+//                                     {program.is_active ? "Active" : "Inactive"}
+//                                 </Badge>
+//                             </div>
+//                             <div className="flex gap-2">
+//                                 <Link href={`/institution/programs?edit=${program.id}`} className="flex-1">
+//                                     <Button size="sm" variant="outline" className="w-full text-xs">
+//                                         Edit
+//                                     </Button>
+//                                 </Link>
+//                             </div>
+//                         </CardContent>
+//                     </Card>
+//                 ))}
+//             </div>
+//         </DashboardLayout>
+//     );
+// }
 "use client";
 
 import { useEffect, useState } from "react";
@@ -38,12 +288,81 @@ interface Program {
     _count: { applications: number };
 }
 
+// SVG Icon Components
+const BookIcon = () => (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    </svg>
+);
+
+const InboxIcon = () => (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+    </svg>
+);
+
+const StarIcon = () => (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+    </svg>
+);
+
+const UsersIcon = () => (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+);
+
+const ClockIcon = () => (
+    <svg className="w-16 h-16 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+const XCircleIcon = () => (
+    <svg className="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+const PlusIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+);
+
+const PencilIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+);
+
+const ArrowRightIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+    </svg>
+);
+
+const CheckIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+);
+
+const EyeIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+);
+
 export default function InstitutionDashboard() {
     const { fetchWithAuth } = useApi();
     const [profile, setProfile] = useState<InstitutionProfile | null>(null);
     const [applications, setApplications] = useState<Application[]>([]);
     const [programs, setPrograms] = useState<Program[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAppealing, setIsAppealing] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -91,7 +410,10 @@ export default function InstitutionDashboard() {
         return (
             <DashboardLayout role="institution">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+                    </div>
                 </div>
             </DashboardLayout>
         );
@@ -101,16 +423,17 @@ export default function InstitutionDashboard() {
     if (profile && profile.status === "pending") {
         return (
             <DashboardLayout role="institution">
-                <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-                    <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center text-4xl mb-6">
-                        ⏳
+                <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+                    <div className="w-24 h-24 rounded-full bg-amber-500/10 border border-amber-300 dark:border-amber-700 flex items-center justify-center mb-6">
+                        <ClockIcon />
                     </div>
                     <h1 className="text-2xl font-bold mb-3">Pending Approval</h1>
-                    <p className="text-muted-foreground max-w-md mb-6">
+                    <p className="text-muted-foreground max-w-md mb-6 leading-relaxed">
                         Your institution is currently under review by our admin team.
                         You&apos;ll get access to the full dashboard once approved.
                     </p>
-                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 px-4 py-1">
+                    <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-500/10 px-4 py-1 gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                         Status: Awaiting Approval
                     </Badge>
                 </div>
@@ -119,17 +442,64 @@ export default function InstitutionDashboard() {
     }
 
     if (profile && profile.status === "rejected") {
+        const handleAppeal = async () => {
+            setIsAppealing(true);
+            try {
+                const res = await fetchWithAuth("/institutions/appeal", {
+                    method: "POST",
+                });
+                if (res.ok) {
+                    toast.success("Appeal submitted! Your institution is now pending re-approval.");
+                    loadData();
+                } else {
+                    const data = await res.json();
+                    toast.error(data.error || "Failed to submit appeal");
+                }
+            } catch {
+                toast.error("Failed to submit appeal");
+            } finally {
+                setIsAppealing(false);
+            }
+        };
+
         return (
             <DashboardLayout role="institution">
-                <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-                    <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center text-4xl mb-6">
-                        ❌
+                <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+                    <div className="w-24 h-24 rounded-full bg-red-500/10 border border-red-300 dark:border-red-800 flex items-center justify-center mb-6">
+                        <XCircleIcon />
                     </div>
                     <h1 className="text-2xl font-bold mb-3">Application Rejected</h1>
-                    <p className="text-muted-foreground max-w-md">
+                    <p className="text-muted-foreground max-w-md leading-relaxed mb-6">
                         Unfortunately, your institution registration was not approved.
-                        Please contact support for more information.
+                        You can update your profile and appeal for re-approval.
                     </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Link href="/institution/profile">
+                            <Button variant="outline" className="gap-2">
+                                <PencilIcon />
+                                Update Profile
+                            </Button>
+                        </Link>
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700 gap-2"
+                            onClick={handleAppeal}
+                            disabled={isAppealing}
+                        >
+                            {isAppealing ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Submitting Appeal...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Appeal for Re-Approval
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
             </DashboardLayout>
         );
@@ -141,63 +511,169 @@ export default function InstitutionDashboard() {
 
     return (
         <DashboardLayout role="institution">
-            <h1 className="text-2xl font-bold mb-2">Welcome, {profile?.name}!</h1>
-            <p className="text-muted-foreground mb-6">Manage your programs and applications</p>
+            {/* Page Header */}
+            <div className="mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold">
+                            Welcome, {profile?.name}!
+                        </h1>
+                        <p className="text-muted-foreground mt-1">Manage your programs and applications</p>
+                    </div>
+                    <Badge
+                        variant="outline"
+                        className={`self-start sm:self-auto gap-2 px-3 py-1.5 text-xs font-semibold ${currentPlan === "Featured"
+                            ? "text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-500/10"
+                            : ""
+                            }`}
+                    >
+                        {currentPlan === "Featured" ? (
+                            <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                        ) : null}
+                        {currentPlan} Plan
+                    </Badge>
+                </div>
+            </div>
 
-            {/* Stats */}
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatsCard title="Active Programs" value={programs.filter((p) => p.is_active).length} icon="📚" />
-                <StatsCard title="New Applications" value={newApps} icon="📩" />
-                <StatsCard
-                    title="Current Plan"
-                    value={currentPlan}
-                    icon="💎"
-                    className={currentPlan === "Featured" ? "border-amber-300 bg-amber-50/50" : ""}
-                />
-                <StatsCard title="Total Leads" value={totalLeads} icon="👥" />
+                <div className="bg-card rounded-xl border py-5 px-5 hover:shadow-md transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm font-medium text-muted-foreground">Active Programs</p>
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                            <BookIcon />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold">{programs.filter((p) => p.is_active).length}</p>
+                    <p className="text-xs text-muted-foreground mt-1">of {programs.length} total programs</p>
+                </div>
+
+                <div className="bg-card rounded-xl border py-5 px-5 hover:shadow-md transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm font-medium text-muted-foreground">New Applications</p>
+                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <InboxIcon />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold">{newApps}</p>
+                    <p className="text-xs text-muted-foreground mt-1">awaiting your review</p>
+                </div>
+
+                <div className={`rounded-xl border py-5 px-5 hover:shadow-md transition-all ${currentPlan === "Featured"
+                    ? "bg-amber-500/10 border-amber-300 dark:border-amber-700"
+                    : "bg-card"
+                    }`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <p className={`text-sm font-medium ${currentPlan === "Featured" ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
+                            Current Plan
+                        </p>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${currentPlan === "Featured"
+                            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                            : "bg-muted text-muted-foreground"
+                            }`}>
+                            <StarIcon />
+                        </div>
+                    </div>
+                    <p className={`text-3xl font-bold ${currentPlan === "Featured" ? "text-amber-700 dark:text-amber-300" : ""}`}>
+                        {currentPlan}
+                    </p>
+                    <Link href="/institution/billing">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 hover:underline cursor-pointer">
+                            {currentPlan === "Featured" ? "Manage plan →" : "Upgrade plan →"}
+                        </p>
+                    </Link>
+                </div>
+
+                <div className="bg-card rounded-xl border py-5 px-5 hover:shadow-md transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                            <UsersIcon />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold">{totalLeads}</p>
+                    <p className="text-xs text-muted-foreground mt-1">total applicants</p>
+                </div>
             </div>
 
             {/* Applications Overview */}
             <Card className="mb-8">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Applications Overview</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                    <div>
+                        <CardTitle>Applications Overview</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-0.5">Recent student applications</p>
+                    </div>
                     <Link href="/institution/applications">
-                        <Button variant="ghost" size="sm" className="text-blue-600">
-                            View All →
+                        <Button variant="outline" size="sm" className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                            View All
+                            <ArrowRightIcon />
                         </Button>
                     </Link>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                     {applications.length === 0 ? (
-                        <p className="text-center py-6 text-muted-foreground">No applications yet</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3 text-muted-foreground">
+                                <InboxIcon />
+                            </div>
+                            <p className="font-medium">No applications yet</p>
+                            <p className="text-muted-foreground text-sm mt-1">Applications will appear here once students apply</p>
+                        </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto -mx-6">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Applicant</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Program</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Actions</th>
+                                    <tr className="bg-muted/50">
+                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Applicant</th>
+                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Program</th>
+                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-border">
                                     {applications.slice(0, 5).map((app) => (
-                                        <tr key={app.id} className="border-b last:border-0 hover:bg-gray-50">
-                                            <td className="py-3 text-sm font-medium">
-                                                {app.student.full_name || app.student.user.email || "Unknown"}
+                                        <tr key={app.id} className="hover:bg-accent/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
+                                                        {(app.student.full_name || app.student.user.email || "?")[0].toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">
+                                                            {app.student.full_name || app.student.user.email || "Unknown"}
+                                                        </p>
+                                                        {app.student.full_name && (
+                                                            <p className="text-xs text-muted-foreground">{app.student.user.email}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </td>
-                                            <td className="py-3 text-sm text-muted-foreground">{app.program.title}</td>
-                                            <td className="py-3">
+                                            <td className="px-6 py-4">
+                                                <p className="text-sm text-muted-foreground">{app.program.title}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 <StatusBadge status={app.status} />
                                             </td>
-                                            <td className="py-3">
-                                                <div className="flex gap-1">
-                                                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleStatusUpdate(app.id, "viewed")}>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 px-3 flex items-center gap-1.5 text-xs"
+                                                        onClick={() => handleStatusUpdate(app.id, "viewed")}
+                                                    >
+                                                        <EyeIcon />
                                                         View
                                                     </Button>
                                                     {app.status !== "accepted" && (
-                                                        <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusUpdate(app.id, "accepted")}>
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 px-3 flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
+                                                            onClick={() => handleStatusUpdate(app.id, "accepted")}
+                                                        >
+                                                            <CheckIcon />
                                                             Accept
                                                         </Button>
                                                     )}
@@ -213,38 +689,78 @@ export default function InstitutionDashboard() {
             </Card>
 
             {/* Manage Programs */}
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Manage Programs</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h2 className="text-xl font-bold">Manage Programs</h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">Your posted programs and their performance</p>
+                </div>
                 <Link href="/institution/programs">
-                    <Button className="bg-blue-600 hover:bg-blue-700">+ Post New Program</Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 shadow-sm">
+                        <PlusIcon />
+                        Post New Program
+                    </Button>
                 </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {programs.slice(0, 6).map((program) => (
-                    <Card key={program.id} className="hover:shadow-lg transition-all">
-                        <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">{program.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                                {program.category && <Badge variant="secondary">{program.category}</Badge>}
-                                <Badge variant="outline">{program._count.applications} applications</Badge>
-                                <Badge variant={program.is_active ? "default" : "secondary"}>
-                                    {program.is_active ? "Active" : "Inactive"}
-                                </Badge>
-                            </div>
-                            <div className="flex gap-2">
-                                <Link href={`/institution/programs?edit=${program.id}`} className="flex-1">
-                                    <Button size="sm" variant="outline" className="w-full text-xs">
-                                        Edit
+
+            {programs.length === 0 ? (
+                <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 text-muted-foreground">
+                        <BookIcon />
+                    </div>
+                    <p className="font-medium">No programs posted yet</p>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">Start by posting your first program</p>
+                    <Link href="/institution/programs">
+                        <Button className="bg-blue-600 hover:bg-blue-700">
+                            Post Your First Program
+                        </Button>
+                    </Link>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {programs.slice(0, 6).map((program) => (
+                        <div key={program.id} className="bg-card rounded-xl border hover:shadow-md transition-all overflow-hidden group">
+                            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600"></div>
+                            <div className="p-5">
+                                <div className="flex items-start justify-between mb-3">
+                                    <h3 className="text-sm font-semibold leading-snug flex-1 pr-2">
+                                        {program.title}
+                                    </h3>
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 border ${program.is_active
+                                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                        : "bg-muted text-muted-foreground border"
+                                        }`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${program.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}></span>
+                                        {program.is_active ? "Active" : "Inactive"}
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {program.category && (
+                                        <Badge variant="secondary">{program.category}</Badge>
+                                    )}
+                                    <Badge variant="outline" className="flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        {program._count.applications} applicant{program._count.applications !== 1 ? "s" : ""}
+                                    </Badge>
+                                </div>
+
+                                <Link href={`/institution/programs?edit=${program.id}`} className="block">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full flex items-center justify-center gap-2 text-xs h-9 transition-colors"
+                                    >
+                                        <PencilIcon />
+                                        Edit Program
                                     </Button>
                                 </Link>
                             </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </DashboardLayout>
     );
 }

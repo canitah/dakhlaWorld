@@ -84,16 +84,16 @@ export default function AdminApplicationsPage() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b text-left">
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Student</th>
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Program</th>
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Institution</th>
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Date</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Student</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Program</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {applications.map((app) => (
-                                            <tr key={app.id} className="border-b last:border-0 hover:bg-gray-50">
+                                            <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
                                                 <td className="py-3">
                                                     <p className="text-sm font-medium">{app.student.full_name || "—"}</p>
                                                     <p className="text-xs text-muted-foreground">{app.student.user.email}</p>

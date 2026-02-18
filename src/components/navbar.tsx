@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useNotificationStore } from "@/store/notification-store";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -28,6 +29,7 @@ export function Navbar() {
         markAsRead,
         markAllRead,
     } = useNotificationStore();
+    const { theme, setTheme } = useTheme();
     const router = useRouter();
     const notifRef = useRef<HTMLDivElement>(null);
     const [isMounted, setIsMounted] = useState(false);
@@ -156,7 +158,7 @@ export function Navbar() {
     if (!isMounted) return null;
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+        <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
             <div className="flex h-16 items-center justify-between px-4 md:px-6 max-w-screen-2xl mx-auto">
                 {/* Logo */}
                 <Link
@@ -179,22 +181,40 @@ export function Navbar() {
                         </svg>
                     </div>
                     <div className="hidden sm:block">
-                        <h1 className="text-xl font-bold text-gray-900">GAP</h1>
-                        <p className="text-xs text-gray-500 -mt-0.5">Global Admissions</p>
+                        <h1 className="text-xl font-bold text-foreground">GAP</h1>
+                        <p className="text-xs text-muted-foreground -mt-0.5">Global Admissions</p>
                     </div>
                 </Link>
 
                 {/* Right Section */}
                 <div className="flex items-center gap-3 md:gap-4">
+                    {/* Theme Toggle */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full"
+                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    >
+                        {/* Sun icon (shown in dark mode) */}
+                        <svg className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        {/* Moon icon (shown in light mode) */}
+                        <svg className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </Button>
+
                     {isAuthenticated && user ? (
                         <>
                             {/* User Info - Hidden on mobile */}
                             <div className="hidden md:flex items-center gap-3">
                                 <div className="text-right">
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-foreground">
                                         {user.email || user.phone}
                                     </p>
-                                    <p className="text-xs text-gray-500 capitalize">
+                                    <p className="text-xs text-muted-foreground capitalize">
                                         {user.role} Account
                                     </p>
                                 </div>
@@ -205,11 +225,11 @@ export function Navbar() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="relative h-10 w-10 rounded-full hover:bg-gray-100"
+                                    className="relative h-10 w-10 rounded-full"
                                     onClick={() => setNotifOpen(!notifOpen)}
                                 >
                                     <svg
-                                        className="h-5 w-5 text-gray-600"
+                                        className="h-5 w-5 text-muted-foreground"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -222,7 +242,7 @@ export function Navbar() {
                                         />
                                     </svg>
                                     {unreadCount > 0 && (
-                                        <span className="absolute top-1.5 right-1.5 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold ring-2 ring-white">
+                                        <span className="absolute top-1.5 right-1.5 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold ring-2 ring-background">
                                             {unreadCount > 9 ? "9+" : unreadCount}
                                         </span>
                                     )}
@@ -230,10 +250,10 @@ export function Navbar() {
 
                                 {/* Notification Dropdown */}
                                 {notifOpen && (
-                                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-popover rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                         {/* Header */}
-                                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/80">
-                                            <h3 className="text-sm font-semibold text-gray-900">
+                                        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
+                                            <h3 className="text-sm font-semibold text-foreground">
                                                 Notifications
                                             </h3>
                                             {unreadCount > 0 && (
@@ -260,7 +280,7 @@ export function Navbar() {
                                                     <button
                                                         key={notif.id}
                                                         onClick={() => handleNotificationClick(notif)}
-                                                        className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${!notif.is_read
+                                                        className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-accent/50 transition-colors border-b border-accent/50 last:border-0 ${!notif.is_read
                                                             ? "bg-blue-50/60"
                                                             : ""
                                                             }`}
@@ -304,7 +324,7 @@ export function Navbar() {
                                         variant="ghost"
                                         className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-blue-100 transition-all"
                                     >
-                                        <Avatar className="h-10 w-10 border-2 border-gray-200">
+                                        <Avatar className="h-10 w-10 border-2 border-border">
                                             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                                                 {getInitials()}
                                             </AvatarFallback>
@@ -385,7 +405,7 @@ export function Navbar() {
                             <Button
                                 variant="ghost"
                                 asChild
-                                className="font-medium hover:bg-gray-100"
+                                className="font-medium hover:bg-accent"
                             >
                                 <Link href="/login">
                                     <span className="hidden sm:inline">Log in</span>

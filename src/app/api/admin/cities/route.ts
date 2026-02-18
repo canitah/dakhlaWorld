@@ -15,7 +15,19 @@ export async function GET(request: Request) {
             orderBy: { name: "asc" },
         });
 
-        return NextResponse.json({ cities });
+        // Count institutions per city name (city is stored as a plain string on InstitutionProfile)
+        const instCounts = await prisma.institutionProfile.groupBy({
+            by: ["city"],
+            _count: { city: true },
+        });
+        const countMap = new Map(instCounts.map((ic) => [ic.city, ic._count.city]));
+
+        const citiesWithCounts = cities.map((c) => ({
+            ...c,
+            _count: { institutions: countMap.get(c.name) || 0 },
+        }));
+
+        return NextResponse.json({ cities: citiesWithCounts });
     } catch (error) {
         console.error("List cities error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

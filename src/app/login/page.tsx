@@ -162,7 +162,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
             <div className="w-full max-w-md">
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
@@ -181,22 +181,22 @@ export default function LoginPage() {
                             />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-                    <p className="text-gray-600">Sign in to your GAP account</p>
+                    <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
+                    <p className="text-muted-foreground">Sign in to your GAP account</p>
                 </div>
 
-                <Card className="border border-gray-200 shadow-sm">
+                <Card className="border border-border shadow-sm">
                     <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {/* Email Field */}
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                                <Label htmlFor="email" className="text-sm font-medium text-foreground">
                                     Email Address
                                 </Label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-5 w-5 text-muted-foreground"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -213,7 +213,7 @@ export default function LoginPage() {
                                         id="email"
                                         type="email"
                                         placeholder="your@email.com"
-                                        className="pl-10 h-11 border-gray-300"
+                                        className="pl-10 h-11 border-border"
                                         value={formData.email}
                                         onChange={(e) =>
                                             setFormData({ ...formData, email: e.target.value })
@@ -226,7 +226,7 @@ export default function LoginPage() {
                             {/* Password Field */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                                    <Label htmlFor="password" className="text-sm font-medium text-foreground">
                                         Password
                                     </Label>
                                     <Link
@@ -239,7 +239,7 @@ export default function LoginPage() {
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg
-                                            className="h-5 w-5 text-gray-400"
+                                            className="h-5 w-5 text-muted-foreground"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -256,7 +256,7 @@ export default function LoginPage() {
                                         id="password"
                                         type="password"
                                         placeholder="Enter your password"
-                                        className="pl-10 h-11 border-gray-300"
+                                        className="pl-10 h-11 border-border"
                                         value={formData.password}
                                         onChange={(e) =>
                                             setFormData({ ...formData, password: e.target.value })
@@ -301,7 +301,7 @@ export default function LoginPage() {
                         </form>
 
                         <div className="mt-6 text-center">
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                                 Don&apos;t have an account?{" "}
                                 <Link
                                     href="/signup"
@@ -312,17 +312,17 @@ export default function LoginPage() {
                             </p>
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                            <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-                                <Link href="/terms" className="hover:text-gray-900 hover:underline">
+                        <div className="mt-6 pt-6 border-t border-border">
+                            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                                <Link href="/terms" className="hover:text-foreground hover:underline">
                                     Terms of Service
                                 </Link>
-                                <span className="text-gray-300">•</span>
-                                <Link href="/privacy" className="hover:text-gray-900 hover:underline">
+                                <span className="text-border">•</span>
+                                <Link href="/privacy" className="hover:text-foreground hover:underline">
                                     Privacy Policy
                                 </Link>
-                                <span className="text-gray-300">•</span>
-                                <Link href="/help" className="hover:text-gray-900 hover:underline">
+                                <span className="text-border">•</span>
+                                <Link href="/help" className="hover:text-foreground hover:underline">
                                     Help Center
                                 </Link>
                             </div>
@@ -334,7 +334,7 @@ export default function LoginPage() {
                 <div className="mt-6 text-center">
                     <Link
                         href="/"
-                        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                     >
                         <svg
                             className="w-4 h-4"

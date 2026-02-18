@@ -28,7 +28,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
         }
 
-        const cv_url = await uploadToCloudinary(file, "gap/cvs");
+        const uploadedUrl = await uploadToCloudinary(file, "gap/cvs");
+        // Cloudinary returns /image/upload/ for PDFs with resource_type "auto",
+        // but browsers need /raw/upload/ to render PDFs correctly.
+        const cv_url = uploadedUrl.replace("/image/upload/", "/raw/upload/");
 
         await prisma.studentProfile.update({
             where: { user_id: authResult.user.userId },

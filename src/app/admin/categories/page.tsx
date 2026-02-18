@@ -107,7 +107,7 @@ export default function AdminCategoriesPage() {
                     ) : (
                         <div className="space-y-2">
                             {categories.map((cat) => (
-                                <div key={cat.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                                <div key={cat.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50">
                                     <div>
                                         <p className="text-sm font-medium">{cat.name}</p>
                                         <p className="text-xs text-muted-foreground">{cat._count.programs} programs</p>

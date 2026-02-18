@@ -107,7 +107,7 @@ export default function AdminCitiesPage() {
                     ) : (
                         <div className="space-y-2">
                             {cities.map((city) => (
-                                <div key={city.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                                <div key={city.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50">
                                     <div>
                                         <p className="text-sm font-medium">{city.name}</p>
                                         <p className="text-xs text-muted-foreground">{city._count.institutions} institutions</p>

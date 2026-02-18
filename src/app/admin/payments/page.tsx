@@ -83,21 +83,21 @@ export default function AdminPaymentsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Institution</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Plan</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Amount</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Reference</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Screenshot</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-gray-600">Date</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Plan</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Amount</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Reference</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Screenshot</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
                                         {filter === "pending" && (
-                                            <th className="pb-3 text-sm font-semibold text-gray-600">Actions</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
                                         )}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {requests.map((req) => (
-                                        <tr key={req.id} className="border-b last:border-0 hover:bg-gray-50">
+                                        <tr key={req.id} className="border-b last:border-0 hover:bg-accent/50">
                                             <td className="py-3 text-sm font-medium">{req.institution.name}</td>
                                             <td className="py-3 text-sm">{req.plan.name}</td>
                                             <td className="py-3 text-sm">PKR {req.plan.price_pkr.toLocaleString()}</td>

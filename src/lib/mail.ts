@@ -87,8 +87,15 @@ export async function sendInstitutionWelcomeEmail(to: string, institutionName: s
     }
 }
 
-export async function sendInstitutionApprovalEmail(to: string, institutionName: string, status: string) {
+export async function sendInstitutionApprovalEmail(to: string, institutionName: string, status: string, reason?: string) {
     const isApproved = status === "approved";
+    const reasonBlock = reason
+        ? `<div style="background: #fef2f2; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin: 16px 0;">
+               <p style="color: #991b1b; font-size: 14px; margin: 0;">
+                   <strong>Reason:</strong> ${reason}
+               </p>
+           </div>`
+        : "";
     try {
         await transporter.sendMail({
             from: process.env.SMTP_FROM || "noreply@gap.pk",
@@ -112,7 +119,11 @@ export async function sendInstitutionApprovalEmail(to: string, institutionName: 
                         Dear <strong>${institutionName}</strong>,
                     </p>
                     <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                        Unfortunately, your institution registration has been <strong style="color: #dc2626;">rejected</strong>. Please contact our support team for more details.
+                        Unfortunately, your institution registration has been <strong style="color: #dc2626;">rejected</strong>.
+                    </p>
+                    ${reasonBlock}
+                    <p style="color: #6b7280; font-size: 14px;">
+                        You can update your profile and appeal for re-approval from your dashboard.
                     </p>`
             ),
         });
@@ -183,6 +194,37 @@ export async function sendApplicationStatusEmail(to: string, programTitle: strin
         return true;
     } catch (error) {
         console.error("Application status email error:", error);
+        return false;
+    }
+}
+
+export async function sendInstitutionAppealEmail(to: string, institutionName: string) {
+    try {
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM || "noreply@gap.pk",
+            to,
+            subject: "GAP - Institution Appeal Received",
+            html: emailWrapper(
+                "📋 Institution Appeal",
+                `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Hello Admin,
+                </p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    The institution <strong>"${institutionName}"</strong> has <strong style="color: #d97706;">appealed</strong> their rejection and re-submitted their registration for approval.
+                </p>
+                <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #92400e; font-size: 14px; margin: 0;">
+                        ⚠️ <strong>Action Required:</strong> Please review the institution's profile and approve or reject their registration.
+                    </p>
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">
+                    Log in to the admin dashboard to review this appeal.
+                </p>`
+            ),
+        });
+        return true;
+    } catch (error) {
+        console.error("Institution appeal email error:", error);
         return false;
     }
 }

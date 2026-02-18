@@ -249,11 +249,11 @@ const adminLinks: SidebarLink[] = [
     },
 ];
 
-export function Sidebar({ 
-    role, 
-    isCollapsed, 
-    setIsCollapsed 
-}: { 
+export function Sidebar({
+    role,
+    isCollapsed,
+    setIsCollapsed
+}: {
     role: string;
     isCollapsed: boolean;
     setIsCollapsed: (collapsed: boolean) => void;
@@ -291,7 +291,7 @@ export function Sidebar({
             {/* Mobile Sidebar */}
             <aside
                 className={cn(
-                    "md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out",
+                    "md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out",
                     isMobileOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >
@@ -301,15 +301,15 @@ export function Sidebar({
                             <span className="text-white font-bold text-lg">G</span>
                         </div>
                         <div>
-                            <h2 className="text-sm font-bold text-gray-900">GAP</h2>
-                            <p className="text-xs text-gray-500 capitalize">{role}</p>
+                            <h2 className="text-sm font-bold text-foreground">GAP</h2>
+                            <p className="text-xs text-muted-foreground capitalize">{role}</p>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsMobileOpen(false)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-accent rounded-lg transition-colors"
                     >
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -323,8 +323,8 @@ export function Sidebar({
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                                 pathname === link.href
-                                    ? "bg-blue-50 text-blue-700"
-                                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                                    ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             )}
                         >
                             {link.icon}
@@ -337,17 +337,17 @@ export function Sidebar({
             {/* Desktop Sidebar */}
             <aside
                 className={cn(
-                    "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:top-16 bg-white border-r transition-all duration-300",
+                    "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:top-16 bg-card border-r border-border transition-all duration-300",
                     isCollapsed ? "md:w-20" : "md:w-64"
                 )}
             >
                 {/* Collapse Button */}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="absolute -right-3 top-6 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+                    className="absolute -right-3 top-6 w-6 h-6 bg-card border border-border rounded-full flex items-center justify-center hover:bg-accent transition-colors shadow-sm"
                 >
                     <svg
-                        className={cn("w-4 h-4 text-gray-600 transition-transform", isCollapsed && "rotate-180")}
+                        className={cn("w-4 h-4 text-muted-foreground transition-transform", isCollapsed && "rotate-180")}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -364,17 +364,17 @@ export function Sidebar({
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all group relative",
                                 pathname === link.href
-                                    ? "bg-blue-50 text-blue-700"
-                                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                                    ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             )}
                             title={isCollapsed ? link.label : undefined}
                         >
                             {link.icon}
                             {!isCollapsed && <span>{link.label}</span>}
-                            
+
                             {/* Tooltip for collapsed state */}
                             {isCollapsed && (
-                                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground border border-border text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-md">
                                     {link.label}
                                 </div>
                             )}
@@ -392,8 +392,8 @@ export function Sidebar({
                                 </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">User Account</p>
-                                <p className="text-xs text-gray-500 capitalize">{role}</p>
+                                <p className="text-sm font-medium text-foreground truncate">User Account</p>
+                                <p className="text-xs text-muted-foreground capitalize">{role}</p>
                             </div>
                         </div>
                     </div>
@@ -413,7 +413,7 @@ export function DashboardLayout({
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background">
             <Sidebar role={role} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
             <main
                 className={cn(
