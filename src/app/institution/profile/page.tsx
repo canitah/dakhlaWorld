@@ -4,13 +4,32 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ProfilePictureCropper } from "@/components/profile-picture-cropper";
+import {
+    Form,
+    Input,
+    Button as AntButton,
+    Card as AntCard,
+    Alert,
+    Divider,
+    Spin,
+    message,
+} from "antd";
+import {
+    BankOutlined,
+    TagOutlined,
+    EnvironmentOutlined,
+    MailOutlined,
+    FileTextOutlined,
+    SaveOutlined,
+    IdcardOutlined,
+    WarningOutlined,
+    ClockCircleOutlined,
+    CloseCircleOutlined,
+} from "@ant-design/icons";
+
+const { TextArea } = Input;
 
 interface Profile {
     name: string;
@@ -56,8 +75,7 @@ export default function InstitutionProfilePage() {
         setIsLoading(false);
     }
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async () => {
         if (!profile) return;
         setIsSaving(true);
 
@@ -73,10 +91,10 @@ export default function InstitutionProfilePage() {
         });
 
         if (res.ok) {
-            toast.success("Profile updated");
+            message.success("Profile updated successfully!");
         } else {
             const data = await res.json();
-            toast.error(data.error);
+            message.error(data.error);
         }
         setIsSaving(false);
     };
@@ -85,7 +103,7 @@ export default function InstitutionProfilePage() {
         return (
             <DashboardLayout role="institution">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <Spin size="large" />
                 </div>
             </DashboardLayout>
         );
@@ -96,104 +114,187 @@ export default function InstitutionProfilePage() {
 
     return (
         <DashboardLayout role="institution">
-            <h1 className="text-2xl font-bold mb-6">Institution Profile</h1>
+            <div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-6">Institution Profile</h1>
 
-            {/* Profile Completeness Banner */}
-            {!isComplete && profile.status === "pending" && (
-                <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 flex items-start gap-3">
-                    <span className="text-xl mt-0.5">⚠️</span>
-                    <div>
-                        <p className="text-sm font-semibold text-amber-900">
-                            Complete Your Profile to Get Approved
-                        </p>
-                        <p className="text-sm text-amber-700 mt-1">
-                            Your institution cannot be approved until all profile fields are filled out.
-                            Missing: <strong>{missingFields.join(", ")}</strong>
-                        </p>
-                    </div>
-                </div>
-            )}
+                {/* ── Status Banners ── */}
+                {!isComplete && profile.status === "pending" && (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        icon={<WarningOutlined />}
+                        className="mb-6"
+                        message="Complete Your Profile to Get Approved"
+                        description={
+                            <span>
+                                Your institution cannot be approved until all profile fields are filled out.
+                                Missing: <strong>{missingFields.join(", ")}</strong>
+                            </span>
+                        }
+                    />
+                )}
 
-            {!isComplete && profile.status !== "pending" && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-                    <span className="text-xl mt-0.5">❌</span>
-                    <div>
-                        <p className="text-sm font-semibold text-red-900">
-                            Profile Incomplete
-                        </p>
-                        <p className="text-sm text-red-700 mt-1">
-                            Please fill in the following fields: <strong>{missingFields.join(", ")}</strong>
-                        </p>
-                    </div>
-                </div>
-            )}
+                {!isComplete && profile.status !== "pending" && (
+                    <Alert
+                        type="error"
+                        showIcon
+                        icon={<CloseCircleOutlined />}
+                        className="mb-6"
+                        message="Profile Incomplete"
+                        description={
+                            <span>
+                                Please fill in the following fields: <strong>{missingFields.join(", ")}</strong>
+                            </span>
+                        }
+                    />
+                )}
 
-            {isComplete && profile.status === "pending" && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-                    <span className="text-xl mt-0.5">⏳</span>
-                    <div>
-                        <p className="text-sm font-semibold text-blue-900">
-                            Profile Complete — Awaiting Admin Approval
-                        </p>
-                        <p className="text-sm text-blue-700 mt-1">
-                            Your profile is complete. Our admin team will review and approve your institution shortly.
-                        </p>
-                    </div>
-                </div>
-            )}
+                {isComplete && profile.status === "pending" && (
+                    <Alert
+                        type="info"
+                        showIcon
+                        icon={<ClockCircleOutlined />}
+                        className="mb-6"
+                        message="Profile Complete — Awaiting Admin Approval"
+                        description="Your profile is complete. Our admin team will review and approve your institution shortly."
+                    />
+                )}
 
-            <div className="grid gap-6">
-                {/* Profile Picture */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Profile Picture</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex justify-center">
-                        <ProfilePictureCropper
-                            currentImageUrl={profile.profile_picture_url}
-                            onUploadSuccess={(url) => {
-                                setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
-                                setProfilePicture(url);
-                            }}
-                        />
-                    </CardContent>
-                </Card>
+                <div className="grid gap-6">
 
-                {/* Profile Details */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Profile Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2 md:col-span-2">
-                                <Label>Institution Name <span className="text-red-500">*</span></Label>
-                                <Input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} required />
+                    {/* ── Profile Picture Card ── */}
+                    <AntCard
+                        className="shadow-sm"
+                        styles={{ header: { borderBottom: '1px solid var(--border)' } }}
+                        title={
+                            <div className="flex items-center gap-2">
+                                <IdcardOutlined className="text-blue-500" />
+                                <span className="font-semibold">Profile Picture</span>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Category <span className="text-red-500">*</span></Label>
-                                <Input value={profile.category || ""} onChange={(e) => setProfile({ ...profile, category: e.target.value })} placeholder="e.g., University, College" />
+                        }
+                    >
+                        <div className="flex justify-center py-4">
+                            <ProfilePictureCropper
+                                currentImageUrl={profile.profile_picture_url}
+                                onUploadSuccess={(url) => {
+                                    setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
+                                    setProfilePicture(url);
+                                }}
+                            />
+                        </div>
+                    </AntCard>
+
+                    {/* ── Profile Details Card ── */}
+                    <AntCard
+                        className="shadow-sm"
+                        styles={{ header: { borderBottom: '1px solid var(--border)' } }}
+                        title={
+                            <div className="flex items-center gap-2">
+                                <BankOutlined className="text-blue-500" />
+                                <span className="font-semibold">Profile Details</span>
                             </div>
-                            <div className="space-y-2">
-                                <Label>City <span className="text-red-500">*</span></Label>
-                                <Input value={profile.city || ""} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="e.g., Lahore" />
+                        }
+                    >
+                        <Form
+                            layout="vertical"
+                            onFinish={handleSave}
+                            requiredMark="optional"
+                            disabled={isSaving}
+                            fields={[
+                                { name: "name", value: profile.name },
+                                { name: "category", value: profile.category },
+                                { name: "city", value: profile.city },
+                                { name: "contact_email", value: profile.contact_email },
+                                { name: "description", value: profile.description },
+                            ]}
+                        >
+                            <Form.Item
+                                name="name"
+                                label={<span className="font-medium">Institution Name</span>}
+                                rules={[{ required: true, message: "Please enter institution name" }]}
+                            >
+                                <Input
+                                    prefix={<BankOutlined className="text-gray-400" />}
+                                    placeholder="e.g., Al Barakah University"
+                                    size="large"
+                                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                                />
+                            </Form.Item>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                                <Form.Item
+                                    name="category"
+                                    label={<span className="font-medium">Category</span>}
+                                    rules={[{ required: true, message: "Please enter category" }]}
+                                >
+                                    <Input
+                                        prefix={<TagOutlined className="text-gray-400" />}
+                                        placeholder="e.g., University, College"
+                                        size="large"
+                                        onChange={(e) => setProfile({ ...profile, category: e.target.value })}
+                                    />
+                                </Form.Item>
+
+                                <Form.Item
+                                    name="city"
+                                    label={<span className="font-medium">City</span>}
+                                    rules={[{ required: true, message: "Please enter city" }]}
+                                >
+                                    <Input
+                                        prefix={<EnvironmentOutlined className="text-gray-400" />}
+                                        placeholder="e.g., Lahore"
+                                        size="large"
+                                        onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                                    />
+                                </Form.Item>
                             </div>
-                            <div className="space-y-2 md:col-span-2">
-                                <Label>Contact Email <span className="text-red-500">*</span></Label>
-                                <Input type="email" value={profile.contact_email || ""} onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })} />
-                            </div>
-                            <div className="space-y-2 md:col-span-2">
-                                <Label>Description <span className="text-red-500">*</span></Label>
-                                <Textarea value={profile.description || ""} onChange={(e) => setProfile({ ...profile, description: e.target.value })} rows={4} placeholder="Describe your institution..." />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
+
+                            <Form.Item
+                                name="contact_email"
+                                label={<span className="font-medium">Contact Email</span>}
+                                rules={[
+                                    { required: true, message: "Please enter contact email" },
+                                    { type: "email", message: "Please enter a valid email" },
+                                ]}
+                            >
+                                <Input
+                                    prefix={<MailOutlined className="text-gray-400" />}
+                                    placeholder="contact@institution.edu"
+                                    size="large"
+                                    onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })}
+                                />
+                            </Form.Item>
+
+                            <Form.Item
+                                name="description"
+                                label={<span className="font-medium">Description</span>}
+                                rules={[{ required: true, message: "Please enter a description" }]}
+                            >
+                                <TextArea
+                                    placeholder="Describe your institution..."
+                                    rows={4}
+                                    size="large"
+                                    onChange={(e) => setProfile({ ...profile, description: e.target.value })}
+                                />
+                            </Form.Item>
+
+                            <Form.Item className="mb-0 pt-2">
+                                <AntButton
+                                    type="primary"
+                                    htmlType="submit"
+                                    loading={isSaving}
+                                    icon={isSaving ? undefined : <SaveOutlined />}
+                                    size="large"
+                                    className="h-11 font-semibold text-[15px]"
+                                    style={{ background: "linear-gradient(to right, #2563eb, #4f46e5)", borderColor: "transparent" }}
+                                >
                                     {isSaving ? "Saving..." : "Save Profile"}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                                </AntButton>
+                            </Form.Item>
+                        </Form>
+                    </AntCard>
+
+                </div>
             </div>
         </DashboardLayout>
     );

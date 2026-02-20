@@ -6,6 +6,8 @@ import "cropperjs/dist/cropper.css";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/use-api";
 import { toast } from "sonner";
+import { Avatar } from "antd";
+import { UserOutlined } from "@ant-design/icons";
 
 interface ProfilePictureCropperProps {
     currentImageUrl?: string | null;
@@ -138,31 +140,16 @@ export function ProfilePictureCropper({
         <div className="flex flex-col items-center gap-3">
             {/* Current Photo Preview */}
             <div className="relative group">
-                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-border shadow-lg bg-gradient-to-br from-blue-500 to-blue-600">
-                    {currentImageUrl ? (
-                        <img
-                            src={currentImageUrl}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <svg
-                                className="w-12 h-12 text-white/80"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1.5}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                            </svg>
-                        </div>
-                    )}
-                </div>
+                <Avatar
+                    size={112}
+                    src={currentImageUrl || undefined}
+                    icon={!currentImageUrl ? <UserOutlined style={{ fontSize: 48 }} /> : undefined}
+                    style={{
+                        border: '4px solid var(--border)',
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        ...(!currentImageUrl ? { background: 'linear-gradient(135deg, #3b82f6, #2563eb)' } : {}),
+                    }}
+                />
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     className="absolute bottom-0 right-0 w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors border-2 border-background"

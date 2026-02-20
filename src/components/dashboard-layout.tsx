@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useSidebar } from "@/store/sidebar-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Breadcrumb } from "antd";
+import { HomeOutlined } from "@ant-design/icons";
 
 interface SidebarLink {
     label: string;
@@ -381,6 +383,62 @@ export function DashboardLayout({
     children: React.ReactNode;
 }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
+    const pathname = usePathname();
+
+    // Build human-readable label map from sidebar links
+    const labelMap: Record<string, string> = useMemo(() => {
+        const links =
+            role === "student" ? studentLinks
+                : role === "institution" ? institutionLinks
+                    : adminLinks;
+        const map: Record<string, string> = {
+            student: "Dashboard",
+            institution: "Dashboard",
+            admin: "Dashboard",
+        };
+        for (const link of links) {
+            // Extract last segment from href as the key
+            const segments = link.href.split("/").filter(Boolean);
+            const key = segments[segments.length - 1];
+            map[key] = link.label;
+        }
+        return map;
+    }, [role]);
+
+    // Build breadcrumb items from pathname
+    const breadcrumbItems = useMemo(() => {
+        const segments = pathname.split("/").filter(Boolean);
+        if (segments.length === 0) return [];
+
+        const roleSegment = segments[0]; // "student" | "institution" | "admin"
+        const items: { title: React.ReactNode }[] = [
+            {
+                title: (
+                    <Link href={`/${roleSegment}`} className="flex items-center gap-1">
+                        <HomeOutlined /> {labelMap[roleSegment] || roleSegment}
+                    </Link>
+                ),
+            },
+        ];
+
+        // Build items for remaining segments (skip role segment)
+        for (let i = 1; i < segments.length; i++) {
+            const seg = segments[i];
+            const href = "/" + segments.slice(0, i + 1).join("/");
+            const label = labelMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
+
+            if (i === segments.length - 1) {
+                // Last segment — not a link
+                items.push({ title: <span className="font-medium">{label}</span> });
+            } else {
+                items.push({
+                    title: <Link href={href}>{label}</Link>,
+                });
+            }
+        }
+
+        return items;
+    }, [pathname, labelMap]);
 
     return (
         <div className="min-h-screen bg-background">
@@ -391,6 +449,11 @@ export function DashboardLayout({
                     isCollapsed ? "md:ml-20" : "md:ml-64"
                 )}
             >
+                {breadcrumbItems.length > 0 && (
+                    <div className="mb-4">
+                        <Breadcrumb items={breadcrumbItems} />
+                    </div>
+                )}
                 {children}
             </main>
         </div>

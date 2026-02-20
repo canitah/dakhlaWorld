@@ -239,3 +239,84 @@
 .dark .ant-btn-default.ant-btn-disabled .anticon {
   color: oklch(0.708 0 0) !important;
 }
+
+/* Ant Design breadcrumb in dark mode */
+.dark .ant-breadcrumb,
+.dark .ant-breadcrumb-separator,
+.dark .ant-breadcrumb-link,
+.dark .ant-breadcrumb li:last-child .ant-breadcrumb-link,
+.dark .ant-breadcrumb li:last-child {
+  color: oklch(0.708 0 0) !important;
+}
+
+.dark .ant-breadcrumb a,
+.dark .ant-breadcrumb-link a {
+  color: oklch(0.708 0 0) !important;
+}
+
+.dark .ant-breadcrumb a:hover,
+.dark .ant-breadcrumb-link a:hover {
+  color: oklch(0.9 0 0) !important;
+}
+
+/* Ant Design Card in dark mode */
+.dark .ant-card {
+  background-color: oklch(0.205 0 0) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-card-head {
+  border-bottom-color: oklch(1 0 0 / 10%) !important;
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-card-head-title {
+  color: oklch(0.985 0 0) !important;
+}
+
+/* Ant Design Alert in dark mode */
+.dark .ant-alert {
+  border-color: oklch(1 0 0 / 10%) !important;
+}
+
+.dark .ant-alert-warning {
+  background-color: oklch(0.3 0.05 80) !important;
+}
+
+.dark .ant-alert-error {
+  background-color: oklch(0.25 0.05 25) !important;
+}
+
+.dark .ant-alert-info {
+  background-color: oklch(0.25 0.05 260) !important;
+}
+
+.dark .ant-alert-message,
+.dark .ant-alert-description {
+  color: oklch(0.9 0 0) !important;
+}
+
+/* Ant Design Upload in dark mode */
+.dark .ant-upload-list-item {
+  color: oklch(0.985 0 0) !important;
+}
+
+/* Ant Design Divider in dark mode */
+.dark .ant-divider {
+  border-color: oklch(1 0 0 / 10%) !important;
+}
+
+/* Ant Design select option hover/active in dark mode */
+.dark .ant-select-item-option-active,
+.dark .ant-select-item-option:hover {
+  background-color: oklch(0.35 0 0) !important;
+}
+
+.dark .ant-select-item-option-selected {
+  background-color: oklch(0.3 0.04 260) !important;
+}
+
+.dark .ant-select-item {
+  color: oklch(0.985 0 0) !important;
+}
