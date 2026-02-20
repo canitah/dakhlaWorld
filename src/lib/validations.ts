@@ -58,7 +58,10 @@ export const programSchema = z.object({
     eligibility: z.string().max(2000).optional(),
     deadline: z.string().optional(), // ISO date string
     application_method: z.enum(["internal", "external"]).optional(),
-    external_url: z.string().url().optional().nullable(),
+    external_url: z.string().optional().nullable().refine(
+        (val) => !val || val.length === 0 || /^https?:\/\/.+/.test(val),
+        { message: "Please enter a valid URL" }
+    ),
     is_active: z.boolean().optional(),
 });
 

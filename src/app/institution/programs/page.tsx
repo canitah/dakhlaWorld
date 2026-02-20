@@ -668,11 +668,11 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Modal, Form, Input as AntInput, Select as AntSelect, DatePicker as AntDatePicker, Button as AntButton } from "antd";
+import { ExclamationCircleFilled, BookOutlined, TagOutlined, ClockCircleOutlined, CalendarOutlined, LinkOutlined, SafetyCertificateOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
+import dayjs from "dayjs";
 
 interface Program {
     id: number;
@@ -776,6 +776,7 @@ export default function InstitutionProgramsPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form, setForm] = useState(emptyProgram);
     const [instStatus, setInstStatus] = useState<string>("pending");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         loadPrograms();
@@ -799,27 +800,33 @@ export default function InstitutionProgramsPage() {
         setIsLoading(false);
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
+        setIsSubmitting(true);
         const url = editingId
             ? `/institutions/programs/${editingId}`
             : "/institutions/programs";
         const method = editingId ? "PUT" : "POST";
 
-        const res = await fetchWithAuth(url, {
-            method,
-            body: JSON.stringify(form),
-        });
+        try {
+            const res = await fetchWithAuth(url, {
+                method,
+                body: JSON.stringify(form),
+            });
 
-        if (res.ok) {
-            toast.success(editingId ? "Program updated" : "Program created");
-            setIsDialogOpen(false);
-            setEditingId(null);
-            setForm(emptyProgram);
-            loadPrograms();
-        } else {
-            const data = await res.json();
-            toast.error(data.error);
+            if (res.ok) {
+                toast.success(editingId ? "Program updated successfully!" : "Program created successfully!");
+                setIsDialogOpen(false);
+                setEditingId(null);
+                setForm(emptyProgram);
+                loadPrograms();
+            } else {
+                const data = await res.json();
+                toast.error(data.error);
+            }
+        } catch {
+            toast.error("Something went wrong. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -838,13 +845,24 @@ export default function InstitutionProgramsPage() {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Delete this program?")) return;
-        const res = await fetchWithAuth(`/institutions/programs/${id}`, { method: "DELETE" });
-        if (res.ok) {
-            toast.success("Program deleted");
-            loadPrograms();
-        }
+    const handleDeleteRequest = (id: number) => {
+        Modal.confirm({
+            title: "Delete Program",
+            icon: <ExclamationCircleFilled />,
+            content: "Are you sure you want to delete this program? This action cannot be undone and will remove all associated data.",
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            async onOk() {
+                const res = await fetchWithAuth(`/institutions/programs/${id}`, { method: "DELETE" });
+                if (res.ok) {
+                    toast.success("Program deleted successfully");
+                    loadPrograms();
+                } else {
+                    toast.error("Failed to delete program");
+                }
+            },
+        });
     };
 
     const isApproved = instStatus === "approved";
@@ -910,97 +928,146 @@ export default function InstitutionProgramsPage() {
 
                     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>
+                            <DialogTitle className="text-xl font-bold">
                                 {editingId ? "Edit Program" : "Create New Program"}
                             </DialogTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {editingId ? "Update your program details below" : "Fill in the details to publish a new program"}
+                            </p>
                         </DialogHeader>
 
-                        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium">
-                                    Program Title <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    value={form.title}
-                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        <Form
+                            layout="vertical"
+                            onFinish={handleSubmit}
+                            requiredMark="optional"
+                            disabled={isSubmitting}
+                            className="mt-2"
+                            fields={[
+                                { name: "title", value: form.title },
+                                { name: "category", value: form.category },
+                                { name: "duration", value: form.duration },
+                                { name: "eligibility", value: form.eligibility },
+                                { name: "deadline", value: form.deadline ? dayjs(form.deadline) : null },
+                                { name: "application_method", value: form.application_method },
+                                ...(form.application_method === "external" ? [{ name: "external_url", value: form.external_url }] : []),
+                            ]}
+                        >
+                            <Form.Item
+                                name="title"
+                                label={<span className="font-medium">Program Title</span>}
+                                rules={[{ required: true, message: "Please enter a program title" }]}
+                            >
+                                <AntInput
+                                    prefix={<BookOutlined className="text-gray-400" />}
                                     placeholder="e.g., BS Computer Science"
-                                    required
-                                    className="h-11"
+                                    size="large"
+                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
                                 />
-                            </div>
+                            </Form.Item>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Category</Label>
-                                    <Input
-                                        value={form.category}
-                                        onChange={(e) => setForm({ ...form, category: e.target.value })}
+                                <Form.Item
+                                    name="category"
+                                    label={<span className="font-medium">Category</span>}
+                                >
+                                    <AntInput
+                                        prefix={<TagOutlined className="text-gray-400" />}
                                         placeholder="e.g., Computer Science"
-                                        className="h-11"
+                                        size="large"
+                                        onChange={(e) => setForm({ ...form, category: e.target.value })}
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Duration</Label>
-                                    <Input
-                                        value={form.duration}
-                                        onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                                </Form.Item>
+
+                                <Form.Item
+                                    name="duration"
+                                    label={<span className="font-medium">Duration</span>}
+                                >
+                                    <AntInput
+                                        prefix={<ClockCircleOutlined className="text-gray-400" />}
                                         placeholder="e.g., 4 Years"
-                                        className="h-11"
+                                        size="large"
+                                        onChange={(e) => setForm({ ...form, duration: e.target.value })}
                                     />
-                                </div>
+                                </Form.Item>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium">Eligibility</Label>
-                                <Textarea
-                                    value={form.eligibility}
-                                    onChange={(e) => setForm({ ...form, eligibility: e.target.value })}
-                                    placeholder="Entry requirements..."
-                                    className="resize-none"
+                            <Form.Item
+                                name="eligibility"
+                                label={<span className="font-medium">Eligibility / Requirements</span>}
+                            >
+                                <AntInput.TextArea
+                                    placeholder="Entry requirements, prerequisites, qualifications needed..."
                                     rows={3}
+                                    onChange={(e) => setForm({ ...form, eligibility: e.target.value })}
+                                    style={{ resize: "none" }}
                                 />
-                            </div>
+                            </Form.Item>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Deadline</Label>
-                                    <Input
-                                        type="date"
-                                        value={form.deadline}
-                                        onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-                                        className="h-11"
+                                <Form.Item
+                                    name="deadline"
+                                    label={<span className="font-medium">Deadline</span>}
+                                >
+                                    <AntDatePicker
+                                        suffixIcon={<CalendarOutlined />}
+                                        placeholder="Select deadline"
+                                        size="large"
+                                        className="w-full"
+                                        format="YYYY-MM-DD"
+                                        onChange={(_date, dateString) => setForm({ ...form, deadline: dateString as string })}
+                                        getPopupContainer={(trigger) => trigger.parentElement || document.body}
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Application Method</Label>
-                                    <select
-                                        className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                        value={form.application_method}
-                                        onChange={(e) => setForm({ ...form, application_method: e.target.value })}
-                                    >
-                                        <option value="internal">Internal (via GAP)</option>
-                                        <option value="external">External URL</option>
-                                    </select>
-                                </div>
+                                </Form.Item>
+
+                                <Form.Item
+                                    name="application_method"
+                                    label={<span className="font-medium">Application Method</span>}
+                                >
+                                    <AntSelect
+                                        size="large"
+                                        onChange={(value) => setForm({ ...form, application_method: value })}
+                                        getPopupContainer={(trigger) => trigger.parentElement || document.body}
+                                        options={[
+                                            { value: "internal", label: "Internal (via GAP)" },
+                                            { value: "external", label: "External URL" },
+                                        ]}
+                                    />
+                                </Form.Item>
                             </div>
 
                             {form.application_method === "external" && (
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">External URL</Label>
-                                    <Input
-                                        type="url"
-                                        value={form.external_url}
+                                <Form.Item
+                                    name="external_url"
+                                    label={<span className="font-medium">External URL</span>}
+
+                                >
+                                    <AntInput
+                                        prefix={<LinkOutlined className="text-gray-400" />}
+                                        placeholder="https://apply.example.com"
+                                        size="large"
                                         onChange={(e) => setForm({ ...form, external_url: e.target.value })}
-                                        placeholder="https://..."
-                                        className="h-11"
                                     />
-                                </div>
+                                </Form.Item>
                             )}
 
-                            <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-medium">
-                                {editingId ? "Update Program" : "Create Program"}
-                            </Button>
-                        </form>
+                            <Form.Item className="mb-0 pt-2">
+                                <AntButton
+                                    type="primary"
+                                    htmlType="submit"
+                                    loading={isSubmitting}
+                                    icon={isSubmitting ? undefined : (editingId ? <EditOutlined /> : <PlusOutlined />)}
+                                    size="large"
+                                    block
+                                    className="h-12 font-semibold text-[15px]"
+                                    style={{ background: "linear-gradient(to right, #2563eb, #4f46e5)", borderColor: "transparent" }}
+                                >
+                                    {isSubmitting
+                                        ? (editingId ? "Updating..." : "Creating...")
+                                        : (editingId ? "Update Program" : "Create Program")
+                                    }
+                                </AntButton>
+                            </Form.Item>
+                        </Form>
                     </DialogContent>
                 </Dialog>
             </div>
@@ -1031,12 +1098,13 @@ export default function InstitutionProgramsPage() {
                         <ProgramCard
                             key={program.id}
                             program={program}
+                            onRequestDelete={handleDeleteRequest}
                             onEdit={handleEdit}
-                            onDelete={handleDelete}
                         />
                     ))}
                 </div>
             )}
+
         </DashboardLayout>
     );
 }
@@ -1046,11 +1114,11 @@ export default function InstitutionProgramsPage() {
 function ProgramCard({
     program,
     onEdit,
-    onDelete,
+    onRequestDelete,
 }: {
     program: Program;
     onEdit: (p: Program) => void;
-    onDelete: (id: number) => void;
+    onRequestDelete: (id: number) => void;
 }) {
     return (
         /*
@@ -1122,6 +1190,16 @@ function ProgramCard({
                             </span>
                         </div>
                     )}
+
+                    {/* Eligibility / Requirements */}
+                    {program.eligibility && (
+                        <div className="flex items-start gap-1.5 text-[12px] text-gray-400 dark:text-muted-foreground mt-0.5">
+                            <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                            <span className="line-clamp-2">{program.eligibility}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right: Edit icon button (mirrors bookmark icon) */}
@@ -1176,7 +1254,7 @@ function ProgramCard({
             {/* Row 3 — Delete action (mirrors "Easily apply" footer row) */}
             <div className="pt-1 border-t border-gray-100 dark:border-border">
                 <button
-                    onClick={() => onDelete(program.id)}
+                    onClick={() => onRequestDelete(program.id)}
                     className="
                         flex items-center gap-1.5
                         text-[13px] font-medium text-red-500

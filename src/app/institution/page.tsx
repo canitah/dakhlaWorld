@@ -746,82 +746,80 @@ export default function InstitutionDashboard() {
                     </Link>
                 </div>
             ) : (
-               // Drop-in replacement for the programs grid in the institution dashboard.
-// Only uses fields already present in the snippet: title, is_active, category,
-// _count.applications, and the Link/edit href.
-// All other functionality (Link, Button, PencilIcon) unchanged.
+                // Drop-in replacement for the programs grid in the institution dashboard.
+                // Only uses fields already present in the snippet: title, is_active, category,
+                // _count.applications, and the Link/edit href.
+                // All other functionality (Link, Button, PencilIcon) unchanged.
 
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {programs.slice(0, 6).map((program) => (
-        <div
-            key={program.id}
-            className="
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {programs.slice(0, 6).map((program) => (
+                        <Link key={program.id} href={`/institution/programs?edit=${program.id}`} className="block">
+                            <div
+                                className="
                 bg-card rounded-2xl
                 border border-primary/20
                 shadow-sm p-5 flex flex-col gap-3
                 transition-all duration-200
                 hover:shadow-md hover:border-primary/40
+                cursor-pointer
             "
-        >
-            {/* Row 1 — Active/Inactive badge + title */}
-            <div className="flex flex-col gap-1">
-                {/* Status badge — mirrors "New" pill in Indeed cards */}
-                <span className={`
+                            >
+                                {/* Row 1 — Active/Inactive badge + title */}
+                                <div className="flex flex-col gap-1">
+                                    {/* Status badge — mirrors "New" pill in Indeed cards */}
+                                    <span className={`
                     inline-flex items-center gap-1.5 self-start
                     rounded-full px-2.5 py-0.5 text-[11px] font-bold mb-1
                     ${program.is_active
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"}
+                                            ? "bg-primary/10 text-primary"
+                                            : "bg-muted text-muted-foreground"}
                 `}>
-                    {program.is_active ? "Active" : "Inactive"}
-                </span>
+                                        {program.is_active ? "Active" : "Inactive"}
+                                    </span>
 
-                {/* Program title */}
-                <h3 className="text-[15px] font-bold text-foreground leading-snug line-clamp-2">
-                    {program.title}
-                </h3>
+                                    {/* Program title */}
+                                    <h3 className="text-[15px] font-bold text-foreground leading-snug line-clamp-2">
+                                        {program.title}
+                                    </h3>
 
-                {/* Category — mirrors institution name row */}
-                {program.category && (
-                    <p className="text-[13px] text-muted-foreground leading-snug">
-                        {program.category}
-                    </p>
-                )}
-            </div>
+                                    {/* Category — mirrors institution name row */}
+                                    {program.category && (
+                                        <p className="text-[13px] text-muted-foreground leading-snug">
+                                            {program.category}
+                                        </p>
+                                    )}
+                                </div>
 
-            {/* Row 2 — Pills (mirrors salary + job-type pills) */}
-            <div className="flex flex-wrap gap-2">
-                {/* Applicants pill */}
-                <span className="
+                                {/* Row 2 — Pills (mirrors salary + job-type pills) */}
+                                <div className="flex flex-wrap gap-2">
+                                    {/* Applicants pill */}
+                                    <span className="
                     inline-flex items-center gap-1.5
                     border border-border bg-muted/50
                     rounded-full px-3 py-1
                     text-[12px] font-medium text-muted-foreground whitespace-nowrap
                 ">
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {program._count.applications} applicant{program._count.applications !== 1 ? "s" : ""}
-                </span>
-            </div>
+                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        {program._count.applications} applicant{program._count.applications !== 1 ? "s" : ""}
+                                    </span>
+                                </div>
 
-            {/* Row 3 — Edit action footer (mirrors "Easily apply" row) */}
-            <div className="pt-1 border-t border-border">
-                <Link href={`/institution/programs?edit=${program.id}`} className="block">
-                    <button className="
-                        flex items-center gap-1.5
-                        text-[13px] font-semibold text-primary
-                        hover:underline transition-colors
-                        focus:outline-none
-                    ">
-                        <PencilIcon />
-                        Edit Program
-                    </button>
-                </Link>
-            </div>
-        </div>
-    ))}
-</div>
+                                {/* Row 3 — View details footer */}
+                                <div className="pt-1 border-t border-border">
+                                    <span className="
+                    flex items-center gap-1.5
+                    text-[13px] font-semibold text-primary
+                ">
+                                        <PencilIcon />
+                                        View & Edit Program
+                                    </span>
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
             )}
         </DashboardLayout>
     );

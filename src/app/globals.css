@@ -121,8 +121,121 @@
     @apply border-border outline-ring/50;
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
+}
+
+/* ── Ant Design dark-mode overrides ───────────────────────── */
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-input-number,
+.dark .ant-picker,
+.dark .ant-select-selector,
+.dark textarea.ant-input {
+  background-color: oklch(0.269 0 0) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-input::placeholder,
+.dark .ant-input-affix-wrapper .ant-input::placeholder,
+.dark textarea.ant-input::placeholder,
+.dark .ant-picker-input>input::placeholder {
+  color: oklch(0.708 0 0) !important;
+}
+
+.dark .ant-input-prefix,
+.dark .ant-input-suffix,
+.dark .ant-picker-suffix,
+.dark .ant-picker-input>input,
+.dark .ant-select-selection-item,
+.dark .ant-select-selection-placeholder {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-select-selection-placeholder {
+  color: oklch(0.708 0 0) !important;
+}
+
+.dark .ant-picker-input>input {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-select-arrow {
+  color: oklch(0.708 0 0) !important;
+}
+
+/* Ant Design dropdown / popup panels */
+.dark .ant-select-dropdown,
+.dark .ant-picker-panel-container {
+  background-color: oklch(0.269 0 0) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+}
+
+.dark .ant-select-item {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-select-item-option-active,
+.dark .ant-select-item-option-selected {
+  background-color: oklch(0.35 0 0) !important;
+}
+
+/* Ant Design form labels */
+.dark .ant-form-item-label>label {
+  color: oklch(0.985 0 0) !important;
+}
+
+/* Ant Design focus / hover states */
+.dark .ant-input:focus,
+.dark .ant-input-affix-wrapper:focus,
+.dark .ant-input-affix-wrapper-focused,
+.dark .ant-picker-focused,
+.dark .ant-select-focused .ant-select-selector {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+}
+
+.dark .ant-input:hover,
+.dark .ant-input-affix-wrapper:hover,
+.dark .ant-picker:hover,
+.dark .ant-select-selector:hover {
+  border-color: oklch(0.556 0 0) !important;
+}
+
+/* Ant Design date picker panel in dark mode */
+.dark .ant-picker-panel {
+  background-color: oklch(0.269 0 0) !important;
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-picker-header,
+.dark .ant-picker-header button,
+.dark .ant-picker-content th,
+.dark .ant-picker-cell-inner {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-picker-cell:hover .ant-picker-cell-inner {
+  background-color: oklch(0.35 0 0) !important;
+}
+
+.dark .ant-picker-cell-selected .ant-picker-cell-inner {
+  background-color: #2563eb !important;
+}
+
+/* Ant Design disabled button in dark mode */
+.dark .ant-btn-default:disabled,
+.dark .ant-btn-default.ant-btn-disabled {
+  background-color: oklch(0.269 0 0) !important;
+  border-color: oklch(1 0 0 / 20%) !important;
+  color: oklch(0.708 0 0) !important;
+}
+
+.dark .ant-btn-default:disabled .anticon,
+.dark .ant-btn-default.ant-btn-disabled .anticon {
+  color: oklch(0.708 0 0) !important;
 }

@@ -6,6 +6,8 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Button as AntButton, message } from "antd";
+import { CheckCircleOutlined, LoadingOutlined, SendOutlined } from "@ant-design/icons";
 
 /* ─────────────────────────── Types ─────────────────────────── */
 
@@ -141,6 +143,8 @@ export default function ExplorePage() {
     const [mobileView, setMobileView] = useState<"list" | "detail">("list");
     // Track saved program IDs for bookmark toggle UI
     const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+    const [appliedIds, setAppliedIds] = useState<Set<number>>(new Set());
+    const [applyingId, setApplyingId] = useState<number | null>(null);
 
     // Derive category tabs dynamically from loaded programs
     const categories = useMemo(() => {
@@ -153,7 +157,20 @@ export default function ExplorePage() {
     // Load saved program IDs on mount so bookmarks persist across refreshes
     useEffect(() => {
         loadSavedIds();
+        loadAppliedIds();
     }, []);
+
+    async function loadAppliedIds() {
+        const res = await fetchWithAuth("/applications");
+        if (res.ok) {
+            const data = await res.json();
+            const ids: number[] = (data.applications ?? []).map(
+                (app: { program_id?: number; program?: { id: number } }) =>
+                    app.program_id ?? app.program?.id
+            );
+            setAppliedIds(new Set(ids.filter(Boolean)));
+        }
+    }
 
     useEffect(() => {
         loadPrograms();
@@ -172,12 +189,13 @@ export default function ExplorePage() {
         }
     }
 
-    async function loadPrograms() {
+    async function loadPrograms(searchOverride?: string) {
         setIsLoading(true);
+        const searchQuery = searchOverride !== undefined ? searchOverride : search;
         const params = new URLSearchParams({
             page: page.toString(),
             limit: "12",
-            ...(search && { search }),
+            ...(searchQuery && { search: searchQuery }),
             ...(category && category !== "All" && { category }),
         });
         const res = await fetchWithAuth(`/programs?${params}`);
@@ -207,13 +225,24 @@ export default function ExplorePage() {
     };
 
     const handleApply = async (programId: number) => {
-        const res = await fetchWithAuth("/applications", {
-            method: "POST",
-            body: JSON.stringify({ program_id: programId }),
-        });
-        const data = await res.json();
-        if (res.ok) toast.success("Application submitted!");
-        else toast.error(data.error);
+        setApplyingId(programId);
+        try {
+            const res = await fetchWithAuth("/applications", {
+                method: "POST",
+                body: JSON.stringify({ program_id: programId }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                message.success("Application submitted successfully!");
+                setAppliedIds((prev) => new Set(prev).add(programId));
+            } else {
+                message.error(data.error || "Failed to submit application");
+            }
+        } catch {
+            message.error("Something went wrong. Please try again.");
+        } finally {
+            setApplyingId(null);
+        }
     };
 
     const handleSave = async (programId: number) => {
@@ -272,8 +301,8 @@ export default function ExplorePage() {
                                 key={cat}
                                 onClick={() => { setCategory(cat === "All" ? "" : cat); setPage(1); }}
                                 className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${active
-                                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                        : "bg-background text-muted-foreground border-border hover:border-primary hover:text-primary"
+                                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                    : "bg-background text-muted-foreground border-border hover:border-primary hover:text-primary"
                                     }`}
                             >
                                 {cat}
@@ -381,8 +410,11 @@ export default function ExplorePage() {
                         <DetailPanel
                             program={selectedProgram}
                             isSaved={savedIds.has(selectedProgram.id)}
+                            isApplied={appliedIds.has(selectedProgram.id)}
+                            isApplying={applyingId === selectedProgram.id}
                             onApply={handleApply}
                             onSave={handleSave}
+                            onInstitutionClick={(name: string) => { setSearch(name); setCategory(""); setPage(1); loadPrograms(name); }}
                         />
                     )}
                 </div>
@@ -429,8 +461,8 @@ function ProgramCard({
                 <button
                     onClick={onSave}
                     className={`p-1 rounded transition-colors ${isSaved
-                            ? "text-primary"
-                            : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                         }`}
                     aria-label={isSaved ? "Unsave program" : "Save program"}
                 >
@@ -482,13 +514,19 @@ function ProgramCard({
 function DetailPanel({
     program,
     isSaved,
+    isApplied,
+    isApplying,
     onApply,
     onSave,
+    onInstitutionClick,
 }: {
     program: ProgramDetail;
     isSaved: boolean;
+    isApplied: boolean;
+    isApplying: boolean;
     onApply: (id: number) => void;
     onSave: (id: number) => void;
+    onInstitutionClick: (name: string) => void;
 }) {
     return (
         <div className="h-full flex flex-col">
@@ -503,7 +541,10 @@ function DetailPanel({
 
                 {/* Institution with external link */}
                 <div className="flex items-center gap-1.5 mb-1">
-                    <button className="text-[14px] text-foreground font-medium underline decoration-dotted underline-offset-2 hover:text-primary flex items-center gap-1">
+                    <button
+                        onClick={() => onInstitutionClick(program.institution.name)}
+                        className="text-[14px] text-foreground font-medium underline decoration-dotted underline-offset-2 hover:text-primary flex items-center gap-1 cursor-pointer"
+                    >
                         {program.institution.name}
                         <ExternalLinkIcon />
                     </button>
@@ -523,21 +564,38 @@ function DetailPanel({
 
                 {/* Action buttons row */}
                 <div className="flex items-center gap-2 mt-4">
-                    {/* Apply now — always internal via handleApply */}
-                    <button
-                        onClick={() => onApply(program.id)}
-                        className="h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full font-bold text-sm transition-colors shadow-sm"
-                    >
-                        Apply now
-                    </button>
+                    {isApplied ? (
+                        <AntButton
+                            disabled
+                            icon={<CheckCircleOutlined />}
+                            size="large"
+                            shape="round"
+                            className="font-bold text-sm"
+                            style={{ opacity: 0.85 }}
+                        >
+                            Already Applied
+                        </AntButton>
+                    ) : (
+                        <AntButton
+                            type="primary"
+                            icon={isApplying ? <LoadingOutlined /> : <SendOutlined />}
+                            loading={isApplying}
+                            onClick={() => onApply(program.id)}
+                            size="large"
+                            shape="round"
+                            className="font-bold text-sm shadow-sm"
+                        >
+                            {isApplying ? "Applying..." : "Apply now"}
+                        </AntButton>
+                    )}
 
                     {/* Bookmark icon button — filled when saved */}
                     <button
                         onClick={() => onSave(program.id)}
                         aria-label={isSaved ? "Unsave" : "Save"}
                         className={`h-10 w-10 flex items-center justify-center rounded-full border transition-all ${isSaved
-                                ? "border-primary text-primary bg-primary/10"
-                                : "border-border bg-muted/50 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/10"
+                            ? "border-primary text-primary bg-primary/10"
+                            : "border-border bg-muted/50 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/10"
                             }`}
                     >
                         <BookmarkIcon filled={isSaved} />
