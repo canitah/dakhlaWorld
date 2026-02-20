@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { message } from "antd";
 
 interface Category {
     id: number;
@@ -43,12 +43,12 @@ export default function AdminCategoriesPage() {
         });
 
         if (res.ok) {
-            toast.success("Category added");
+            message.success("Category added");
             setNewName("");
             loadCategories();
         } else {
             const data = await res.json();
-            toast.error(data.error);
+            message.error(data.error);
         }
     };
 
@@ -60,11 +60,11 @@ export default function AdminCategoriesPage() {
         });
 
         if (res.ok) {
-            toast.success("Category deleted");
+            message.success("Category deleted");
             loadCategories();
         } else {
             const data = await res.json();
-            toast.error(data.error);
+            message.error(data.error);
         }
     };
 

@@ -258,7 +258,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { toast } from "sonner";
+import { message } from "antd";
+
 
 interface InstitutionProfile {
     id: number;
@@ -390,7 +391,7 @@ export default function InstitutionDashboard() {
                 setPrograms(data.programs);
             }
         } catch {
-            toast.error("Failed to load data");
+            message.error("Failed to load data");
         } finally {
             setIsLoading(false);
         }
@@ -402,7 +403,7 @@ export default function InstitutionDashboard() {
             body: JSON.stringify({ status }),
         });
         if (res.ok) {
-            toast.success(`Application ${status}`);
+            message.success(`Application ${status}`);
             loadData();
         }
     };
@@ -450,14 +451,14 @@ export default function InstitutionDashboard() {
                     method: "POST",
                 });
                 if (res.ok) {
-                    toast.success("Appeal submitted! Your institution is now pending re-approval.");
+                    message.success("Appeal submitted! Your institution is now pending re-approval.");
                     loadData();
                 } else {
                     const data = await res.json();
-                    toast.error(data.error || "Failed to submit appeal");
+                    message.error(data.error || "Failed to submit appeal");
                 }
             } catch {
-                toast.error("Failed to submit appeal");
+                message.error("Failed to submit appeal");
             } finally {
                 setIsAppealing(false);
             }

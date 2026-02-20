@@ -669,9 +669,8 @@ import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Modal, Form, Input as AntInput, Select as AntSelect, DatePicker as AntDatePicker, Button as AntButton } from "antd";
+import { Modal, Form, Input as AntInput, Select as AntSelect, DatePicker as AntDatePicker, Button as AntButton, message } from "antd";
 import { ExclamationCircleFilled, BookOutlined, TagOutlined, ClockCircleOutlined, CalendarOutlined, LinkOutlined, SafetyCertificateOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons";
-import { toast } from "sonner";
 import dayjs from "dayjs";
 
 interface Program {
@@ -814,17 +813,17 @@ export default function InstitutionProgramsPage() {
             });
 
             if (res.ok) {
-                toast.success(editingId ? "Program updated successfully!" : "Program created successfully!");
+                message.success(editingId ? "Program updated successfully!" : "Program created successfully!");
                 setIsDialogOpen(false);
                 setEditingId(null);
                 setForm(emptyProgram);
                 loadPrograms();
             } else {
                 const data = await res.json();
-                toast.error(data.error);
+                message.error(data.error);
             }
         } catch {
-            toast.error("Something went wrong. Please try again.");
+            message.error("Something went wrong. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
@@ -856,10 +855,10 @@ export default function InstitutionProgramsPage() {
             async onOk() {
                 const res = await fetchWithAuth(`/institutions/programs/${id}`, { method: "DELETE" });
                 if (res.ok) {
-                    toast.success("Program deleted successfully");
+                    message.success("Program deleted successfully");
                     loadPrograms();
                 } else {
-                    toast.error("Failed to delete program");
+                    message.error("Failed to delete program");
                 }
             },
         });

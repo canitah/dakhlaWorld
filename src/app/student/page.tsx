@@ -286,7 +286,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { toast } from "sonner";
+import { message } from "antd";
 import { useAuthStore } from "@/store/auth-store";
 
 interface Program {
@@ -371,9 +371,9 @@ function ProgressRow({ label, value, max, color }: { label: string; value: numbe
 
 const STATUS_CONFIG: Record<string, { color: string; dot: string }> = {
     submitted: { color: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800", dot: "bg-blue-500" },
-    viewed:    { color: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800", dot: "bg-purple-500" },
-    accepted:  { color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800", dot: "bg-emerald-500" },
-    rejected:  { color: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800", dot: "bg-red-500" },
+    viewed: { color: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800", dot: "bg-purple-500" },
+    accepted: { color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800", dot: "bg-emerald-500" },
+    rejected: { color: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800", dot: "bg-red-500" },
     withdrawn: { color: "bg-muted text-muted-foreground border", dot: "bg-muted-foreground" },
 };
 
@@ -407,9 +407,9 @@ export default function StudentDashboard() {
                 fetchWithAuth("/applications"),
             ]);
             if (progRes.ok) { const data = await progRes.json(); setPrograms(data.programs); }
-            if (appRes.ok)  { const data = await appRes.json();  setApplications(data.applications); }
-        } catch { toast.error("Failed to load data"); }
-        finally  { setIsLoading(false); }
+            if (appRes.ok) { const data = await appRes.json(); setApplications(data.applications); }
+        } catch { message.error("Failed to load data"); }
+        finally { setIsLoading(false); }
     }
 
     const handleSearch = async () => {
@@ -423,8 +423,8 @@ export default function StudentDashboard() {
             body: JSON.stringify({ program_id: programId }),
         });
         const data = await res.json();
-        if (res.ok) { toast.success("Application submitted!"); loadData(); }
-        else { toast.error(data.error); }
+        if (res.ok) { message.success("Application submitted!"); loadData(); }
+        else { message.error(data.error); }
     };
 
     const handleSave = async (programId: number) => {
@@ -432,7 +432,7 @@ export default function StudentDashboard() {
             method: "POST",
             body: JSON.stringify({ program_id: programId }),
         });
-        if (res.ok) { const data = await res.json(); toast.success(data.message); }
+        if (res.ok) { const data = await res.json(); message.success(data.message); }
     };
 
     if (isLoading) {
@@ -448,14 +448,14 @@ export default function StudentDashboard() {
         );
     }
 
-    const totalApps     = applications.length;
-    const acceptedApps  = applications.filter((a) => a.status === "accepted").length;
-    const pendingApps   = applications.filter((a) => a.status === "submitted").length;
-    const viewedApps    = applications.filter((a) => a.status === "viewed").length;
-    const rejectedApps  = applications.filter((a) => a.status === "rejected").length;
-    const acceptedPct   = totalApps > 0 ? Math.round((acceptedApps / totalApps) * 100) : 0;
-    const pendingPct    = totalApps > 0 ? Math.round((pendingApps / totalApps) * 100) : 0;
-    const reviewedPct   = totalApps > 0 ? Math.round(((totalApps - pendingApps) / totalApps) * 100) : 0;
+    const totalApps = applications.length;
+    const acceptedApps = applications.filter((a) => a.status === "accepted").length;
+    const pendingApps = applications.filter((a) => a.status === "submitted").length;
+    const viewedApps = applications.filter((a) => a.status === "viewed").length;
+    const rejectedApps = applications.filter((a) => a.status === "rejected").length;
+    const acceptedPct = totalApps > 0 ? Math.round((acceptedApps / totalApps) * 100) : 0;
+    const pendingPct = totalApps > 0 ? Math.round((pendingApps / totalApps) * 100) : 0;
+    const reviewedPct = totalApps > 0 ? Math.round(((totalApps - pendingApps) / totalApps) * 100) : 0;
 
     // Application status breakdown
     const statusCounts = applications.reduce<Record<string, number>>((acc, a) => {
@@ -508,11 +508,10 @@ export default function StudentDashboard() {
                             <div>
                                 <p className="text-3xl font-bold">{item.value}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>
-                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                    item.positive
+                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
                                         ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                                         : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                }`}>
+                                    }`}>
                                     {item.badge}
                                 </span>
                             </div>

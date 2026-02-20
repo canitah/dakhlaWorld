@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { message } from "antd";
 
 interface Institution {
     id: number;
@@ -80,7 +80,7 @@ export default function AdminInstitutionsPage() {
                 body: JSON.stringify({ status, ...(reason ? { reason } : {}) }),
             });
             if (res.ok) {
-                toast.success(`Institution ${status}`);
+                message.success(`Institution ${status}`);
                 setIsDetailOpen(false);
                 setIsRejectOpen(false);
                 setRejectReason("");
@@ -91,7 +91,7 @@ export default function AdminInstitutionsPage() {
                 loadInstitutions();
             } else {
                 const data = await res.json();
-                toast.error(data.error || "Action failed");
+                message.error(data.error || "Action failed");
             }
         } finally {
             setIsSubmitting(false);

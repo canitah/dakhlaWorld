@@ -6,8 +6,28 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import {
+    Modal,
+    Avatar,
+    Descriptions,
+    Tag,
+    Button as AntButton,
+    Divider,
+    message,
+} from "antd";
+import {
+    UserOutlined,
+    MailOutlined,
+    EnvironmentOutlined,
+    TeamOutlined,
+    BookOutlined,
+    TrophyOutlined,
+    RocketOutlined,
+    AimOutlined,
+    CalendarOutlined,
+    FileTextOutlined,
+    FilePdfOutlined,
+} from "@ant-design/icons";
 
 interface Application {
     id: number;
@@ -35,6 +55,7 @@ interface StudentDetail {
     experience_level: string | null;
     learning_goal: string | null;
     cv_url: string | null;
+    profile_picture_url: string | null;
     user: { email: string | null; phone: string | null };
 }
 
@@ -64,7 +85,7 @@ export default function InstitutionApplicationsPage() {
             body: JSON.stringify({ status }),
         });
         if (res.ok) {
-            toast.success(`Application ${status}`);
+            message.success(`Application ${status}`);
             loadApplications();
         }
     };
@@ -76,7 +97,7 @@ export default function InstitutionApplicationsPage() {
             setSelectedStudent(data.student);
             setIsPreviewOpen(true);
         } else {
-            toast.error("Could not load student profile");
+            message.error("Could not load student profile");
         }
     };
 
@@ -155,49 +176,139 @@ export default function InstitutionApplicationsPage() {
                 </CardContent>
             </Card>
 
-            {/* Student Profile Preview Dialog */}
-            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Student Profile</DialogTitle>
-                    </DialogHeader>
-                    {selectedStudent && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><p className="text-xs text-muted-foreground">Name</p><p className="text-sm font-medium">{selectedStudent.full_name || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">Email</p><p className="text-sm">{selectedStudent.user.email || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">City</p><p className="text-sm">{selectedStudent.city || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">Type</p><p className="text-sm capitalize">{selectedStudent.student_type || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">Education</p><p className="text-sm capitalize">{selectedStudent.education_level || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">Experience</p><p className="text-sm capitalize">{selectedStudent.experience_level || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">Intended Field</p><p className="text-sm">{selectedStudent.intended_field || "—"}</p></div>
-                                <div><p className="text-xs text-muted-foreground">Age Range</p><p className="text-sm">{selectedStudent.age_range || "—"}</p></div>
-                            </div>
-                            {selectedStudent.learning_goal && (
-                                <div><p className="text-xs text-muted-foreground">Learning Goal</p><p className="text-sm">{selectedStudent.learning_goal}</p></div>
-                            )}
-                            {selectedStudent.personal_statement && (
-                                <div><p className="text-xs text-muted-foreground">Personal Statement</p><p className="text-sm">{selectedStudent.personal_statement}</p></div>
-                            )}
-                            {selectedStudent.cv_url && (
-                                <Button
-                                    className="w-full bg-blue-600 hover:bg-blue-700"
-                                    onClick={async () => {
-                                        try {
-                                            const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
-                                            if (!res.ok) throw new Error();
-                                            const data = await res.json();
-                                            window.open(data.url, "_blank");
-                                        } catch {
-                                            toast.error("Failed to load CV");
-                                        }
+            {/* Student Profile Preview Modal */}
+            <Modal
+                open={isPreviewOpen}
+                onCancel={() => setIsPreviewOpen(false)}
+                footer={null}
+                width={600}
+                centered
+                destroyOnClose
+                title={null}
+                styles={{
+                    body: { padding: 0, overflow: 'hidden' },
+                }}
+            >
+                {selectedStudent && (
+                    <div>
+                        {/* Header */}
+                        <div className="px-6 pt-6 pb-5 border-b border-border">
+                            <div className="flex items-center gap-4">
+                                <Avatar
+                                    size={72}
+                                    src={selectedStudent.profile_picture_url || undefined}
+                                    icon={!selectedStudent.profile_picture_url ? <UserOutlined /> : undefined}
+                                    style={{
+                                        backgroundColor: selectedStudent.profile_picture_url ? undefined : '#2563eb',
+                                        border: '3px solid var(--border)',
+                                        flexShrink: 0,
                                     }}
-                                >📄 View CV</Button>
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="text-xl font-bold text-foreground truncate">
+                                        {selectedStudent.full_name || "Unnamed Student"}
+                                    </h2>
+                                    <div className="flex items-center gap-1.5 mt-1 text-muted-foreground text-sm">
+                                        <MailOutlined />
+                                        <span className="truncate">{selectedStudent.user.email || "—"}</span>
+                                    </div>
+                                    {selectedStudent.city && (
+                                        <div className="flex items-center gap-1.5 mt-0.5 text-muted-foreground text-sm">
+                                            <EnvironmentOutlined />
+                                            <span>{selectedStudent.city}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {/* Tags row */}
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                {selectedStudent.student_type && (
+                                    <Tag color="blue" className="m-0 capitalize font-medium">
+                                        <TeamOutlined className="mr-1" />{selectedStudent.student_type}
+                                    </Tag>
+                                )}
+                                {selectedStudent.education_level && (
+                                    <Tag color="cyan" className="m-0 capitalize font-medium">
+                                        <BookOutlined className="mr-1" />{selectedStudent.education_level}
+                                    </Tag>
+                                )}
+                                {selectedStudent.experience_level && (
+                                    <Tag color="purple" className="m-0 capitalize font-medium">
+                                        <TrophyOutlined className="mr-1" />{selectedStudent.experience_level}
+                                    </Tag>
+                                )}
+                                {selectedStudent.age_range && (
+                                    <Tag color="geekblue" className="m-0 font-medium">
+                                        <CalendarOutlined className="mr-1" />{selectedStudent.age_range}
+                                    </Tag>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="px-6 py-5 space-y-5">
+                            <Descriptions
+                                column={{ xs: 1, sm: 2 }}
+                                layout="vertical"
+                                colon={false}
+                                size="small"
+                            >
+                                {selectedStudent.intended_field && (
+                                    <Descriptions.Item
+                                        label={<span className="text-muted-foreground flex items-center gap-1"><AimOutlined /> Intended Field</span>}
+                                    >
+                                        <span className="font-medium">{selectedStudent.intended_field}</span>
+                                    </Descriptions.Item>
+                                )}
+                                {selectedStudent.learning_goal && (
+                                    <Descriptions.Item
+                                        label={<span className="text-muted-foreground flex items-center gap-1"><RocketOutlined /> Learning Goal</span>}
+                                    >
+                                        <span className="font-medium">{selectedStudent.learning_goal}</span>
+                                    </Descriptions.Item>
+                                )}
+                            </Descriptions>
+
+                            {selectedStudent.personal_statement && (
+                                <div>
+                                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1.5">
+                                        <FileTextOutlined /> Personal Statement
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm leading-relaxed">
+                                        {selectedStudent.personal_statement}
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedStudent.cv_url && (
+                                <>
+                                    <Divider className="my-0" />
+                                    <AntButton
+                                        type="primary"
+                                        icon={<FilePdfOutlined />}
+                                        size="large"
+                                        block
+                                        className="h-11 font-semibold text-[15px]"
+                                        style={{ background: 'linear-gradient(to right, #2563eb, #4f46e5)', borderColor: 'transparent' }}
+                                        onClick={async () => {
+                                            try {
+                                                const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
+                                                if (!res.ok) throw new Error();
+                                                const data = await res.json();
+                                                window.open(data.url, "_blank");
+                                            } catch {
+                                                message.error("Failed to load CV");
+                                            }
+                                        }}
+                                    >
+                                        View CV / Resume
+                                    </AntButton>
+                                </>
                             )}
                         </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+                    </div>
+                )}
+            </Modal>
         </DashboardLayout>
     );
 }

@@ -118,7 +118,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { message } from "antd";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -143,7 +143,7 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.error || "Login failed");
+                message.error(data.error || "Login failed");
                 return;
             }
 
@@ -176,10 +176,10 @@ export default function LoginPage() {
             // Store token in cookie for middleware
             document.cookie = `access_token=${data.accessToken}; path=/; max-age=900; samesite=strict`;
 
-            toast.success("Welcome back!");
+            message.success("Welcome back!");
             router.push(`/${data.user.role}`);
         } catch {
-            toast.error("Something went wrong");
+            message.error("Something went wrong");
         } finally {
             setIsLoading(false);
         }

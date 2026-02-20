@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { message } from "antd";
 
 function VerifyOtpContent() {
     const router = useRouter();
@@ -28,21 +28,21 @@ function VerifyOtpContent() {
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.error || "Verification failed");
+                message.error(data.error || "Verification failed");
                 return;
             }
 
-            toast.success("Email verified successfully!");
+            message.success("Email verified successfully!");
             router.push("/login");
         } catch {
-            toast.error("Something went wrong");
+            message.error("Something went wrong");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleResend = async () => {
-        toast.info("Resending OTP...");
+        message.info("Resending OTP...");
         // Would need email from context; for now just redirect
     };
 

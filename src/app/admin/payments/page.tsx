@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { message } from "antd";
 
 interface PaymentRequest {
     id: number;
@@ -44,7 +44,7 @@ export default function AdminPaymentsPage() {
             body: JSON.stringify({ status }),
         });
         if (res.ok) {
-            toast.success(`Payment ${status}`);
+            message.success(`Payment ${status}`);
             loadRequests();
         }
     };

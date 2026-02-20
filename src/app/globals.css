@@ -320,3 +320,38 @@
 .dark .ant-select-item {
   color: oklch(0.985 0 0) !important;
 }
+
+/* Ant Design Modal in dark mode */
+.dark .ant-modal .ant-modal-content {
+  background-color: oklch(0.205 0 0) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-modal-header {
+  background-color: oklch(0.205 0 0) !important;
+  border-bottom-color: oklch(1 0 0 / 10%) !important;
+}
+
+.dark .ant-modal-title {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-modal-body {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .ant-modal-close {
+  color: oklch(0.7 0 0) !important;
+}
+
+.dark .ant-modal-close:hover {
+  color: oklch(0.985 0 0) !important;
+  background-color: oklch(1 0 0 / 10%) !important;
+}
+
+/* Ant Design Descriptions in dark mode */
+.dark .ant-descriptions-item-label,
+.dark .ant-descriptions-item-content {
+  color: oklch(0.985 0 0) !important;
+}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { toast } from "sonner";
+import { message } from "antd";
 
 interface SavedItem {
     id: number;
@@ -85,7 +85,7 @@ export default function SavedProgramsPage() {
             body: JSON.stringify({ program_id: programId }),
         });
         if (res.ok) {
-            toast.success("Program removed from saved");
+            message.success("Program removed from saved");
             loadSaved();
         }
     };
@@ -97,10 +97,10 @@ export default function SavedProgramsPage() {
         });
         const data = await res.json();
         if (res.ok) {
-            toast.success("Application submitted!");
+            message.success("Application submitted!");
             setAppliedIds((prev) => new Set(prev).add(programId));
         } else {
-            toast.error(data.error);
+            message.error(data.error);
             if (data.error?.toLowerCase().includes("already applied")) {
                 setAppliedIds((prev) => new Set(prev).add(programId));
             }

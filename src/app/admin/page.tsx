@@ -111,7 +111,7 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { message } from "antd";
 import Link from "next/link";
 
 interface Analytics {
@@ -241,9 +241,9 @@ function ProgressRow({ label, value, max, color }: { label: string; value: numbe
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
     submitted: { color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-200 dark:border-blue-800", label: "Submitted" },
-    viewed:    { color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-500/10 border-purple-200 dark:border-purple-800", label: "Viewed" },
-    accepted:  { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800", label: "Accepted" },
-    rejected:  { color: "text-red-700 dark:text-red-400", bg: "bg-red-500/10 border-red-200 dark:border-red-800", label: "Rejected" },
+    viewed: { color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-500/10 border-purple-200 dark:border-purple-800", label: "Viewed" },
+    accepted: { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800", label: "Accepted" },
+    rejected: { color: "text-red-700 dark:text-red-400", bg: "bg-red-500/10 border-red-200 dark:border-red-800", label: "Rejected" },
     withdrawn: { color: "text-gray-700 dark:text-gray-400", bg: "bg-muted border", label: "Withdrawn" },
 };
 
@@ -261,7 +261,7 @@ export default function AdminDashboard() {
                     setAnalytics(data);
                 }
             } catch {
-                toast.error("Failed to load analytics");
+                message.error("Failed to load analytics");
             } finally {
                 setIsLoading(false);
             }
@@ -290,7 +290,7 @@ export default function AdminDashboard() {
 
     // Simulated monthly application trend (7 months)
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
-    const appTrend  = [20, 35, 28, 50, 42, 65, analytics.totalApplications || 60];
+    const appTrend = [20, 35, 28, 50, 42, 65, analytics.totalApplications || 60];
     const userTrend = [10, 18, 22, 30, 35, 45, analytics.totalUsers || 50];
 
     return (
@@ -314,11 +314,10 @@ export default function AdminDashboard() {
                         <div className="flex items-end justify-between">
                             <div>
                                 <p className="text-3xl font-bold">{item.value.toLocaleString()}</p>
-                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                    item.positive
+                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
                                         ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                                         : "bg-red-500/10 text-red-700 dark:text-red-400"
-                                }`}>
+                                    }`}>
                                     {item.positive ? "↑" : "↓"} {item.badge}
                                 </span>
                             </div>
@@ -354,11 +353,10 @@ export default function AdminDashboard() {
                                 <p className="text-2xl font-bold">
                                     {item.prefix || ""}{typeof item.value === "number" ? item.value.toLocaleString() : item.value}
                                 </p>
-                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                    item.positive
+                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
                                         ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                                         : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                }`}>
+                                    }`}>
                                     {item.badge}
                                 </span>
                             </div>

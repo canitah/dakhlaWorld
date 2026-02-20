@@ -5,8 +5,7 @@ import Cropper, { ReactCropperElement } from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/use-api";
-import { toast } from "sonner";
-import { Avatar } from "antd";
+import { Avatar, message } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 
 interface ProfilePictureCropperProps {
@@ -34,12 +33,12 @@ export function ProfilePictureCropper({
             if (!file) return;
 
             if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-                toast.error("Please select a JPEG, PNG, or WebP image");
+                message.error("Please select a JPEG, PNG, or WebP image");
                 return;
             }
 
             if (file.size > 10 * 1024 * 1024) {
-                toast.error("Image is too large. Please select an image under 10MB.");
+                message.error("Image is too large. Please select an image under 10MB.");
                 return;
             }
 
@@ -113,14 +112,14 @@ export function ProfilePictureCropper({
             if (res.ok) {
                 const data = await res.json();
                 onUploadSuccess(data.url);
-                toast.success("Profile picture updated!");
+                message.success("Profile picture updated!");
                 handleClose();
             } else {
                 const data = await res.json();
-                toast.error(data.error || "Failed to upload");
+                message.error(data.error || "Failed to upload");
             }
         } catch {
-            toast.error("Failed to upload profile picture");
+            message.error("Failed to upload profile picture");
         } finally {
             setIsUploading(false);
         }
@@ -197,12 +196,12 @@ export function ProfilePictureCropper({
                                 });
                                 if (res.ok) {
                                     onUploadSuccess("");
-                                    toast.success("Profile picture removed");
+                                    message.success("Profile picture removed");
                                 } else {
-                                    toast.error("Failed to remove picture");
+                                    message.error("Failed to remove picture");
                                 }
                             } catch {
-                                toast.error("Failed to remove picture");
+                                message.error("Failed to remove picture");
                             }
                         }}
                         className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline transition-colors"

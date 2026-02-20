@@ -5,7 +5,6 @@ import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import { Button as AntButton, message } from "antd";
 import { CheckCircleOutlined, LoadingOutlined, SendOutlined } from "@ant-design/icons";
 
@@ -217,7 +216,7 @@ export default function ExplorePage() {
             const data = await res.json();
             setSelectedProgram(data.program);
         } else {
-            toast.error("Could not load program details");
+            message.error("Could not load program details");
             setSelectedId(null);
             setMobileView("list");
         }
@@ -252,7 +251,7 @@ export default function ExplorePage() {
         });
         if (res.ok) {
             const data = await res.json();
-            toast.success(data.message);
+            message.success(data.message);
             // Toggle saved state for bookmark icon
             setSavedIds((prev) => {
                 const next = new Set(prev);

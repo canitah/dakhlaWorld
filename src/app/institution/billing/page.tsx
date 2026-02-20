@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { message } from "antd";
 
 interface Plan {
     id: number;
@@ -65,14 +65,14 @@ export default function InstitutionBillingPage() {
         });
 
         if (res.ok) {
-            toast.success("Payment request submitted for verification");
+            message.success("Payment request submitted for verification");
             setSelectedPlan(null);
             setTransRef("");
             setScreenshotUrl("");
             loadData();
         } else {
             const data = await res.json();
-            toast.error(data.error);
+            message.error(data.error);
         }
         setIsSubmitting(false);
     };

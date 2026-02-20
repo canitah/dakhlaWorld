@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { toast } from "sonner";
 import { ProfilePictureCropper } from "@/components/profile-picture-cropper";
 import {
     Form,

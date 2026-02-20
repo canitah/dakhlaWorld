@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { toast } from "sonner";
 import { ProfilePictureCropper } from "@/components/profile-picture-cropper";
 import {
     Form,
@@ -369,7 +368,7 @@ export default function StudentProfilePage() {
                                             const data = await res.json();
                                             window.open(data.url, "_blank");
                                         } catch {
-                                            toast.error("Failed to load CV");
+                                            message.error("Failed to load CV");
                                         }
                                     }}
                                 >

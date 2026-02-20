@@ -206,7 +206,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { toast } from "sonner";
+import { message } from "antd";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -225,7 +225,7 @@ export default function SignupPage() {
         setIsLoading(true);
 
         if (formData.password !== formData.confirmPassword) {
-            toast.error("Passwords do not match");
+            message.error("Passwords do not match");
             setIsLoading(false);
             return;
         }
@@ -245,14 +245,14 @@ export default function SignupPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.error || "Signup failed");
+                message.error(data.error || "Signup failed");
                 return;
             }
 
             setAuth(data.user, data.accessToken);
             document.cookie = `access_token=${data.accessToken}; path=/; max-age=900; samesite=strict`;
 
-            toast.success("Account created! Please verify your email.");
+            message.success("Account created! Please verify your email.");
 
             // Send OTP if email provided
             if (formData.email) {
@@ -266,7 +266,7 @@ export default function SignupPage() {
                 router.push(`/${data.user.role}`);
             }
         } catch {
-            toast.error("Something went wrong");
+            message.error("Something went wrong");
         } finally {
             setIsLoading(false);
         }
@@ -308,8 +308,8 @@ export default function SignupPage() {
                                     <button
                                         type="button"
                                         className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${formData.role === "student"
-                                                ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
-                                                : "border-border bg-card text-foreground hover:border-muted-foreground"
+                                            ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                            : "border-border bg-card text-foreground hover:border-muted-foreground"
                                             }`}
                                         onClick={() =>
                                             setFormData({ ...formData, role: "student" })
@@ -333,8 +333,8 @@ export default function SignupPage() {
                                     <button
                                         type="button"
                                         className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${formData.role === "institution"
-                                                ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
-                                                : "border-border bg-card text-foreground hover:border-muted-foreground"
+                                            ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                            : "border-border bg-card text-foreground hover:border-muted-foreground"
                                             }`}
                                         onClick={() =>
                                             setFormData({ ...formData, role: "institution" })
