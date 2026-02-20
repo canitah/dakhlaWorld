@@ -24,6 +24,7 @@ interface Application {
 }
 
 interface StudentDetail {
+    user_id: number;
     full_name: string | null;
     student_type: string | null;
     city: string | null;
@@ -179,9 +180,19 @@ export default function InstitutionApplicationsPage() {
                                 <div><p className="text-xs text-muted-foreground">Personal Statement</p><p className="text-sm">{selectedStudent.personal_statement}</p></div>
                             )}
                             {selectedStudent.cv_url && (
-                                <a href={selectedStudent.cv_url} target="_blank" rel="noreferrer">
-                                    <Button className="w-full bg-blue-600 hover:bg-blue-700">📄 View CV</Button>
-                                </a>
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700"
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
+                                            if (!res.ok) throw new Error();
+                                            const data = await res.json();
+                                            window.open(data.url, "_blank");
+                                        } catch {
+                                            toast.error("Failed to load CV");
+                                        }
+                                    }}
+                                >📄 View CV</Button>
                             )}
                         </div>
                     )}

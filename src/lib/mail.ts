@@ -228,3 +228,35 @@ export async function sendInstitutionAppealEmail(to: string, institutionName: st
         return false;
     }
 }
+
+export async function sendInstitutionCancellationEmail(to: string, institutionName: string, reason: string) {
+    try {
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM || "noreply@gap.pk",
+            to,
+            subject: "GAP - Institution Registration Cancelled",
+            html: emailWrapper(
+                "⚠️ Registration Cancelled",
+                `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Dear <strong>${institutionName}</strong>,
+                </p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Your institution registration on the Global Admissions Platform has been <strong style="color: #ea580c;">cancelled</strong> by an administrator.
+                </p>
+                <div style="background: #fff7ed; border: 1px solid #ea580c; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #9a3412; font-size: 14px; margin: 0;">
+                        <strong>Reason:</strong> ${reason}
+                    </p>
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">
+                    If you believe this was in error, please contact our support team for assistance.
+                </p>`
+            ),
+        });
+        return true;
+    } catch (error) {
+        console.error("Institution cancellation email error:", error);
+        return false;
+    }
+}
+

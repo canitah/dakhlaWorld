@@ -24,7 +24,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                     if (meRes.ok) {
                         const { user } = await meRes.json();
-                        setAuth(user, accessToken);
+                        // Extract profile_picture_url and display_name from the profile
+                        const profilePicUrl =
+                            user.student_profile?.profile_picture_url ||
+                            user.institution_profile?.profile_picture_url ||
+                            null;
+                        const displayName =
+                            user.institution_profile?.name ||
+                            user.student_profile?.full_name ||
+                            null;
+                        setAuth(
+                            { ...user, profile_picture_url: profilePicUrl, display_name: displayName },
+                            accessToken
+                        );
                         return;
                     }
                 }

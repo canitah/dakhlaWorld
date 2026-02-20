@@ -45,13 +45,16 @@ function getMissingFields(inst: Institution): string[] {
 export default function AdminInstitutionsPage() {
     const { fetchWithAuth } = useApi();
     const [institutions, setInstitutions] = useState<Institution[]>([]);
-    const [filter, setFilter] = useState("pending");
+    const [filter, setFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(true);
     const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [rejectTarget, setRejectTarget] = useState<Institution | null>(null);
     const [rejectReason, setRejectReason] = useState("");
     const [isRejectOpen, setIsRejectOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState<Institution | null>(null);
+    const [cancelReason, setCancelReason] = useState("");
+    const [isCancelOpen, setIsCancelOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -60,7 +63,8 @@ export default function AdminInstitutionsPage() {
 
     async function loadInstitutions() {
         setIsLoading(true);
-        const res = await fetchWithAuth(`/admin/institutions?status=${filter}`);
+        const query = filter === "all" ? "" : `?status=${filter}`;
+        const res = await fetchWithAuth(`/admin/institutions${query}`);
         if (res.ok) {
             const data = await res.json();
             setInstitutions(data.institutions);
@@ -68,7 +72,7 @@ export default function AdminInstitutionsPage() {
         setIsLoading(false);
     }
 
-    const handleAction = async (id: number, status: "approved" | "rejected", reason?: string) => {
+    const handleAction = async (id: number, status: "approved" | "rejected" | "cancelled", reason?: string) => {
         setIsSubmitting(true);
         try {
             const res = await fetchWithAuth(`/admin/institutions/${id}`, {
@@ -81,6 +85,9 @@ export default function AdminInstitutionsPage() {
                 setIsRejectOpen(false);
                 setRejectReason("");
                 setRejectTarget(null);
+                setIsCancelOpen(false);
+                setCancelReason("");
+                setCancelTarget(null);
                 loadInstitutions();
             } else {
                 const data = await res.json();
@@ -97,6 +104,12 @@ export default function AdminInstitutionsPage() {
         setIsRejectOpen(true);
     };
 
+    const openCancelDialog = (inst: Institution) => {
+        setCancelTarget(inst);
+        setCancelReason("");
+        setIsCancelOpen(true);
+    };
+
     const viewDetail = (inst: Institution) => {
         setSelectedInst(inst);
         setIsDetailOpen(true);
@@ -108,7 +121,7 @@ export default function AdminInstitutionsPage() {
 
             {/* Filter Tabs */}
             <div className="flex gap-2 mb-6">
-                {["pending", "approved", "rejected"].map((s) => (
+                {["all", "pending", "approved", "rejected", "cancelled"].map((s) => (
                     <Button
                         key={s}
                         variant={filter === s ? "default" : "outline"}
@@ -198,6 +211,16 @@ export default function AdminInstitutionsPage() {
                                                                     Reject
                                                                 </Button>
                                                             </>
+                                                        )}
+                                                        {inst.status === "approved" && (
+                                                            <Button
+                                                                size="sm"
+                                                                className="text-xs h-7 bg-orange-600 hover:bg-orange-700 text-white"
+                                                                disabled={isSubmitting}
+                                                                onClick={() => openCancelDialog(inst)}
+                                                            >
+                                                                Cancel Registration
+                                                            </Button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -310,6 +333,16 @@ export default function AdminInstitutionsPage() {
                                         </Button>
                                     </div>
                                 )}
+                                {selectedInst.status === "approved" && (
+                                    <div className="flex gap-2 pt-2">
+                                        <Button
+                                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                                            onClick={() => { setIsDetailOpen(false); openCancelDialog(selectedInst); }}
+                                        >
+                                            Cancel Registration
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })()}
@@ -342,6 +375,40 @@ export default function AdminInstitutionsPage() {
                                     onClick={() => handleAction(rejectTarget.id, "rejected", rejectReason.trim() || undefined)}
                                 >
                                     {isSubmitting ? "Rejecting..." : "Confirm Rejection"}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Cancellation Reason Dialog */}
+            <Dialog open={isCancelOpen} onOpenChange={(open) => { if (!open) { setIsCancelOpen(false); setCancelTarget(null); setCancelReason(""); } }}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Cancel Institution Registration</DialogTitle>
+                    </DialogHeader>
+                    {cancelTarget && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                You are cancelling the registration of <strong>{cancelTarget.name}</strong>. A reason is required and will be sent to the institution.
+                            </p>
+                            <textarea
+                                className="w-full min-h-[100px] rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                                placeholder="e.g. Violation of terms, fraudulent activity, non-compliance..."
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="outline" onClick={() => { setIsCancelOpen(false); setCancelTarget(null); setCancelReason(""); }}>
+                                    Go Back
+                                </Button>
+                                <Button
+                                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                                    disabled={isSubmitting || !cancelReason.trim()}
+                                    onClick={() => handleAction(cancelTarget.id, "cancelled", cancelReason.trim())}
+                                >
+                                    {isSubmitting ? "Cancelling..." : "Confirm Cancellation"}
                                 </Button>
                             </div>
                         </div>

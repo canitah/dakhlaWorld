@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
+import { useAuthStore } from "@/store/auth-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ProfilePictureCropper } from "@/components/profile-picture-cropper";
 
 interface Profile {
     name: string;
@@ -17,6 +19,7 @@ interface Profile {
     description: string | null;
     contact_email: string | null;
     status: string;
+    profile_picture_url: string | null;
 }
 
 const REQUIRED_FIELDS: { key: keyof Profile; label: string }[] = [
@@ -35,6 +38,7 @@ function getMissingFields(p: Profile): string[] {
 
 export default function InstitutionProfilePage() {
     const { fetchWithAuth } = useApi();
+    const { setProfilePicture } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -138,40 +142,59 @@ export default function InstitutionProfilePage() {
                 </div>
             )}
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Profile Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2 md:col-span-2">
-                            <Label>Institution Name <span className="text-red-500">*</span></Label>
-                            <Input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} required />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Category <span className="text-red-500">*</span></Label>
-                            <Input value={profile.category || ""} onChange={(e) => setProfile({ ...profile, category: e.target.value })} placeholder="e.g., University, College" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>City <span className="text-red-500">*</span></Label>
-                            <Input value={profile.city || ""} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="e.g., Lahore" />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                            <Label>Contact Email <span className="text-red-500">*</span></Label>
-                            <Input type="email" value={profile.contact_email || ""} onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })} />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                            <Label>Description <span className="text-red-500">*</span></Label>
-                            <Textarea value={profile.description || ""} onChange={(e) => setProfile({ ...profile, description: e.target.value })} rows={4} placeholder="Describe your institution..." />
-                        </div>
-                        <div className="md:col-span-2">
-                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
-                                {isSaving ? "Saving..." : "Save Profile"}
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+            <div className="grid gap-6">
+                {/* Profile Picture */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Profile Picture</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <ProfilePictureCropper
+                            currentImageUrl={profile.profile_picture_url}
+                            onUploadSuccess={(url) => {
+                                setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
+                                setProfilePicture(url);
+                            }}
+                        />
+                    </CardContent>
+                </Card>
+
+                {/* Profile Details */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Profile Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>Institution Name <span className="text-red-500">*</span></Label>
+                                <Input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Category <span className="text-red-500">*</span></Label>
+                                <Input value={profile.category || ""} onChange={(e) => setProfile({ ...profile, category: e.target.value })} placeholder="e.g., University, College" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>City <span className="text-red-500">*</span></Label>
+                                <Input value={profile.city || ""} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="e.g., Lahore" />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>Contact Email <span className="text-red-500">*</span></Label>
+                                <Input type="email" value={profile.contact_email || ""} onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })} />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>Description <span className="text-red-500">*</span></Label>
+                                <Textarea value={profile.description || ""} onChange={(e) => setProfile({ ...profile, description: e.target.value })} rows={4} placeholder="Describe your institution..." />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
+                                    {isSaving ? "Saving..." : "Save Profile"}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
         </DashboardLayout>
     );
 }

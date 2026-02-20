@@ -18,6 +18,30 @@ export async function uploadToCloudinary(
             {
                 folder,
                 resource_type: "auto",
+                access_mode: "public",
+            },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result!.secure_url);
+            }
+        );
+        uploadStream.end(buffer);
+    });
+}
+
+export async function uploadRawToCloudinary(
+    file: File,
+    folder: string = "gap"
+): Promise<string> {
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                folder,
+                resource_type: "raw",
+                access_mode: "public",
             },
             (error, result) => {
                 if (error) reject(error);

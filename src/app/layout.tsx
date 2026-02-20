@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SidebarProvider } from "@/store/sidebar-store";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,9 +25,11 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <ThemeProvider>
           <AuthProvider>
-            <Navbar />
-            {children}
-            <Toaster position="top-right" richColors />
+            <SidebarProvider>
+              <Navbar />
+              {children}
+              <Toaster position="top-right" richColors />
+            </SidebarProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

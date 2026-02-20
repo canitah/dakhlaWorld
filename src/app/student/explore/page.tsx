@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ interface Program {
     title: string;
     category: string | null;
     duration: string | null;
+    created_at: string;
     institution: { name: string; city: string | null };
 }
 
@@ -118,9 +119,12 @@ const UsersIcon = () => (
     </svg>
 );
 
-/* ─────────────────────────── Main Page ─────────────────────── */
+/* ─────────────────────────── Helpers ─────────────────────────── */
 
-const CATEGORIES = ["All", "Computer Science", "Engineering", "Business", "Medical", "Arts", "Law"];
+function isNewProgram(createdAt: string): boolean {
+    const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+    return Date.now() - new Date(createdAt).getTime() < twoDaysMs;
+}
 
 export default function ExplorePage() {
     const { fetchWithAuth } = useApi();
@@ -137,6 +141,14 @@ export default function ExplorePage() {
     const [mobileView, setMobileView] = useState<"list" | "detail">("list");
     // Track saved program IDs for bookmark toggle UI
     const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+
+    // Derive category tabs dynamically from loaded programs
+    const categories = useMemo(() => {
+        const cats = programs
+            .map((p) => p.category)
+            .filter((c): c is string => !!c);
+        return ["All", ...Array.from(new Set(cats)).sort()];
+    }, [programs]);
 
     // Load saved program IDs on mount so bookmarks persist across refreshes
     useEffect(() => {
@@ -253,17 +265,16 @@ export default function ExplorePage() {
 
                 {/* Category chips */}
                 <div className="flex flex-wrap gap-2 mt-3">
-                    {CATEGORIES.map((cat) => {
+                    {categories.map((cat) => {
                         const active = category === cat || (cat === "All" && !category);
                         return (
                             <button
                                 key={cat}
                                 onClick={() => { setCategory(cat === "All" ? "" : cat); setPage(1); }}
-                                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${
-                                    active
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${active
                                         ? "bg-primary text-primary-foreground border-primary shadow-sm"
                                         : "bg-background text-muted-foreground border-border hover:border-primary hover:text-primary"
-                                }`}
+                                    }`}
                             >
                                 {cat}
                             </button>
@@ -410,16 +421,17 @@ function ProgramCard({
         >
             {/* Row 1: badge + save icon */}
             <div className="flex items-start justify-between mb-2">
-                <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
-                    New
-                </span>
+                {isNewProgram(program.created_at) ? (
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                        New
+                    </span>
+                ) : <span />}
                 <button
                     onClick={onSave}
-                    className={`p-1 rounded transition-colors ${
-                        isSaved
+                    className={`p-1 rounded transition-colors ${isSaved
                             ? "text-primary"
                             : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-                    }`}
+                        }`}
                     aria-label={isSaved ? "Unsave program" : "Save program"}
                 >
                     <BookmarkIcon filled={isSaved} />
@@ -523,11 +535,10 @@ function DetailPanel({
                     <button
                         onClick={() => onSave(program.id)}
                         aria-label={isSaved ? "Unsave" : "Save"}
-                        className={`h-10 w-10 flex items-center justify-center rounded-full border transition-all ${
-                            isSaved
+                        className={`h-10 w-10 flex items-center justify-center rounded-full border transition-all ${isSaved
                                 ? "border-primary text-primary bg-primary/10"
                                 : "border-border bg-muted/50 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/10"
-                        }`}
+                            }`}
                     >
                         <BookmarkIcon filled={isSaved} />
                     </button>

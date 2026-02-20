@@ -39,6 +39,7 @@ model StudentProfile {
   experience_level  String?
   learning_goal     String?
   cv_url            String?
+  profile_picture_url String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
@@ -58,7 +59,8 @@ model InstitutionProfile {
   city          String?
   description   String?
   contact_email String?
-  status           String   @default("pending") // pending | approved | rejected
+  profile_picture_url String?
+  status           String   @default("pending") // pending | approved | rejected | cancelled
   rejection_reason String?
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt

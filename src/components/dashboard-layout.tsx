@@ -1,93 +1,12 @@
-// "use client";
-
-// import Link from "next/link";
-// import { usePathname } from "next/navigation";
-// import { cn } from "@/lib/utils";
-
-// interface SidebarLink {
-//     label: string;
-//     href: string;
-//     icon: string;
-// }
-
-// const studentLinks: SidebarLink[] = [
-//     { label: "Dashboard", href: "/student", icon: "🏠" },
-//     { label: "Explore Programs", href: "/student/explore", icon: "🎓" },
-//     { label: "My Applications", href: "/student/applications", icon: "📋" },
-//     { label: "Saved Programs", href: "/student/saved", icon: "💾" },
-//     { label: "My Profile", href: "/student/profile", icon: "👤" },
-// ];
-
-// const institutionLinks: SidebarLink[] = [
-//     { label: "Dashboard", href: "/institution", icon: "🏠" },
-//     { label: "My Programs", href: "/institution/programs", icon: "📚" },
-//     { label: "Applications", href: "/institution/applications", icon: "📩" },
-//     { label: "Billing & Plans", href: "/institution/billing", icon: "💳" },
-//     { label: "Profile", href: "/institution/profile", icon: "🏫" },
-// ];
-
-// const adminLinks: SidebarLink[] = [
-//     { label: "Dashboard", href: "/admin", icon: "📊" },
-//     { label: "Institutions", href: "/admin/institutions", icon: "🏫" },
-//     { label: "Payments", href: "/admin/payments", icon: "💰" },
-//     { label: "Applications", href: "/admin/applications", icon: "📋" },
-//     { label: "Categories", href: "/admin/categories", icon: "🏷️" },
-//     { label: "Cities", href: "/admin/cities", icon: "🏙️" },
-// ];
-
-// export function Sidebar({ role }: { role: string }) {
-//     const pathname = usePathname();
-
-//     const links =
-//         role === "student"
-//             ? studentLinks
-//             : role === "institution"
-//                 ? institutionLinks
-//                 : adminLinks;
-
-//     return (
-//         <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:top-16 bg-white border-r">
-//             <nav className="flex-1 px-4 py-6 space-y-1">
-//                 {links.map((link) => (
-//                     <Link
-//                         key={link.href}
-//                         href={link.href}
-//                         className={cn(
-//                             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-//                             pathname === link.href
-//                                 ? "bg-blue-50 text-blue-700 shadow-sm"
-//                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-//                         )}
-//                     >
-//                         <span className="text-lg">{link.icon}</span>
-//                         {link.label}
-//                     </Link>
-//                 ))}
-//             </nav>
-//         </aside>
-//     );
-// }
-
-// export function DashboardLayout({
-//     role,
-//     children,
-// }: {
-//     role: string;
-//     children: React.ReactNode;
-// }) {
-//     return (
-//         <div className="min-h-screen bg-gray-50/50">
-//             <Sidebar role={role} />
-//             <main className="md:ml-64 p-6 pt-6">{children}</main>
-//         </div>
-//     );
-// }
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuthStore } from "@/store/auth-store";
+import { useSidebar } from "@/store/sidebar-store";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarLink {
     label: string;
@@ -260,6 +179,7 @@ export function Sidebar({
 }) {
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const { user } = useAuthStore();
 
     const links =
         role === "student"
@@ -267,6 +187,17 @@ export function Sidebar({
             : role === "institution"
                 ? institutionLinks
                 : adminLinks;
+
+    const getInitials = () => {
+        if (!user) return "?";
+        if (user.email) return user.email[0].toUpperCase();
+        return user.role[0].toUpperCase();
+    };
+
+    const getUserDisplay = () => {
+        if (!user) return "User";
+        return user.display_name || user.email || user.phone || "User";
+    };
 
     return (
         <>
@@ -291,19 +222,17 @@ export function Sidebar({
             {/* Mobile Sidebar */}
             <aside
                 className={cn(
-                    "md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out",
+                    "md:hidden fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transform transition-transform duration-300 ease-in-out",
                     isMobileOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >
-                <div className="flex items-center justify-between p-4 border-b">
+                {/* Mobile Header */}
+                <div className="flex items-center justify-between p-4 border-b border-border">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">G</span>
+                        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">G</span>
                         </div>
-                        <div>
-                            <h2 className="text-sm font-bold text-foreground">GAP</h2>
-                            <p className="text-xs text-muted-foreground capitalize">{role}</p>
-                        </div>
+                        <span className="text-lg font-bold text-foreground">GAP</span>
                     </div>
                     <button
                         onClick={() => setIsMobileOpen(false)}
@@ -314,23 +243,51 @@ export function Sidebar({
                         </svg>
                     </button>
                 </div>
-                <nav className="flex-1 px-3 py-4 space-y-1">
-                    {links.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            onClick={() => setIsMobileOpen(false)}
-                            className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                                pathname === link.href
-                                    ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+
+                {/* Mobile User Profile */}
+                <div className="p-5 border-b border-border">
+                    <div className="flex flex-col items-center text-center">
+                        <Avatar className="h-16 w-16 border-3 border-blue-100 dark:border-blue-900/30 shadow-md">
+                            {user?.profile_picture_url && (
+                                <AvatarImage src={user.profile_picture_url} alt="Profile" />
                             )}
-                        >
-                            {link.icon}
-                            <span>{link.label}</span>
-                        </Link>
-                    ))}
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold text-xl">
+                                {getInitials()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <h3 className="mt-3 text-sm font-semibold text-foreground truncate max-w-full">
+                            {getUserDisplay()}
+                        </h3>
+                        <span className="mt-0.5 text-xs text-muted-foreground capitalize px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                            {role}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Mobile Nav */}
+                <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+                    {links.map((link) => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={cn(
+                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative",
+                                    isActive
+                                        ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                )}
+                            >
+                                {isActive && (
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
+                                )}
+                                {link.icon}
+                                <span>{link.label}</span>
+                            </Link>
+                        );
+                    })}
                 </nav>
             </aside>
 
@@ -341,63 +298,76 @@ export function Sidebar({
                     isCollapsed ? "md:w-20" : "md:w-64"
                 )}
             >
-                {/* Collapse Button */}
-                <button
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="absolute -right-3 top-6 w-6 h-6 bg-card border border-border rounded-full flex items-center justify-center hover:bg-accent transition-colors shadow-sm"
-                >
-                    <svg
-                        className={cn("w-4 h-4 text-muted-foreground transition-transform", isCollapsed && "rotate-180")}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                <nav className="flex-1 px-3 py-6 space-y-1">
-                    {links.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all group relative",
-                                pathname === link.href
-                                    ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                {/* User Profile Section at Top */}
+                <div className={cn(
+                    "border-b border-border transition-all duration-300",
+                    isCollapsed ? "p-3" : "p-5"
+                )}>
+                    <div className={cn(
+                        "flex flex-col items-center text-center",
+                        isCollapsed && "items-center"
+                    )}>
+                        {/* <Avatar className={cn(
+                            " dark:border-blue-900/30 shadow-sm transition-all duration-300",
+                            isCollapsed ? "h-10 w-10" : "h-14 w-14"
+                        )}>
+                            {user?.profile_picture_url && (
+                                <AvatarImage src={user.profile_picture_url} alt="Profile" />
                             )}
-                            title={isCollapsed ? link.label : undefined}
-                        >
-                            {link.icon}
-                            {!isCollapsed && <span>{link.label}</span>}
-
-                            {/* Tooltip for collapsed state */}
-                            {isCollapsed && (
-                                <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground border border-border text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-md">
-                                    {link.label}
-                                </div>
-                            )}
-                        </Link>
-                    ))}
-                </nav>
-
-                {/* Bottom Section */}
-                {!isCollapsed && (
-                    <div className="p-4 border-t">
-                        <div className="flex items-center gap-3 px-3 py-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-foreground truncate">User Account</p>
-                                <p className="text-xs text-muted-foreground capitalize">{role}</p>
-                            </div>
-                        </div>
+                            <AvatarFallback className={cn(
+                                "bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold transition-all duration-300",
+                                isCollapsed ? "text-sm" : "text-lg"
+                            )}>
+                                {getInitials()}
+                            </AvatarFallback>
+                        </Avatar> */}
+                        {!isCollapsed && (
+                            <>
+                                <h3 className="mt-2.5 text-sm font-semibold text-foreground truncate max-w-full leading-tight">
+                                    {getUserDisplay()}
+                                </h3>
+                                <span className="mt-1 text-[11px] text-blue-600 dark:text-blue-400 capitalize font-medium px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10">
+                                    {role}
+                                </span>
+                            </>
+                        )}
                     </div>
-                )}
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+                    {links.map((link) => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all group relative",
+                                    isActive
+                                        ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                                    isCollapsed && "justify-center px-2"
+                                )}
+                                title={isCollapsed ? link.label : undefined}
+                            >
+                                {/* Active indicator bar */}
+                                {isActive && (
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
+                                )}
+                                {link.icon}
+                                {!isCollapsed && <span>{link.label}</span>}
+
+                                {/* Tooltip for collapsed state */}
+                                {isCollapsed && (
+                                    <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-popover text-popover-foreground border border-border text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg font-medium">
+                                        {link.label}
+                                    </div>
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
             </aside>
         </>
     );
@@ -410,7 +380,7 @@ export function DashboardLayout({
     role: string;
     children: React.ReactNode;
 }) {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const { isCollapsed, setIsCollapsed } = useSidebar();
 
     return (
         <div className="min-h-screen bg-background">

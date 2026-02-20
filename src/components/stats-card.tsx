@@ -44,6 +44,7 @@ export function StatusBadge({
         approved: "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800",
         active: "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800",
         suspended: "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800",
+        cancelled: "bg-orange-500/10 text-orange-700 border-orange-200 dark:text-orange-400 dark:border-orange-800",
     };
 
     return (

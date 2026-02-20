@@ -149,6 +149,30 @@ export default function LoginPage() {
 
             setAuth(data.user, data.accessToken);
 
+            // Fetch full user data (including profile picture) before navigating
+            try {
+                const meRes = await fetch("/api/auth/me", {
+                    headers: { Authorization: `Bearer ${data.accessToken}` },
+                });
+                if (meRes.ok) {
+                    const meData = await meRes.json();
+                    const profilePicUrl =
+                        meData.user.student_profile?.profile_picture_url ||
+                        meData.user.institution_profile?.profile_picture_url ||
+                        null;
+                    const displayName =
+                        meData.user.institution_profile?.name ||
+                        meData.user.student_profile?.full_name ||
+                        null;
+                    setAuth(
+                        { ...data.user, profile_picture_url: profilePicUrl, display_name: displayName },
+                        data.accessToken
+                    );
+                }
+            } catch {
+                // Non-critical: profile pic will load on next refresh
+            }
+
             // Store token in cookie for middleware
             document.cookie = `access_token=${data.accessToken}; path=/; max-age=900; samesite=strict`;
 

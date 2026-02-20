@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { approvalSchema } from "@/lib/validations";
-import { sendInstitutionApprovalEmail } from "@/lib/mail";
+import { sendInstitutionApprovalEmail, sendInstitutionCancellationEmail } from "@/lib/mail";
 
-// PUT /api/admin/institutions/[id] — Approve or reject an institution
+// PUT /api/admin/institutions/[id] — Approve, reject, or cancel an institution
 export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -49,43 +49,74 @@ export async function PUT(
             }
         }
 
+        // Cancellation requires a reason
+        if (parsed.data.status === "cancelled") {
+            if (!parsed.data.reason || parsed.data.reason.trim() === "") {
+                return NextResponse.json(
+                    { error: "A reason is required when cancelling an institution registration." },
+                    { status: 400 }
+                );
+            }
+        }
+
         const updated = await prisma.institutionProfile.update({
             where: { id: parseInt(id) },
             data: {
                 status: parsed.data.status,
-                rejection_reason: parsed.data.status === "rejected"
+                rejection_reason: (parsed.data.status === "rejected" || parsed.data.status === "cancelled")
                     ? (parsed.data.reason || null)
                     : null,
             },
         });
 
         // Send email notification and create in-app notification
-        const statusText = parsed.data.status === "approved" ? "approved" : "rejected";
+        if (parsed.data.status === "cancelled") {
+            // Cancellation flow
+            if (institution.user.email) {
+                sendInstitutionCancellationEmail(
+                    institution.user.email,
+                    institution.name,
+                    parsed.data.reason!
+                ).catch(() => { });
+            }
 
-        if (institution.user.email) {
-            sendInstitutionApprovalEmail(
-                institution.user.email,
-                institution.name,
-                statusText,
-                parsed.data.reason
-            ).catch(() => { });
+            await prisma.notification.create({
+                data: {
+                    user_id: institution.user.id,
+                    title: "Institution Registration Cancelled",
+                    message: `Your institution "${institution.name}" registration has been cancelled. Reason: ${parsed.data.reason}`,
+                    type: "institution_cancelled",
+                    link: "/institution",
+                },
+            });
+        } else {
+            // Existing approve/reject flow
+            const statusText = parsed.data.status === "approved" ? "approved" : "rejected";
+
+            if (institution.user.email) {
+                sendInstitutionApprovalEmail(
+                    institution.user.email,
+                    institution.name,
+                    statusText,
+                    parsed.data.reason
+                ).catch(() => { });
+            }
+
+            const rejectionNote = parsed.data.reason
+                ? ` Reason: ${parsed.data.reason}`
+                : "";
+            await prisma.notification.create({
+                data: {
+                    user_id: institution.user.id,
+                    title: `Institution ${statusText === "approved" ? "Approved" : "Rejected"}`,
+                    message: statusText === "approved"
+                        ? `Your institution "${institution.name}" has been approved! You can now post programs and manage applications.`
+                        : `Your institution "${institution.name}" registration has been rejected.${rejectionNote}`,
+                    type: `institution_${statusText}`,
+                    link: "/institution",
+                },
+            });
         }
-
-        // Create in-app notification for the institution user
-        const rejectionNote = parsed.data.reason
-            ? ` Reason: ${parsed.data.reason}`
-            : "";
-        await prisma.notification.create({
-            data: {
-                user_id: institution.user.id,
-                title: `Institution ${statusText === "approved" ? "Approved" : "Rejected"}`,
-                message: statusText === "approved"
-                    ? `Your institution "${institution.name}" has been approved! You can now post programs and manage applications.`
-                    : `Your institution "${institution.name}" registration has been rejected.${rejectionNote}`,
-                type: `institution_${statusText}`,
-                link: "/institution",
-            },
-        });
 
         return NextResponse.json({
             institution: updated,

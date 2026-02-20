@@ -88,6 +88,6 @@ export const citySchema = z.object({
 });
 
 export const approvalSchema = z.object({
-    status: z.enum(["approved", "rejected"]),
+    status: z.enum(["approved", "rejected", "cancelled"]),
     reason: z.string().optional(),
 });

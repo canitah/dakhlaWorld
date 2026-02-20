@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
+import { useAuthStore } from "@/store/auth-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ProfilePictureCropper } from "@/components/profile-picture-cropper";
 
 interface Profile {
     id: number;
@@ -22,14 +24,17 @@ interface Profile {
     experience_level: string | null;
     learning_goal: string | null;
     cv_url: string | null;
+    profile_picture_url: string | null;
 }
 
 export default function StudentProfilePage() {
     const { fetchWithAuth } = useApi();
+    const { setProfilePicture } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [cvFile, setCvFile] = useState<File | null>(null);
+    const [isUploadingCv, setIsUploadingCv] = useState(false);
 
     useEffect(() => {
         loadProfile();
@@ -69,23 +74,30 @@ export default function StudentProfilePage() {
 
     const handleCvUpload = async () => {
         if (!cvFile) return;
+        setIsUploadingCv(true);
 
-        const formData = new FormData();
-        formData.append("cv", cvFile);
+        try {
+            const formData = new FormData();
+            formData.append("cv", cvFile);
 
-        const res = await fetchWithAuth("/students/profile/cv", {
-            method: "POST",
-            body: formData,
-        });
+            const res = await fetchWithAuth("/students/profile/cv", {
+                method: "POST",
+                body: formData,
+            });
 
-        if (res.ok) {
-            const data = await res.json();
-            setProfile((prev) => prev ? { ...prev, cv_url: data.cv_url } : prev);
-            toast.success("CV uploaded successfully");
-            setCvFile(null);
-        } else {
-            const data = await res.json();
-            toast.error(data.error);
+            if (res.ok) {
+                const data = await res.json();
+                setProfile((prev) => prev ? { ...prev, cv_url: data.cv_url } : prev);
+                toast.success("CV uploaded successfully");
+                setCvFile(null);
+            } else {
+                const data = await res.json();
+                toast.error(data.error);
+            }
+        } catch {
+            toast.error("Failed to upload CV");
+        } finally {
+            setIsUploadingCv(false);
         }
     };
 
@@ -104,6 +116,22 @@ export default function StudentProfilePage() {
             <h1 className="text-2xl font-bold mb-6">My Profile</h1>
 
             <div className="grid gap-6">
+                {/* Profile Picture */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Profile Picture</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <ProfilePictureCropper
+                            currentImageUrl={profile.profile_picture_url}
+                            onUploadSuccess={(url) => {
+                                setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
+                                setProfilePicture(url);
+                            }}
+                        />
+                    </CardContent>
+                </Card>
+
                 {/* Basic Info */}
                 <Card>
                     <CardHeader>
@@ -230,9 +258,21 @@ export default function StudentProfilePage() {
                             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <p className="text-sm text-green-700">
                                     ✅ CV uploaded.{" "}
-                                    <a href={profile.cv_url} target="_blank" rel="noreferrer" className="underline">
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const res = await fetchWithAuth("/students/profile/cv");
+                                                if (!res.ok) throw new Error();
+                                                const data = await res.json();
+                                                window.open(data.url, "_blank");
+                                            } catch {
+                                                toast.error("Failed to load CV");
+                                            }
+                                        }}
+                                        className="underline cursor-pointer"
+                                    >
                                         View PDF
-                                    </a>
+                                    </button>
                                 </p>
                             </div>
                         )}
@@ -244,14 +284,22 @@ export default function StudentProfilePage() {
                                     accept=".pdf"
                                     onChange={(e) => setCvFile(e.target.files?.[0] || null)}
                                     className="mt-1"
+                                    disabled={isUploadingCv}
                                 />
                             </div>
                             <Button
                                 onClick={handleCvUpload}
-                                disabled={!cvFile}
+                                disabled={!cvFile || isUploadingCv}
                                 className="bg-blue-600 hover:bg-blue-700"
                             >
-                                Upload
+                                {isUploadingCv ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    "Upload"
+                                )}
                             </Button>
                         </div>
                     </CardContent>
