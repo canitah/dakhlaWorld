@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@prisma/adapter-pg": "^7.4.0",
@@ -26,6 +29,7 @@
     "nodemailer": "^8.0.1",
     "pg": "^8.18.0",
     "prisma": "^7.4.0",
+    "qrcode.react": "^4.2.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-cropper": "^2.3.3",

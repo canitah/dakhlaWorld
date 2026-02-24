@@ -315,8 +315,8 @@ export default function AdminDashboard() {
                             <div>
                                 <p className="text-3xl font-bold">{item.value.toLocaleString()}</p>
                                 <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
-                                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                        : "bg-red-500/10 text-red-700 dark:text-red-400"
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                    : "bg-red-500/10 text-red-700 dark:text-red-400"
                                     }`}>
                                     {item.positive ? "↑" : "↓"} {item.badge}
                                 </span>
@@ -354,8 +354,8 @@ export default function AdminDashboard() {
                                     {item.prefix || ""}{typeof item.value === "number" ? item.value.toLocaleString() : item.value}
                                 </p>
                                 <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
-                                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                        : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                                     }`}>
                                     {item.badge}
                                 </span>
@@ -530,12 +530,12 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex flex-col gap-2 w-full sm:w-auto">
                         <Link href="/admin/payments">
-                            <button className="w-full sm:w-auto px-5 py-2.5 bg-white text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+                            <button className="w-full sm:w-auto px-5 py-2.5 bg-white text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
                                 View Payments
                             </button>
                         </Link>
                         <Link href="/admin/institutions">
-                            <button className="w-full sm:w-auto px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-400 transition-colors border border-blue-400">
+                            <button className="w-full sm:w-auto px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-400 transition-colors border border-blue-400 cursor-pointer">
                                 Manage Institutions
                             </button>
                         </Link>

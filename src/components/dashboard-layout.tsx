@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useMemo, useState } from "react";
-import { useAuthStore } from "@/store/auth-store";
+import { useState } from "react";
 import { useSidebar } from "@/store/sidebar-store";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Breadcrumb } from "antd";
-import { HomeOutlined } from "@ant-design/icons";
+import { Tooltip } from "antd";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 
 interface SidebarLink {
     label: string;
@@ -16,7 +14,7 @@ interface SidebarLink {
     icon: React.ReactNode;
 }
 
-const studentLinks: SidebarLink[] = [
+export const studentLinks: SidebarLink[] = [
     {
         label: "Dashboard",
         href: "/student",
@@ -64,7 +62,7 @@ const studentLinks: SidebarLink[] = [
     },
 ];
 
-const institutionLinks: SidebarLink[] = [
+export const institutionLinks: SidebarLink[] = [
     {
         label: "Dashboard",
         href: "/institution",
@@ -112,7 +110,7 @@ const institutionLinks: SidebarLink[] = [
     },
 ];
 
-const adminLinks: SidebarLink[] = [
+export const adminLinks: SidebarLink[] = [
     {
         label: "Dashboard",
         href: "/admin",
@@ -181,7 +179,6 @@ export function Sidebar({
 }) {
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
-    const { user } = useAuthStore();
 
     const links =
         role === "student"
@@ -190,23 +187,12 @@ export function Sidebar({
                 ? institutionLinks
                 : adminLinks;
 
-    const getInitials = () => {
-        if (!user) return "?";
-        if (user.email) return user.email[0].toUpperCase();
-        return user.role[0].toUpperCase();
-    };
-
-    const getUserDisplay = () => {
-        if (!user) return "User";
-        return user.display_name || user.email || user.phone || "User";
-    };
-
     return (
         <>
             {/* Mobile Menu Button */}
             <button
                 onClick={() => setIsMobileOpen(true)}
-                className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer"
             >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -228,42 +214,24 @@ export function Sidebar({
                     isMobileOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >
-                {/* Mobile Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">G</span>
+                {/* Mobile Logo + Close */}
+                <div className="h-16 flex items-center justify-between px-5 border-b border-border">
+                    <Link href={`/${role}`} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
                         </div>
                         <span className="text-lg font-bold text-foreground">GAP</span>
-                    </div>
+                    </Link>
                     <button
                         onClick={() => setIsMobileOpen(false)}
-                        className="p-2 hover:bg-accent rounded-lg transition-colors"
+                        className="p-2 hover:bg-accent rounded-lg transition-colors cursor-pointer"
                     >
                         <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
-                </div>
-
-                {/* Mobile User Profile */}
-                <div className="p-5 border-b border-border">
-                    <div className="flex flex-col items-center text-center">
-                        <Avatar className="h-16 w-16 border-3 border-blue-100 dark:border-blue-900/30 shadow-md">
-                            {user?.profile_picture_url && (
-                                <AvatarImage src={user.profile_picture_url} alt="Profile" />
-                            )}
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold text-xl">
-                                {getInitials()}
-                            </AvatarFallback>
-                        </Avatar>
-                        <h3 className="mt-3 text-sm font-semibold text-foreground truncate max-w-full">
-                            {getUserDisplay()}
-                        </h3>
-                        <span className="mt-0.5 text-xs text-muted-foreground capitalize px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                            {role}
-                        </span>
-                    </div>
                 </div>
 
                 {/* Mobile Nav */}
@@ -285,7 +253,7 @@ export function Sidebar({
                                 {isActive && (
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
                                 )}
-                                {link.icon}
+                                <span className="flex-shrink-0">{link.icon}</span>
                                 <span>{link.label}</span>
                             </Link>
                         );
@@ -293,47 +261,28 @@ export function Sidebar({
                 </nav>
             </aside>
 
-            {/* Desktop Sidebar */}
+            {/* Desktop Sidebar — full height */}
             <aside
                 className={cn(
-                    "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:top-16 bg-card border-r border-border transition-all duration-300",
-                    isCollapsed ? "md:w-20" : "md:w-64"
+                    "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 bg-card border-r border-border transition-all duration-300 z-40",
+                    isCollapsed ? "md:w-[72px]" : "md:w-[260px]"
                 )}
             >
-                {/* User Profile Section at Top */}
+                {/* Logo Section — matches navbar height */}
                 <div className={cn(
-                    "border-b border-border transition-all duration-300",
-                    isCollapsed ? "p-3" : "p-5"
+                    "h-16 flex items-center border-b border-border flex-shrink-0",
+                    isCollapsed ? "justify-center px-2" : "px-5"
                 )}>
-                    <div className={cn(
-                        "flex flex-col items-center text-center",
-                        isCollapsed && "items-center"
-                    )}>
-                        {/* <Avatar className={cn(
-                            " dark:border-blue-900/30 shadow-sm transition-all duration-300",
-                            isCollapsed ? "h-10 w-10" : "h-14 w-14"
-                        )}>
-                            {user?.profile_picture_url && (
-                                <AvatarImage src={user.profile_picture_url} alt="Profile" />
-                            )}
-                            <AvatarFallback className={cn(
-                                "bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold transition-all duration-300",
-                                isCollapsed ? "text-sm" : "text-lg"
-                            )}>
-                                {getInitials()}
-                            </AvatarFallback>
-                        </Avatar> */}
+                    <Link href={`/${role}`} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                        </div>
                         {!isCollapsed && (
-                            <>
-                                <h3 className="mt-2.5 text-sm font-semibold text-foreground truncate max-w-full leading-tight">
-                                    {getUserDisplay()}
-                                </h3>
-                                <span className="mt-1 text-[11px] text-blue-600 dark:text-blue-400 capitalize font-medium px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10">
-                                    {role}
-                                </span>
-                            </>
+                            <span className="text-xl font-bold text-foreground tracking-tight">GAP</span>
                         )}
-                    </div>
+                    </Link>
                 </div>
 
                 {/* Navigation */}
@@ -341,35 +290,40 @@ export function Sidebar({
                     {links.map((link) => {
                         const isActive = pathname === link.href;
                         return (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all group relative",
-                                    isActive
-                                        ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                                    isCollapsed && "justify-center px-2"
-                                )}
-                                title={isCollapsed ? link.label : undefined}
-                            >
-                                {/* Active indicator bar */}
-                                {isActive && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
-                                )}
-                                {link.icon}
-                                {!isCollapsed && <span>{link.label}</span>}
-
-                                {/* Tooltip for collapsed state */}
-                                {isCollapsed && (
-                                    <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-popover text-popover-foreground border border-border text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg font-medium">
-                                        {link.label}
-                                    </div>
-                                )}
-                            </Link>
+                            <Tooltip key={link.href} title={isCollapsed ? link.label : ""} placement="right">
+                                <Link
+                                    href={link.href}
+                                    className={cn(
+                                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative",
+                                        isActive
+                                            ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                                        isCollapsed && "justify-center px-2"
+                                    )}
+                                >
+                                    {isActive && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
+                                    )}
+                                    <span className="flex-shrink-0">{link.icon}</span>
+                                    {!isCollapsed && <span>{link.label}</span>}
+                                </Link>
+                            </Tooltip>
                         );
                     })}
                 </nav>
+
+                {/* Collapse Button — positioned on sidebar edge */}
+                <Tooltip title={isCollapsed ? "Expand" : "Collapse"} placement="right">
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="absolute right-0 translate-x-1/2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:shadow-md hover:bg-accent transition-all z-50 cursor-pointer"
+                    >
+                        {isCollapsed
+                            ? <RightOutlined style={{ fontSize: 10 }} />
+                            : <LeftOutlined style={{ fontSize: 10 }} />
+                        }
+                    </button>
+                </Tooltip>
             </aside>
         </>
     );
@@ -383,62 +337,6 @@ export function DashboardLayout({
     children: React.ReactNode;
 }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
-    const pathname = usePathname();
-
-    // Build human-readable label map from sidebar links
-    const labelMap: Record<string, string> = useMemo(() => {
-        const links =
-            role === "student" ? studentLinks
-                : role === "institution" ? institutionLinks
-                    : adminLinks;
-        const map: Record<string, string> = {
-            student: "Dashboard",
-            institution: "Dashboard",
-            admin: "Dashboard",
-        };
-        for (const link of links) {
-            // Extract last segment from href as the key
-            const segments = link.href.split("/").filter(Boolean);
-            const key = segments[segments.length - 1];
-            map[key] = link.label;
-        }
-        return map;
-    }, [role]);
-
-    // Build breadcrumb items from pathname
-    const breadcrumbItems = useMemo(() => {
-        const segments = pathname.split("/").filter(Boolean);
-        if (segments.length === 0) return [];
-
-        const roleSegment = segments[0]; // "student" | "institution" | "admin"
-        const items: { title: React.ReactNode }[] = [
-            {
-                title: (
-                    <Link href={`/${roleSegment}`} className="flex items-center gap-1">
-                        <HomeOutlined /> {labelMap[roleSegment] || roleSegment}
-                    </Link>
-                ),
-            },
-        ];
-
-        // Build items for remaining segments (skip role segment)
-        for (let i = 1; i < segments.length; i++) {
-            const seg = segments[i];
-            const href = "/" + segments.slice(0, i + 1).join("/");
-            const label = labelMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
-
-            if (i === segments.length - 1) {
-                // Last segment — not a link
-                items.push({ title: <span className="font-medium">{label}</span> });
-            } else {
-                items.push({
-                    title: <Link href={href}>{label}</Link>,
-                });
-            }
-        }
-
-        return items;
-    }, [pathname, labelMap]);
 
     return (
         <div className="min-h-screen bg-background">
@@ -446,14 +344,9 @@ export function DashboardLayout({
             <main
                 className={cn(
                     "transition-all duration-300 p-4 md:p-6",
-                    isCollapsed ? "md:ml-20" : "md:ml-64"
+                    isCollapsed ? "md:ml-[72px]" : "md:ml-[260px]"
                 )}
             >
-                {breadcrumbItems.length > 0 && (
-                    <div className="mb-4">
-                        <Breadcrumb items={breadcrumbItems} />
-                    </div>
-                )}
                 {children}
             </main>
         </div>

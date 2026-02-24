@@ -102,10 +102,21 @@ export async function POST(request: Request) {
             );
         }
 
+        // Generate unique 8-digit application code
+        let applicationCode: string;
+        let isUnique = false;
+        do {
+            const digits = Math.floor(10000000 + Math.random() * 90000000).toString();
+            applicationCode = `APP-${digits}`;
+            const existing = await prisma.application.findUnique({ where: { application_code: applicationCode } });
+            isUnique = !existing;
+        } while (!isUnique);
+
         const application = await prisma.application.create({
             data: {
                 program_id: parsed.data.program_id,
                 student_id: profile.id,
+                application_code: applicationCode,
                 status: "submitted",
             },
             include: {

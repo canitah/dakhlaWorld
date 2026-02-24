@@ -80,7 +80,7 @@ function VerifyOtpContent() {
                     <div className="mt-4 text-center">
                         <button
                             onClick={handleResend}
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm text-blue-600 hover:underline cursor-pointer"
                         >
                             Didn&apos;t receive code? Resend
                         </button>

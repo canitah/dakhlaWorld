@@ -355,3 +355,13 @@
 .dark .ant-descriptions-item-content {
   color: oklch(0.985 0 0) !important;
 }
+
+/* Global: cursor pointer on all buttons and clickable elements */
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+.ant-btn {
+  cursor: pointer !important;
+}

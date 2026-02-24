@@ -65,10 +65,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
         }
 
+        // Generate unique 8-digit program code
+        let programCode: string;
+        let isUnique = false;
+        do {
+            const digits = Math.floor(10000000 + Math.random() * 90000000).toString();
+            programCode = `PRG-${digits}`;
+            const existing = await prisma.program.findUnique({ where: { program_code: programCode } });
+            isUnique = !existing;
+        } while (!isUnique);
+
         const program = await prisma.program.create({
             data: {
                 ...parsed.data,
                 institution_id: profile.id,
+                program_code: programCode,
                 deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
             },
         });

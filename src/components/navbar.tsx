@@ -4,18 +4,15 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
 import { useNotificationStore } from "@/store/notification-store";
 import { useSidebar } from "@/store/sidebar-store";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { Avatar as AntAvatar, Badge, Breadcrumb, Dropdown, message } from "antd";
+import { BellOutlined, UserOutlined, LogoutOutlined, HomeOutlined, SearchOutlined, EllipsisOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, MailOutlined, EyeOutlined, CrownOutlined } from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { studentLinks, institutionLinks, adminLinks } from "@/components/dashboard-layout";
 
 const POLL_INTERVAL = 15000; // 15 seconds
 
@@ -36,11 +33,78 @@ export function Navbar() {
         setOpen: setNotifOpen,
         markAsRead,
         markAllRead,
+        removeNotification,
     } = useNotificationStore();
     const { theme, setTheme } = useTheme();
-    const { toggleSidebar } = useSidebar();
+    const { isCollapsed } = useSidebar();
     const router = useRouter();
+    const pathname = usePathname();
     const notifRef = useRef<HTMLDivElement>(null);
+
+    // Breadcrumb logic — derive role from user or pathname
+    const role = user?.role || pathname.split("/").filter(Boolean)[0] || "";
+
+    const labelMap: Record<string, string> = useMemo(() => {
+        const links =
+            role === "student" ? studentLinks
+                : role === "institution" ? institutionLinks
+                    : adminLinks;
+        const map: Record<string, string> = {
+            student: "Dashboard",
+            institution: "Dashboard",
+            admin: "Dashboard",
+        };
+        for (const link of links) {
+            const segments = link.href.split("/").filter(Boolean);
+            const key = segments[segments.length - 1];
+            map[key] = link.label;
+        }
+        return map;
+    }, [role]);
+
+    const breadcrumbItems = useMemo(() => {
+        const segments = pathname.split("/").filter(Boolean);
+        if (segments.length === 0) return [];
+
+        const roleSegment = segments[0];
+        const items: { title: React.ReactNode }[] = [
+            {
+                title: (
+                    <Link href={`/${roleSegment}`} className="flex items-center gap-1">
+                        <HomeOutlined /> {labelMap[roleSegment] || roleSegment}
+                    </Link>
+                ),
+            },
+        ];
+
+        for (let i = 1; i < segments.length; i++) {
+            const seg = segments[i];
+            const href = "/" + segments.slice(0, i + 1).join("/");
+
+            // Special handling: when student views /student/institution/[id],
+            // don't map "institution" to "Dashboard"
+            let label: string;
+            if (roleSegment === "student" && seg === "institution") {
+                label = "Institution";
+            } else if (/^\d+$/.test(seg)) {
+                // Numeric ID segment — show as #ID
+                label = `#${seg}`;
+            } else {
+                label = labelMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
+            }
+
+            if (i === segments.length - 1) {
+                items.push({ title: <span className="font-medium">{label}</span> });
+            } else {
+                items.push({
+                    title: <Link href={href}>{label}</Link>,
+                });
+            }
+        }
+
+        return items;
+    }, [pathname, labelMap]);
+
     const searchRef = useRef<HTMLDivElement>(null);
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -79,10 +143,14 @@ export function Navbar() {
     // Close notification dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+            const target = e.target as HTMLElement;
+            // Don't close if clicking inside an antd dropdown portal (e.g. notification three-dot menu)
+            if (target.closest?.(".ant-dropdown")) return;
+
+            if (notifRef.current && !notifRef.current.contains(target)) {
                 setNotifOpen(false);
             }
-            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+            if (searchRef.current && !searchRef.current.contains(target)) {
                 setShowSearchResults(false);
             }
         };
@@ -196,25 +264,96 @@ export function Navbar() {
         }
     };
 
+    const handleRemoveNotification = async (notifId: number) => {
+        removeNotification(notifId);
+        if (accessToken) {
+            try {
+                await fetch(`/api/notifications/${notifId}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                });
+                message.success("Notification removed");
+            } catch {
+                message.error("Failed to remove notification");
+            }
+        }
+    };
+
+    const handleReportNotification = async (notifId: number) => {
+        if (accessToken) {
+            try {
+                const res = await fetch("/api/notifications/report", {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ notificationId: notifId }),
+                });
+                if (res.ok) {
+                    message.success("Issue reported to admin");
+                } else {
+                    message.error("Failed to report");
+                }
+            } catch {
+                message.error("Failed to report notification");
+            }
+        }
+    };
+
     const getNotifIcon = (type: string) => {
+        const iconStyle = { fontSize: 16 };
         switch (type) {
             case "institution_approved":
-                return "✅";
+                return <CheckCircleOutlined style={{ ...iconStyle, color: "#52c41a" }} />;
             case "institution_rejected":
-                return "❌";
+                return <CloseCircleOutlined style={{ ...iconStyle, color: "#ff4d4f" }} />;
             case "application_submitted":
-                return "📩";
+                return <MailOutlined style={{ ...iconStyle, color: "#1677ff" }} />;
             case "application_accepted":
-                return "🎉";
+                return <CheckCircleOutlined style={{ ...iconStyle, color: "#52c41a" }} />;
             case "application_rejected":
-                return "😔";
+                return <CloseCircleOutlined style={{ ...iconStyle, color: "#ff4d4f" }} />;
             case "application_viewed":
-                return "👁️";
+                return <EyeOutlined style={{ ...iconStyle, color: "#722ed1" }} />;
             case "profile_viewed":
-                return "👀";
+                return <EyeOutlined style={{ ...iconStyle, color: "#722ed1" }} />;
+            case "notification_reported":
+                return <ExclamationCircleOutlined style={{ ...iconStyle, color: "#faad14" }} />;
             default:
-                return "🔔";
+                return <BellOutlined style={{ ...iconStyle, color: "#1677ff" }} />;
         }
+    };
+
+    // Group notifications by date category
+    const groupNotificationsByDate = (notifs: typeof notifications) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const groups: { label: string; items: typeof notifications }[] = [];
+        const todayItems: typeof notifications = [];
+        const yesterdayItems: typeof notifications = [];
+        const earlierItems: typeof notifications = [];
+
+        for (const notif of notifs) {
+            const notifDate = new Date(notif.created_at);
+            notifDate.setHours(0, 0, 0, 0);
+            if (notifDate.getTime() === today.getTime()) {
+                todayItems.push(notif);
+            } else if (notifDate.getTime() === yesterday.getTime()) {
+                yesterdayItems.push(notif);
+            } else {
+                earlierItems.push(notif);
+            }
+        }
+
+        if (todayItems.length > 0) groups.push({ label: "Today", items: todayItems });
+        if (yesterdayItems.length > 0) groups.push({ label: "Yesterday", items: yesterdayItems });
+        if (earlierItems.length > 0) groups.push({ label: "Earlier", items: earlierItems });
+
+        return groups;
     };
 
     const timeAgo = (dateStr: string) => {
@@ -272,73 +411,106 @@ export function Navbar() {
 
     if (!isMounted) return null;
 
+    // Profile dropdown menu items (antd Dropdown)
+    const profileMenuItems: MenuProps["items"] = user
+        ? [
+            {
+                key: "user-info",
+                label: (
+                    <div className="flex items-center gap-3 py-1 px-1">
+                        <AntAvatar
+                            src={user.profile_picture_url}
+                            size={40}
+                            icon={<UserOutlined />}
+                            style={{ backgroundColor: "#1677ff", flexShrink: 0 }}
+                        />
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate" style={{ color: "inherit" }}>
+                                {user.email || user.phone}
+                            </p>
+                            <p className="text-xs capitalize flex items-center gap-1" style={{ color: "rgba(128,128,128,0.85)" }}>
+                                <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                                {user.role} account
+                            </p>
+                        </div>
+                    </div>
+                ),
+                style: { cursor: "default", padding: "8px 12px" },
+            },
+            { type: "divider" as const },
+            {
+                key: "dashboard",
+                label: "Dashboard",
+                icon: <HomeOutlined />,
+                onClick: () => router.push(getDashboardLink()),
+            },
+            { type: "divider" as const },
+            {
+                key: "logout",
+                label: "Log out",
+                icon: <LogoutOutlined />,
+                danger: true,
+                onClick: handleLogout,
+            },
+        ]
+        : [];
+
     return (
-        <header className="sticky top-0 z-50 w-full bg-background border-b border-border shadow-sm">
+        <header
+            className={cn(
+                "sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border transition-all duration-300",
+                isAuthenticated
+                    ? isCollapsed
+                        ? "md:ml-[72px]"
+                        : "md:ml-[260px]"
+                    : ""
+            )}
+        >
             <div className="flex h-16 items-center justify-between px-4 md:px-6">
-                {/* Left Section: Logo + Hamburger + Search */}
-                <div className="flex items-center gap-4">
-                    {/* Logo */}
+                {/* Left Section: Logo (only when not authenticated) */}
+                {!isAuthenticated ? (
                     <Link
-                        href={getDashboardLink()}
+                        href="/"
                         className="flex items-center gap-2.5 group flex-shrink-0"
                     >
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white font-bold transition-transform group-hover:scale-105">
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                                />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
                         </div>
                         <span className="hidden sm:block text-xl font-bold text-foreground tracking-tight">GAP</span>
                     </Link>
+                ) : (
+                    <div className="hidden md:block" /> /* spacer */
+                )}
 
-                    {/* Hamburger Toggle */}
-                    {isAuthenticated && (
-                        <button
-                            onClick={toggleSidebar}
-                            className="hidden md:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                            title="Toggle sidebar"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                    )}
+                {/* Breadcrumbs (authenticated only, left of search) */}
+                {isAuthenticated && user && breadcrumbItems.length > 0 && (
+                    <div className="hidden md:block flex-shrink-0">
+                        <Breadcrumb items={breadcrumbItems} />
+                    </div>
+                )}
 
-                    {/* Search Bar */}
-                    {isAuthenticated && (
-                        <div className="hidden md:flex items-center relative" ref={searchRef}>
-                            <svg
-                                className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
+                {/* Search Bar (authenticated only, shifted right) */}
+                {isAuthenticated && (
+                    <div className="flex-1 flex justify-center max-w-2xl ml-4 md:ml-8" ref={searchRef}>
+                        <div className="relative w-full max-w-lg">
+                            <SearchOutlined className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" style={{ fontSize: 16 }} />
                             <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder="Search"
                                 value={searchQuery}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onFocus={() => {
                                     if (searchResults.length > 0) setShowSearchResults(true);
                                 }}
                                 onKeyDown={handleSearchKeyDown}
-                                className="w-48 lg:w-64 h-9 pl-9 pr-3 rounded-lg border border-border bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
+                                className="w-full h-10 pl-11 pr-4 rounded-full bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
                             />
 
                             {/* Search Results Dropdown */}
                             {showSearchResults && (
-                                <div className="absolute top-full left-0 mt-1.5 w-80 bg-popover rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="absolute top-full left-0 mt-1.5 w-full bg-popover rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                     {isSearching ? (
                                         <div className="px-4 py-6 text-center">
                                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto mb-2"></div>
@@ -354,7 +526,7 @@ export function Navbar() {
                                                 <button
                                                     key={`${result.type}-${result.title}-${i}`}
                                                     onClick={() => handleSearchResultClick(result)}
-                                                    className="w-full text-left px-3 py-2.5 flex items-start gap-3 hover:bg-accent/50 transition-colors"
+                                                    className="w-full text-left px-3 py-2.5 flex items-start gap-3 hover:bg-accent/50 transition-colors cursor-pointer"
                                                 >
                                                     <span className="mt-0.5 text-muted-foreground flex-shrink-0">
                                                         {getSearchResultIcon(result.type)}
@@ -377,73 +549,52 @@ export function Navbar() {
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {/* Right Section */}
-                <div className="flex items-center gap-2 md:gap-3">
+                <div className="flex items-center gap-1.5 md:gap-2.5">
                     {/* Theme Toggle */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-lg"
+                    <button
+                        className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground relative cursor-pointer"
                         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                         title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                     >
-                        {/* Sun icon (shown in light mode) */}
+                        {/* Sun icon */}
                         <svg className="h-[18px] w-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
-                        {/* Moon icon (shown in dark mode) */}
+                        {/* Moon icon */}
                         <svg className="absolute h-[18px] w-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
-                    </Button>
+                    </button>
 
                     {isAuthenticated && user ? (
                         <>
-                            {/* Notifications Button + Dropdown */}
+                            {/* Notifications — icon only with antd Badge */}
                             <div className="relative" ref={notifRef}>
-                                <button
-                                    onClick={() => setNotifOpen(!notifOpen)}
-                                    className="flex items-center gap-1.5 h-9 px-2 md:px-3 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors relative"
-                                >
-                                    <svg
-                                        className="h-[18px] w-[18px]"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
+                                <Badge count={unreadCount} size="small" offset={[-2, 2]}>
+                                    <button
+                                        onClick={() => setNotifOpen(!notifOpen)}
+                                        className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
                                     >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                                        />
-                                    </svg>
-                                    <span className="hidden md:inline text-sm font-medium">Notifications</span>
-                                    {unreadCount > 0 && (
-                                        <span className="flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold">
-                                            {unreadCount > 9 ? "9+" : unreadCount}
-                                        </span>
-                                    )}
-                                    <svg className="hidden md:block w-3.5 h-3.5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
+                                        <BellOutlined style={{ fontSize: 18 }} />
+                                    </button>
+                                </Badge>
 
                                 {/* Notification Dropdown */}
                                 {notifOpen && (
-                                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-popover rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="absolute right-0 mt-2 w-[380px] sm:w-[420px] bg-popover rounded-2xl shadow-2xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                         {/* Header */}
-                                        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
-                                            <h3 className="text-sm font-semibold text-foreground">
+                                        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                                            <h3 className="text-base font-bold text-foreground">
                                                 Notifications
                                             </h3>
                                             {unreadCount > 0 && (
                                                 <button
                                                     onClick={handleMarkAllRead}
-                                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
                                                 >
                                                     Mark all as read
                                                 </button>
@@ -451,49 +602,102 @@ export function Navbar() {
                                         </div>
 
                                         {/* List */}
-                                        <div className="max-h-80 overflow-y-auto">
+                                        <div className="max-h-[420px] overflow-y-auto">
                                             {notifications.length === 0 ? (
-                                                <div className="px-4 py-10 text-center">
-                                                    <div className="text-3xl mb-2">🔔</div>
-                                                    <p className="text-sm text-gray-500">
+                                                <div className="px-5 py-12 text-center">
+                                                    <BellOutlined style={{ fontSize: 32 }} className="text-muted-foreground/40 mb-3 block" />
+                                                    <p className="text-sm text-muted-foreground">
                                                         No notifications yet
                                                     </p>
                                                 </div>
                                             ) : (
-                                                notifications.map((notif) => (
-                                                    <button
-                                                        key={notif.id}
-                                                        onClick={() => handleNotificationClick(notif)}
-                                                        className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-accent/50 transition-colors border-b border-accent/50 last:border-0 ${!notif.is_read
-                                                            ? "bg-blue-50/60"
-                                                            : ""
-                                                            }`}
-                                                    >
-                                                        <span className="text-lg mt-0.5 flex-shrink-0">
-                                                            {getNotifIcon(notif.type)}
-                                                        </span>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <p
-                                                                    className={`text-sm truncate ${!notif.is_read
-                                                                        ? "font-semibold text-gray-900"
-                                                                        : "font-medium text-gray-700"
-                                                                        }`}
-                                                                >
-                                                                    {notif.title}
-                                                                </p>
-                                                                {!notif.is_read && (
-                                                                    <span className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
-                                                                )}
-                                                            </div>
-                                                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                                                                {notif.message}
-                                                            </p>
-                                                            <p className="text-[11px] text-gray-400 mt-1">
-                                                                {timeAgo(notif.created_at)}
-                                                            </p>
+                                                groupNotificationsByDate(notifications).map((group) => (
+                                                    <div key={group.label}>
+                                                        {/* Date Group Header */}
+                                                        <div className="px-5 py-2.5 bg-muted/30">
+                                                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                {group.label}
+                                                            </span>
                                                         </div>
-                                                    </button>
+
+                                                        {/* Notifications in group */}
+                                                        {group.items.map((notif) => (
+                                                            <div
+                                                                key={notif.id}
+                                                                onClick={() => handleNotificationClick(notif)}
+                                                                className={cn(
+                                                                    "w-full text-left px-5 py-4 flex items-start gap-3.5 hover:bg-accent/50 transition-colors cursor-pointer relative group/notif",
+                                                                    !notif.is_read && "bg-blue-50/40 dark:bg-blue-500/5"
+                                                                )}
+                                                            >
+                                                                {/* Unread dot */}
+                                                                {!notif.is_read && (
+                                                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-red-500" />
+                                                                )}
+
+                                                                {/* Icon Circle */}
+                                                                <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                                    {getNotifIcon(notif.type)}
+                                                                </div>
+
+                                                                {/* Content */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className={cn(
+                                                                        "text-sm leading-snug",
+                                                                        !notif.is_read
+                                                                            ? "font-semibold text-foreground"
+                                                                            : "font-normal text-foreground/80"
+                                                                    )}>
+                                                                        <span className="font-bold">{notif.title}</span>
+                                                                    </p>
+                                                                    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                                                                        {notif.message}
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground/60 mt-1.5">
+                                                                        {timeAgo(notif.created_at)}
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Three-dot menu — wrapped in div to stop all propagation */}
+                                                                <div
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <Dropdown
+                                                                        menu={{
+                                                                            items: [
+                                                                                {
+                                                                                    key: "remove",
+                                                                                    label: "Remove Notification",
+                                                                                    icon: <DeleteOutlined />,
+                                                                                    danger: true,
+                                                                                    onClick: () => {
+                                                                                        handleRemoveNotification(notif.id);
+                                                                                    },
+                                                                                },
+                                                                                {
+                                                                                    key: "report",
+                                                                                    label: "Report issue",
+                                                                                    icon: <ExclamationCircleOutlined />,
+                                                                                    onClick: () => {
+                                                                                        handleReportNotification(notif.id);
+                                                                                    },
+                                                                                },
+                                                                            ],
+                                                                        }}
+                                                                        trigger={["click"]}
+                                                                        placement="bottomRight"
+                                                                    >
+                                                                        <button
+                                                                            className="opacity-0 group-hover/notif:opacity-100 w-8 h-8 rounded-full flex items-center justify-center hover:bg-accent transition-all flex-shrink-0 mt-0.5 text-muted-foreground cursor-pointer"
+                                                                        >
+                                                                            <EllipsisOutlined style={{ fontSize: 18 }} />
+                                                                        </button>
+                                                                    </Dropdown>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 ))
                                             )}
                                         </div>
@@ -501,102 +705,25 @@ export function Navbar() {
                                 )}
                             </div>
 
-                            {/* Divider */}
-                            <div className="hidden md:block w-px h-7 bg-border" />
-
-                            {/* User Dropdown Menu */}
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center gap-2.5 h-9 px-2 rounded-lg hover:bg-accent transition-colors">
-                                        <Avatar className="h-8 w-8 border-2 border-border">
-                                            {user.profile_picture_url && (
-                                                <AvatarImage src={user.profile_picture_url} alt="Profile" />
-                                            )}
-                                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-sm">
-                                                {getInitials()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="hidden md:flex flex-col items-start">
-                                            <span className="text-sm font-medium text-foreground leading-tight truncate max-w-[120px]">
-                                                {user.email || user.phone}
-                                            </span>
-                                        </div>
-                                        <svg className="hidden md:block w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-64 p-2">
-                                    {/* User Info Header */}
-                                    <div className="px-3 py-3 bg-muted/50 rounded-lg mb-2">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                                                {user.profile_picture_url && (
-                                                    <AvatarImage src={user.profile_picture_url} alt="Profile" />
-                                                )}
-                                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">
-                                                    {getInitials()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-foreground truncate">
-                                                    {user.email || user.phone}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground capitalize flex items-center gap-1">
-                                                    <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                                                    {user.role} account
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <DropdownMenuSeparator />
-
-                                    {/* Dashboard Link */}
-                                    <DropdownMenuItem
-                                        onClick={() => router.push(getDashboardLink())}
-                                        className="cursor-pointer py-2.5 px-3 rounded-md"
-                                    >
-                                        <svg
-                                            className="h-4 w-4 mr-3 text-muted-foreground"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                                            />
-                                        </svg>
-                                        <span className="text-sm font-medium">Dashboard</span>
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuSeparator />
-
-                                    {/* Logout */}
-                                    <DropdownMenuItem
-                                        onClick={handleLogout}
-                                        className="cursor-pointer py-2.5 px-3 rounded-md text-red-600 focus:text-red-600 focus:bg-red-50"
-                                    >
-                                        <svg
-                                            className="h-4 w-4 mr-3"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                                            />
-                                        </svg>
-                                        <span className="text-sm font-medium">Log out</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {/* Profile Avatar — antd Dropdown */}
+                            <Dropdown
+                                menu={{ items: profileMenuItems }}
+                                trigger={["click"]}
+                                placement="bottomRight"
+                            >
+                                <AntAvatar
+                                    src={user.profile_picture_url}
+                                    size={36}
+                                    icon={<UserOutlined />}
+                                    style={{
+                                        cursor: "pointer",
+                                        backgroundColor: user.profile_picture_url ? "transparent" : "#1677ff",
+                                        border: "2px solid #e5e7eb",
+                                    }}
+                                >
+                                    {!user.profile_picture_url && getInitials()}
+                                </AntAvatar>
+                            </Dropdown>
                         </>
                     ) : (
                         <div className="flex gap-2">
@@ -608,18 +735,8 @@ export function Navbar() {
                                 <Link href="/login">
                                     <span className="hidden sm:inline">Log in</span>
                                     <span className="sm:hidden">
-                                        <svg
-                                            className="h-5 w-5"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                                            />
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                                         </svg>
                                     </span>
                                 </Link>
@@ -631,18 +748,8 @@ export function Navbar() {
                                 <Link href="/signup">
                                     <span className="hidden sm:inline">Sign up</span>
                                     <span className="sm:hidden">
-                                        <svg
-                                            className="h-5 w-5"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                                            />
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                         </svg>
                                     </span>
                                 </Link>

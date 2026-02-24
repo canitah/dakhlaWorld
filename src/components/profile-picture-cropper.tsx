@@ -151,7 +151,7 @@ export function ProfilePictureCropper({
                 />
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors border-2 border-background"
+                    className="absolute bottom-0 right-0 w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors border-2 border-background cursor-pointer"
                     title="Change photo"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ export function ProfilePictureCropper({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors cursor-pointer"
                     >
                         Change Photo
                     </button>
@@ -204,7 +204,7 @@ export function ProfilePictureCropper({
                                 message.error("Failed to remove picture");
                             }
                         }}
-                        className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline transition-colors"
+                        className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline transition-colors cursor-pointer"
                     >
                         Remove
                     </button>
@@ -224,7 +224,7 @@ export function ProfilePictureCropper({
                             </h3>
                             <button
                                 onClick={handleClose}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground transition-colors cursor-pointer"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -277,7 +277,7 @@ export function ProfilePictureCropper({
                                 <span className="text-xs text-muted-foreground mr-1">Rotate:</span>
                                 <button
                                     onClick={() => handleRotate(-90)}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors cursor-pointer"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -286,19 +286,19 @@ export function ProfilePictureCropper({
                                 </button>
                                 <button
                                     onClick={() => handleRotate(-45)}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors cursor-pointer"
                                 >
                                     -45°
                                 </button>
                                 <button
                                     onClick={() => handleRotate(45)}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors cursor-pointer"
                                 >
                                     +45°
                                 </button>
                                 <button
                                     onClick={() => handleRotate(90)}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-accent text-foreground transition-colors cursor-pointer"
                                 >
                                     +90°
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

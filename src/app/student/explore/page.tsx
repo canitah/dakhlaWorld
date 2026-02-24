@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,8 @@ function isNewProgram(createdAt: string): boolean {
 
 export default function ExplorePage() {
     const { fetchWithAuth } = useApi();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [programs, setPrograms] = useState<Program[]>([]);
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
@@ -174,6 +177,17 @@ export default function ExplorePage() {
     useEffect(() => {
         loadPrograms();
     }, [page, category]);
+
+    // Auto-select program from URL ?program=ID
+    useEffect(() => {
+        const programParam = searchParams.get("program");
+        if (programParam && !isLoading && programs.length > 0 && !selectedId) {
+            const programId = parseInt(programParam, 10);
+            if (!isNaN(programId)) {
+                viewProgramDetail(programId);
+            }
+        }
+    }, [searchParams, isLoading, programs]);
 
     async function loadSavedIds() {
         const res = await fetchWithAuth("/saved");
@@ -299,7 +313,7 @@ export default function ExplorePage() {
                             <button
                                 key={cat}
                                 onClick={() => { setCategory(cat === "All" ? "" : cat); setPage(1); }}
-                                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${active
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 cursor-pointer ${active
                                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                                     : "bg-background text-muted-foreground border-border hover:border-primary hover:text-primary"
                                     }`}
@@ -353,7 +367,7 @@ export default function ExplorePage() {
                                     <button
                                         disabled={page === 1}
                                         onClick={() => setPage(page - 1)}
-                                        className="text-sm font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed hover:underline"
+                                        className="text-sm font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed hover:underline cursor-pointer"
                                     >
                                         ← Previous
                                     </button>
@@ -363,7 +377,7 @@ export default function ExplorePage() {
                                     <button
                                         disabled={page === totalPages}
                                         onClick={() => setPage(page + 1)}
-                                        className="text-sm font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed hover:underline"
+                                        className="text-sm font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed hover:underline cursor-pointer"
                                     >
                                         Next →
                                     </button>
@@ -380,7 +394,7 @@ export default function ExplorePage() {
                 `}>
                     {/* Mobile back button */}
                     <button
-                        className="md:hidden flex items-center gap-2 text-sm font-medium text-primary px-4 pt-4 pb-2"
+                        className="md:hidden flex items-center gap-2 text-sm font-medium text-primary px-4 pt-4 pb-2 cursor-pointer"
                         onClick={() => setMobileView("list")}
                     >
                         <ArrowLeftIcon /> Back to results
@@ -413,7 +427,7 @@ export default function ExplorePage() {
                             isApplying={applyingId === selectedProgram.id}
                             onApply={handleApply}
                             onSave={handleSave}
-                            onInstitutionClick={(name: string) => { setSearch(name); setCategory(""); setPage(1); loadPrograms(name); }}
+                            onInstitutionClick={(id: number) => { router.push(`/student/institution/${id}`); }}
                         />
                     )}
                 </div>
@@ -459,7 +473,7 @@ function ProgramCard({
                 ) : <span />}
                 <button
                     onClick={onSave}
-                    className={`p-1 rounded transition-colors ${isSaved
+                    className={`p-1 rounded transition-colors cursor-pointer ${isSaved
                         ? "text-primary"
                         : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                         }`}
@@ -525,7 +539,7 @@ function DetailPanel({
     isApplying: boolean;
     onApply: (id: number) => void;
     onSave: (id: number) => void;
-    onInstitutionClick: (name: string) => void;
+    onInstitutionClick: (id: number) => void;
 }) {
     return (
         <div className="h-full flex flex-col">
@@ -541,7 +555,7 @@ function DetailPanel({
                 {/* Institution with external link */}
                 <div className="flex items-center gap-1.5 mb-1">
                     <button
-                        onClick={() => onInstitutionClick(program.institution.name)}
+                        onClick={() => onInstitutionClick(program.institution.id)}
                         className="text-[14px] text-foreground font-medium underline decoration-dotted underline-offset-2 hover:text-primary flex items-center gap-1 cursor-pointer"
                     >
                         {program.institution.name}
@@ -592,7 +606,7 @@ function DetailPanel({
                     <button
                         onClick={() => onSave(program.id)}
                         aria-label={isSaved ? "Unsave" : "Save"}
-                        className={`h-10 w-10 flex items-center justify-center rounded-full border transition-all ${isSaved
+                        className={`h-10 w-10 flex items-center justify-center rounded-full border transition-all cursor-pointer ${isSaved
                             ? "border-primary text-primary bg-primary/10"
                             : "border-border bg-muted/50 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/10"
                             }`}

@@ -307,7 +307,7 @@ export default function SignupPage() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         type="button"
-                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${formData.role === "student"
+                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all cursor-pointer ${formData.role === "student"
                                             ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
                                             : "border-border bg-card text-foreground hover:border-muted-foreground"
                                             }`}
@@ -332,7 +332,7 @@ export default function SignupPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all ${formData.role === "institution"
+                                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all cursor-pointer ${formData.role === "institution"
                                             ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
                                             : "border-border bg-card text-foreground hover:border-muted-foreground"
                                             }`}

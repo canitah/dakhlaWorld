@@ -200,7 +200,7 @@ function SavedCard({
                 <button
                     onClick={(e) => { e.stopPropagation(); onUnsave(item.program.id); }}
                     aria-label="Remove from saved"
-                    className="p-1 rounded text-primary hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    className="p-1 rounded text-primary hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                     title="Remove from saved"
                 >
                     <BookmarkFilledIcon />
@@ -247,7 +247,7 @@ function SavedCard({
                 ) : (
                     <button
                         onClick={(e) => { e.stopPropagation(); onApply(item.program.id); }}
-                        className="flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline transition-colors"
+                        className="flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline transition-colors cursor-pointer"
                     >
                         <ApplyArrowIcon />
                         Apply now
@@ -256,7 +256,7 @@ function SavedCard({
 
                 <button
                     onClick={(e) => { e.stopPropagation(); onUnsave(item.program.id); }}
-                    className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-destructive transition-colors"
+                    className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                     aria-label="Remove from saved"
                 >
                     <TrashIcon />

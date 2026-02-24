@@ -4,30 +4,38 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
-    Modal,
-    Avatar,
-    Descriptions,
-    Tag,
-    Button as AntButton,
-    Divider,
-    message,
-} from "antd";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { message } from "antd";
 import {
     UserOutlined,
     MailOutlined,
     EnvironmentOutlined,
-    TeamOutlined,
-    BookOutlined,
-    TrophyOutlined,
-    RocketOutlined,
-    AimOutlined,
-    CalendarOutlined,
-    FileTextOutlined,
-    FilePdfOutlined,
 } from "@ant-design/icons";
+import {
+    Users,
+    GraduationCap,
+    Trophy,
+    Calendar,
+    Target,
+    Rocket,
+    FileText,
+    FileDown,
+    MapPin,
+    Mail,
+    User,
+    Briefcase,
+    BookOpen,
+} from "lucide-react";
 
 interface Application {
     id: number;
@@ -176,139 +184,184 @@ export default function InstitutionApplicationsPage() {
                 </CardContent>
             </Card>
 
-            {/* Student Profile Preview Modal */}
-            <Modal
-                open={isPreviewOpen}
-                onCancel={() => setIsPreviewOpen(false)}
-                footer={null}
-                width={600}
-                centered
-                destroyOnClose
-                title={null}
-                styles={{
-                    body: { padding: 0, overflow: 'hidden' },
-                }}
-            >
-                {selectedStudent && (
-                    <div>
-                        {/* Header */}
-                        <div className="px-6 pt-6 pb-5 border-b border-border">
-                            <div className="flex items-center gap-4">
-                                <Avatar
-                                    size={72}
-                                    src={selectedStudent.profile_picture_url || undefined}
-                                    icon={!selectedStudent.profile_picture_url ? <UserOutlined /> : undefined}
-                                    style={{
-                                        backgroundColor: selectedStudent.profile_picture_url ? undefined : '#2563eb',
-                                        border: '3px solid var(--border)',
-                                        flexShrink: 0,
-                                    }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                    <h2 className="text-xl font-bold text-foreground truncate">
-                                        {selectedStudent.full_name || "Unnamed Student"}
-                                    </h2>
-                                    <div className="flex items-center gap-1.5 mt-1 text-muted-foreground text-sm">
-                                        <MailOutlined />
+            {/* ─── Student Profile Preview Dialog (shadcn — auto dark/light) ─── */}
+            <Dialog open={isPreviewOpen} onOpenChange={(open) => { if (!open) setIsPreviewOpen(false); }}>
+                <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0">
+                    {selectedStudent && (
+                        <>
+                            {/* ─── Header with profile picture & basic info ─── */}
+                            <div className="relative">
+                                {/* Avatar & name */}
+                                <div className="px-6 pt-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative shrink-0">
+                                            {selectedStudent.profile_picture_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={selectedStudent.profile_picture_url}
+                                                    alt={selectedStudent.full_name || "Student"}
+                                                    className="w-16 h-16 rounded-full border-2 border-border object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-16 h-16 rounded-full border-2 border-border bg-blue-600 flex items-center justify-center">
+                                                    <User className="size-7 text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <DialogHeader className="text-left p-0">
+                                                <DialogTitle className="text-xl font-bold truncate">
+                                                    {selectedStudent.full_name || "Unnamed Student"}
+                                                </DialogTitle>
+                                                <DialogDescription className="sr-only">
+                                                    Student profile details
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Contact info below avatar */}
+                                <div className="px-6 mt-3 space-y-1.5">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Mail className="size-3.5 shrink-0" />
                                         <span className="truncate">{selectedStudent.user.email || "—"}</span>
                                     </div>
                                     {selectedStudent.city && (
-                                        <div className="flex items-center gap-1.5 mt-0.5 text-muted-foreground text-sm">
-                                            <EnvironmentOutlined />
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <MapPin className="size-3.5 shrink-0" />
                                             <span>{selectedStudent.city}</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            {/* Tags row */}
-                            <div className="flex flex-wrap gap-2 mt-4">
-                                {selectedStudent.student_type && (
-                                    <Tag color="blue" className="m-0 capitalize font-medium">
-                                        <TeamOutlined className="mr-1" />{selectedStudent.student_type}
-                                    </Tag>
+
+                            {/* ─── Quick Info Tags with Labels ─── */}
+                            <div className="px-6 mt-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                    {selectedStudent.student_type && (
+                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                            <Users className="size-4 text-blue-500" />
+                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                                Student Type
+                                            </span>
+                                            <span className="text-sm font-bold text-foreground capitalize">
+                                                {selectedStudent.student_type}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {selectedStudent.education_level && (
+                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                                            <GraduationCap className="size-4 text-cyan-500" />
+                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                                Education
+                                            </span>
+                                            <span className="text-sm font-bold text-foreground capitalize">
+                                                {selectedStudent.education_level}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {selectedStudent.experience_level && (
+                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                                            <Trophy className="size-4 text-purple-500" />
+                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                                Experience
+                                            </span>
+                                            <span className="text-sm font-bold text-foreground capitalize">
+                                                {selectedStudent.experience_level}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {selectedStudent.age_range && (
+                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                            <Calendar className="size-4 text-amber-500" />
+                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                                Age Range
+                                            </span>
+                                            <span className="text-sm font-bold text-foreground">
+                                                {selectedStudent.age_range}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <Separator className="mx-6 mt-5" />
+
+                            {/* ─── Detail Fields ─── */}
+                            <div className="px-6 py-5 space-y-4">
+                                {/* Intended Field & Learning Goal */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {selectedStudent.intended_field && (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                <Target className="size-3.5" />
+                                                Intended Field
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {selectedStudent.intended_field}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {selectedStudent.learning_goal && (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                <Rocket className="size-3.5" />
+                                                Learning Goal
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {selectedStudent.learning_goal}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Personal Statement */}
+                                {selectedStudent.personal_statement && (
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            <FileText className="size-3.5" />
+                                            Personal Statement
+                                        </div>
+                                        <div className="p-3.5 rounded-lg bg-accent border border-border">
+                                            <p className="text-sm leading-relaxed text-foreground">
+                                                {selectedStudent.personal_statement}
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
-                                {selectedStudent.education_level && (
-                                    <Tag color="cyan" className="m-0 capitalize font-medium">
-                                        <BookOutlined className="mr-1" />{selectedStudent.education_level}
-                                    </Tag>
-                                )}
-                                {selectedStudent.experience_level && (
-                                    <Tag color="purple" className="m-0 capitalize font-medium">
-                                        <TrophyOutlined className="mr-1" />{selectedStudent.experience_level}
-                                    </Tag>
-                                )}
-                                {selectedStudent.age_range && (
-                                    <Tag color="geekblue" className="m-0 font-medium">
-                                        <CalendarOutlined className="mr-1" />{selectedStudent.age_range}
-                                    </Tag>
+
+                                {/* CV Button */}
+                                {selectedStudent.cv_url && (
+                                    <>
+                                        <Separator />
+                                        <Button
+                                            className="w-full h-11 text-[15px] font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200"
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
+                                                    if (!res.ok) throw new Error();
+                                                    const data = await res.json();
+                                                    window.open(data.url, "_blank");
+                                                } catch {
+                                                    message.error("Failed to load CV");
+                                                }
+                                            }}
+                                        >
+                                            <FileDown className="size-5 mr-2" />
+                                            View CV / Resume
+                                        </Button>
+                                    </>
                                 )}
                             </div>
-                        </div>
-
-                        {/* Content */}
-                        <div className="px-6 py-5 space-y-5">
-                            <Descriptions
-                                column={{ xs: 1, sm: 2 }}
-                                layout="vertical"
-                                colon={false}
-                                size="small"
-                            >
-                                {selectedStudent.intended_field && (
-                                    <Descriptions.Item
-                                        label={<span className="text-muted-foreground flex items-center gap-1"><AimOutlined /> Intended Field</span>}
-                                    >
-                                        <span className="font-medium">{selectedStudent.intended_field}</span>
-                                    </Descriptions.Item>
-                                )}
-                                {selectedStudent.learning_goal && (
-                                    <Descriptions.Item
-                                        label={<span className="text-muted-foreground flex items-center gap-1"><RocketOutlined /> Learning Goal</span>}
-                                    >
-                                        <span className="font-medium">{selectedStudent.learning_goal}</span>
-                                    </Descriptions.Item>
-                                )}
-                            </Descriptions>
-
-                            {selectedStudent.personal_statement && (
-                                <div>
-                                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1.5">
-                                        <FileTextOutlined /> Personal Statement
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm leading-relaxed">
-                                        {selectedStudent.personal_statement}
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedStudent.cv_url && (
-                                <>
-                                    <Divider className="my-0" />
-                                    <AntButton
-                                        type="primary"
-                                        icon={<FilePdfOutlined />}
-                                        size="large"
-                                        block
-                                        className="h-11 font-semibold text-[15px]"
-                                        style={{ background: 'linear-gradient(to right, #2563eb, #4f46e5)', borderColor: 'transparent' }}
-                                        onClick={async () => {
-                                            try {
-                                                const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
-                                                if (!res.ok) throw new Error();
-                                                const data = await res.json();
-                                                window.open(data.url, "_blank");
-                                            } catch {
-                                                message.error("Failed to load CV");
-                                            }
-                                        }}
-                                    >
-                                        View CV / Resume
-                                    </AntButton>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </Modal>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
