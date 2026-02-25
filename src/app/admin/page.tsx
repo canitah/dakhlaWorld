@@ -107,7 +107,7 @@
 // }
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,6 +124,7 @@ interface Analytics {
     pendingInstitutions: number;
     pendingPayments: number;
     totalRevenue: number;
+    monthlyTrends: { month: string; applications: number; users: number }[];
 }
 
 // ── Sparkline Bar Chart (like reference top cards) ──────────────────────────
@@ -251,23 +252,59 @@ export default function AdminDashboard() {
     const { fetchWithAuth } = useApi();
     const [analytics, setAnalytics] = useState<Analytics | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [isExporting, setIsExporting] = useState(false);
+
+    const loadAnalytics = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const params = new URLSearchParams();
+            if (dateFrom) params.set("from", dateFrom);
+            if (dateTo) params.set("to", dateTo);
+            const qs = params.toString() ? `?${params.toString()}` : "";
+            const res = await fetchWithAuth(`/admin/analytics${qs}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAnalytics(data);
+            }
+        } catch {
+            message.error("Failed to load analytics");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [dateFrom, dateTo]);
 
     useEffect(() => {
-        async function load() {
-            try {
-                const res = await fetchWithAuth("/admin/analytics");
-                if (res.ok) {
-                    const data = await res.json();
-                    setAnalytics(data);
-                }
-            } catch {
-                message.error("Failed to load analytics");
-            } finally {
-                setIsLoading(false);
+        loadAnalytics();
+    }, [loadAnalytics]);
+
+    const handleExportCSV = async () => {
+        setIsExporting(true);
+        try {
+            const params = new URLSearchParams();
+            if (dateFrom) params.set("from", dateFrom);
+            if (dateTo) params.set("to", dateTo);
+            const qs = params.toString() ? `?${params.toString()}` : "";
+            const res = await fetchWithAuth(`/admin/export${qs}`);
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `gap-admin-export-${new Date().toISOString().split("T")[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                message.success("CSV exported successfully");
+            } else {
+                message.error("Failed to export data");
             }
+        } catch {
+            message.error("Failed to export data");
+        } finally {
+            setIsExporting(false);
         }
-        load();
-    }, []);
+    };
 
     if (isLoading || !analytics) {
         return (
@@ -288,17 +325,57 @@ export default function AdminDashboard() {
     const acceptedApps = analytics.applicationsByStatus?.accepted || 0;
     const acceptedPct = Math.round((acceptedApps / totalApps) * 100);
 
-    // Simulated monthly application trend (7 months)
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
-    const appTrend = [20, 35, 28, 50, 42, 65, analytics.totalApplications || 60];
-    const userTrend = [10, 18, 22, 30, 35, 45, analytics.totalUsers || 50];
+    // Real monthly trend data from API
+    const months = analytics.monthlyTrends?.map(t => t.month) || [];
+    const appTrend = analytics.monthlyTrends?.map(t => t.applications) || [];
+    const userTrend = analytics.monthlyTrends?.map(t => t.users) || [];
 
     return (
         <DashboardLayout role="admin">
-            {/* Page Header */}
+            {/* Page Header with Date Filters & Export */}
             <div className="mb-6">
-                <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
-                <p className="text-muted-foreground mt-1">Platform overview and management</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
+                        <p className="text-muted-foreground mt-1">Platform overview and management</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-muted-foreground">From</label>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={e => setDateFrom(e.target.value)}
+                                className="px-3 py-1.5 text-sm bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-muted-foreground">To</label>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={e => setDateTo(e.target.value)}
+                                className="px-3 py-1.5 text-sm bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                            />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                            <button
+                                onClick={() => { setDateFrom(""); setDateTo(""); }}
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                                Clear
+                            </button>
+                        )}
+                        <button
+                            onClick={handleExportCSV}
+                            disabled={isExporting}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            {isExporting ? "Exporting..." : "Export CSV"}
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* ── ROW 1: Stat Cards with Sparklines ─────────────────────────────── */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -17,11 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { message } from "antd";
 import {
-    UserOutlined,
-    MailOutlined,
-    EnvironmentOutlined,
-} from "@ant-design/icons";
-import {
     Users,
     GraduationCap,
     Trophy,
@@ -33,8 +28,11 @@ import {
     MapPin,
     Mail,
     User,
-    Briefcase,
-    BookOpen,
+    Search,
+    Filter,
+    ChevronDown,
+    X,
+    Plus,
 } from "lucide-react";
 
 interface Application {
@@ -67,12 +65,73 @@ interface StudentDetail {
     user: { email: string | null; phone: string | null };
 }
 
+// ── Advanced filter types ────────────────────────────────────────────────────
+type FilterColumn = "name" | "email" | "program" | "status" | "city" | "education";
+type FilterOperator = "contains" | "equals" | "starts_with";
+interface AdvancedFilter {
+    id: number;
+    column: FilterColumn;
+    operator: FilterOperator;
+    value: string;
+}
+
+const COLUMN_OPTIONS: { value: FilterColumn; label: string }[] = [
+    { value: "name", label: "Applicant Name" },
+    { value: "email", label: "Email" },
+    { value: "program", label: "Program" },
+    { value: "status", label: "Status" },
+    { value: "city", label: "City" },
+    { value: "education", label: "Education Level" },
+];
+
+const OPERATOR_OPTIONS: { value: FilterOperator; label: string }[] = [
+    { value: "contains", label: "contains" },
+    { value: "equals", label: "equals" },
+    { value: "starts_with", label: "starts with" },
+];
+
+const STATUS_OPTIONS = ["submitted", "viewed", "accepted", "rejected", "withdrawn"];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getFieldValue(app: Application, col: FilterColumn): string {
+    switch (col) {
+        case "name": return app.student.full_name || "";
+        case "email": return app.student.user.email || "";
+        case "program": return app.program.title;
+        case "status": return app.status;
+        case "city": return app.student.city || "";
+        case "education": return app.student.education_level || "";
+    }
+}
+
+function matchesFilter(value: string, operator: FilterOperator, filterValue: string): boolean {
+    const v = value.toLowerCase();
+    const f = filterValue.toLowerCase();
+    switch (operator) {
+        case "contains": return v.includes(f);
+        case "equals": return v === f;
+        case "starts_with": return v.startsWith(f);
+    }
+}
+
 export default function InstitutionApplicationsPage() {
     const { fetchWithAuth } = useApi();
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+    // ── Filter state ──
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [programFilter, setProgramFilter] = useState<string>("all");
+    const [showFilters, setShowFilters] = useState(false);
+    const [advFilters, setAdvFilters] = useState<AdvancedFilter[]>([]);
+    const [nextFilterId, setNextFilterId] = useState(1);
+
+    // ── Dropdown open state ──
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [programDropdownOpen, setProgramDropdownOpen] = useState(false);
 
     useEffect(() => {
         loadApplications();
@@ -109,6 +168,63 @@ export default function InstitutionApplicationsPage() {
         }
     };
 
+    // ── Derive unique programs for filter ──
+    const uniquePrograms = useMemo(() => {
+        const programs = new Map<number, string>();
+        applications.forEach(app => programs.set(app.program.id, app.program.title));
+        return Array.from(programs.entries()).map(([id, title]) => ({ id, title }));
+    }, [applications]);
+
+    // ── Advanced filter management ──
+    const addFilter = () => {
+        setAdvFilters(prev => [...prev, { id: nextFilterId, column: "name", operator: "contains", value: "" }]);
+        setNextFilterId(prev => prev + 1);
+    };
+    const removeFilter = (id: number) => setAdvFilters(prev => prev.filter(f => f.id !== id));
+    const updateFilter = (id: number, field: keyof AdvancedFilter, value: string) => {
+        setAdvFilters(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
+    };
+
+    // ── Filter applications ──
+    const filteredApplications = useMemo(() => {
+        let result = applications;
+
+        // Search
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(app =>
+                (app.student.full_name || "").toLowerCase().includes(q) ||
+                (app.student.user.email || "").toLowerCase().includes(q) ||
+                app.program.title.toLowerCase().includes(q)
+            );
+        }
+
+        // Status quick filter
+        if (statusFilter !== "all") {
+            result = result.filter(app => app.status === statusFilter);
+        }
+
+        // Program quick filter
+        if (programFilter !== "all") {
+            result = result.filter(app => app.program.id === parseInt(programFilter, 10));
+        }
+
+        // Advanced filters
+        for (const f of advFilters) {
+            if (!f.value.trim()) continue;
+            result = result.filter(app => matchesFilter(getFieldValue(app, f.column), f.operator, f.value));
+        }
+
+        return result;
+    }, [applications, searchQuery, statusFilter, programFilter, advFilters]);
+
+    // ── Status counts ──
+    const statusCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: applications.length };
+        applications.forEach(app => { counts[app.status] = (counts[app.status] || 0) + 1; });
+        return counts;
+    }, [applications]);
+
     if (isLoading) {
         return (
             <DashboardLayout role="institution">
@@ -121,12 +237,226 @@ export default function InstitutionApplicationsPage() {
 
     return (
         <DashboardLayout role="institution">
-            <h1 className="text-2xl font-bold mb-6">Applications ({applications.length})</h1>
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold">Applications</h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                        {applications.length} total application{applications.length !== 1 ? "s" : ""}
+                    </p>
+                </div>
+            </div>
 
+            {/* ── Search & Filter Bar ───────────────────────────────────────── */}
+            <div className="flex flex-col gap-3 mb-5">
+                <div className="flex flex-col sm:flex-row gap-3">
+                    {/* Search Input */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, email, or program..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-muted-foreground/60"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                <X className="size-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Status Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => { setStatusDropdownOpen(!statusDropdownOpen); setProgramDropdownOpen(false); }}
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm bg-card border rounded-lg hover:bg-accent transition-colors min-w-[150px]"
+                        >
+                            <span className="text-muted-foreground">Status:</span>
+                            <span className="font-medium capitalize">{statusFilter === "all" ? "All" : statusFilter}</span>
+                            <ChevronDown className="size-4 text-muted-foreground ml-auto" />
+                        </button>
+                        {statusDropdownOpen && (
+                            <div className="absolute top-full left-0 mt-1 w-48 bg-card border rounded-lg shadow-lg z-50 py-1">
+                                <button
+                                    onClick={() => { setStatusFilter("all"); setStatusDropdownOpen(false); }}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-accent flex items-center justify-between ${statusFilter === "all" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
+                                >
+                                    All <span className="text-xs text-muted-foreground">{statusCounts.all}</span>
+                                </button>
+                                {STATUS_OPTIONS.map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => { setStatusFilter(s); setStatusDropdownOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-accent capitalize flex items-center justify-between ${statusFilter === s ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
+                                    >
+                                        {s} <span className="text-xs text-muted-foreground">{statusCounts[s] || 0}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Program Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => { setProgramDropdownOpen(!programDropdownOpen); setStatusDropdownOpen(false); }}
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm bg-card border rounded-lg hover:bg-accent transition-colors min-w-[150px]"
+                        >
+                            <span className="text-muted-foreground">Program:</span>
+                            <span className="font-medium truncate max-w-[120px]">{programFilter === "all" ? "All" : uniquePrograms.find(p => p.id === parseInt(programFilter, 10))?.title || "All"}</span>
+                            <ChevronDown className="size-4 text-muted-foreground ml-auto" />
+                        </button>
+                        {programDropdownOpen && (
+                            <div className="absolute top-full left-0 mt-1 w-64 bg-card border rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
+                                <button
+                                    onClick={() => { setProgramFilter("all"); setProgramDropdownOpen(false); }}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${programFilter === "all" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
+                                >
+                                    All Programs
+                                </button>
+                                {uniquePrograms.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => { setProgramFilter(String(p.id)); setProgramDropdownOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-accent truncate ${programFilter === String(p.id) ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
+                                    >
+                                        {p.title}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* More Filters Toggle */}
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm border rounded-lg transition-colors ${showFilters ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : "bg-card hover:bg-accent"}`}
+                    >
+                        <Filter className="size-4" />
+                        More Filters
+                        {advFilters.length > 0 && (
+                            <Badge className="text-[10px] px-1.5 py-0 bg-blue-600 text-white">{advFilters.length}</Badge>
+                        )}
+                    </button>
+                </div>
+
+                {/* Active filter pills */}
+                {(searchQuery || statusFilter !== "all" || programFilter !== "all" || advFilters.length > 0) && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Active:</span>
+                        {searchQuery && (
+                            <Badge variant="secondary" className="gap-1 text-xs">
+                                Search: &quot;{searchQuery}&quot;
+                                <button onClick={() => setSearchQuery("")}><X className="size-3" /></button>
+                            </Badge>
+                        )}
+                        {statusFilter !== "all" && (
+                            <Badge variant="secondary" className="gap-1 text-xs capitalize">
+                                Status: {statusFilter}
+                                <button onClick={() => setStatusFilter("all")}><X className="size-3" /></button>
+                            </Badge>
+                        )}
+                        {programFilter !== "all" && (
+                            <Badge variant="secondary" className="gap-1 text-xs">
+                                Program: {uniquePrograms.find(p => p.id === parseInt(programFilter, 10))?.title}
+                                <button onClick={() => setProgramFilter("all")}><X className="size-3" /></button>
+                            </Badge>
+                        )}
+                        {advFilters.map(f => f.value.trim() && (
+                            <Badge key={f.id} variant="secondary" className="gap-1 text-xs">
+                                {COLUMN_OPTIONS.find(c => c.value === f.column)?.label} {f.operator.replace("_", " ")} &quot;{f.value}&quot;
+                                <button onClick={() => removeFilter(f.id)}><X className="size-3" /></button>
+                            </Badge>
+                        ))}
+                        <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setProgramFilter("all"); setAdvFilters([]); }} className="text-xs text-blue-600 dark:text-blue-400 hover:underline ml-1">
+                            Clear all
+                        </button>
+                    </div>
+                )}
+
+                {/* ── Advanced Filter Panel ──────────────────────────────────── */}
+                {showFilters && (
+                    <div className="bg-card border rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold">Advanced Filters</h3>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addFilter}>
+                                <Plus className="size-3" /> Add Filter
+                            </Button>
+                        </div>
+
+                        {advFilters.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                                No advanced filters. Click &quot;Add Filter&quot; to create one.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {advFilters.map(f => (
+                                    <div key={f.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-lg bg-accent/50 border">
+                                        {/* Column Select */}
+                                        <select
+                                            value={f.column}
+                                            onChange={e => updateFilter(f.id, "column", e.target.value)}
+                                            className="px-3 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        >
+                                            {COLUMN_OPTIONS.map(c => (
+                                                <option key={c.value} value={c.value}>{c.label}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Operator Select */}
+                                        <select
+                                            value={f.operator}
+                                            onChange={e => updateFilter(f.id, "operator", e.target.value)}
+                                            className="px-3 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        >
+                                            {OPERATOR_OPTIONS.map(o => (
+                                                <option key={o.value} value={o.value}>{o.label}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Value Input */}
+                                        <input
+                                            type="text"
+                                            placeholder="Value..."
+                                            value={f.value}
+                                            onChange={e => updateFilter(f.id, "value", e.target.value)}
+                                            className="flex-1 px-3 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/40 placeholder:text-muted-foreground/60"
+                                        />
+
+                                        {/* Remove */}
+                                        <button onClick={() => removeFilter(f.id)} className="self-center text-muted-foreground hover:text-red-500 transition-colors p-1">
+                                            <X className="size-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ── Results Count ──────────────────────────────────────────── */}
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-sm text-muted-foreground">
+                    Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {applications.length} application{applications.length !== 1 ? "s" : ""}
+                </p>
+            </div>
+
+            {/* ── Applications Table ─────────────────────────────────────── */}
             <Card>
                 <CardContent className="pt-6">
-                    {applications.length === 0 ? (
-                        <p className="text-center py-8 text-muted-foreground">No applications received yet</p>
+                    {filteredApplications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                                <Search className="size-5 text-muted-foreground" />
+                            </div>
+                            <p className="font-medium">No applications found</p>
+                            <p className="text-muted-foreground text-sm mt-1">
+                                {applications.length === 0 ? "No applications received yet" : "Try adjusting your search or filters"}
+                            </p>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -140,7 +470,7 @@ export default function InstitutionApplicationsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {applications.map((app) => (
+                                    {filteredApplications.map((app) => (
                                         <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
                                             <td className="py-3">
                                                 <div>

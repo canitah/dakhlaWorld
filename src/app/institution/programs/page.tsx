@@ -41,6 +41,7 @@ interface Program {
     application_method: string | null;
     external_url: string | null;
     is_active: boolean;
+    created_at: string;
     _count: { applications: number };
 }
 
@@ -73,7 +74,7 @@ export default function InstitutionProgramsPage() {
     const selectProgram = useCallback((program: Program | null) => {
         setSelectedProgram(program);
         if (program) {
-            window.history.replaceState(null, "", `/institution/programs/${program.id}`);
+            window.history.replaceState(null, "", `/institution/programs/${program.program_code}`);
         } else {
             window.history.replaceState(null, "", `/institution/programs`);
         }
@@ -101,10 +102,10 @@ export default function InstitutionProgramsPage() {
             setPrograms(data.programs);
 
             // Auto-select program from URL on initial load
-            const match = window.location.pathname.match(/\/institution\/programs\/(\d+)/);
+            const match = window.location.pathname.match(/\/institution\/programs\/(PRG-\d+)/);
             if (match) {
-                const id = parseInt(match[1], 10);
-                const found = (data.programs as Program[]).find((p: Program) => p.id === id);
+                const code = match[1];
+                const found = (data.programs as Program[]).find((p: Program) => p.program_code === code);
                 if (found) setSelectedProgram(found);
             }
         }
@@ -533,7 +534,10 @@ function ProgramCard({
                             )}
                         </Badge>
                     </div>
-                    <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="size-3" />
+                        {new Date(program.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                    </div>
                 </div>
             </CardContent>
         </Card>

@@ -86,6 +86,9 @@ export function Navbar() {
             let label: string;
             if (roleSegment === "student" && seg === "institution") {
                 label = "Institution";
+            } else if (/^(PRG|APP)-\d+$/.test(seg)) {
+                // Program or application code segment — display as-is
+                label = seg;
             } else if (/^\d+$/.test(seg)) {
                 // Numeric ID segment — show as #ID
                 label = `#${seg}`;

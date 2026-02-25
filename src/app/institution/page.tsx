@@ -250,7 +250,7 @@
 // }
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatsCard, StatusBadge } from "@/components/stats-card";
@@ -397,6 +397,49 @@ export default function InstitutionDashboard() {
         }
     }
 
+    // ── Date filtering state ──
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+
+    // Filter applications by date range (client-side)
+    const filteredApplications = useMemo(() => {
+        let result = applications;
+        if (dateFrom) {
+            const from = new Date(dateFrom);
+            result = result.filter(a => new Date(a.created_at) >= from);
+        }
+        if (dateTo) {
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            result = result.filter(a => new Date(a.created_at) <= to);
+        }
+        return result;
+    }, [applications, dateFrom, dateTo]);
+
+    const handleExportCSV = () => {
+        const headers = ["ID", "Student Name", "Student Email", "Program", "Status", "Date"];
+        const rows = filteredApplications.map(app => [
+            app.id,
+            app.student.full_name || "",
+            app.student.user.email || "",
+            app.program.title,
+            app.status,
+            new Date(app.created_at).toISOString().split("T")[0],
+        ]);
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        ].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `institution-export-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        message.success("CSV exported successfully");
+    };
+
     const handleStatusUpdate = async (appId: number, status: string) => {
         const res = await fetchWithAuth(`/institutions/applications/${appId}`, {
             method: "PUT",
@@ -537,8 +580,8 @@ export default function InstitutionDashboard() {
     }
 
     const currentPlan = profile?.payment_requests?.[0]?.plan?.name || "Free";
-    const totalLeads = applications.length;
-    const newApps = applications.filter((a) => a.status === "submitted").length;
+    const totalLeads = filteredApplications.length;
+    const newApps = filteredApplications.filter((a) => a.status === "submitted").length;
 
     return (
         <DashboardLayout role="institution">
@@ -551,20 +594,41 @@ export default function InstitutionDashboard() {
                         </h1>
                         <p className="text-muted-foreground mt-1">Manage your programs and applications</p>
                     </div>
-                    <Badge
-                        variant="outline"
-                        className={`self-start sm:self-auto gap-2 px-3 py-1.5 text-xs font-semibold ${currentPlan === "Featured"
-                            ? "text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-500/10"
-                            : ""
-                            }`}
-                    >
-                        {currentPlan === "Featured" ? (
-                            <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                            </svg>
-                        ) : null}
-                        {currentPlan} Plan
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-muted-foreground">From</label>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={e => setDateFrom(e.target.value)}
+                                className="px-3 py-1.5 text-sm bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-muted-foreground">To</label>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={e => setDateTo(e.target.value)}
+                                className="px-3 py-1.5 text-sm bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                            />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                            <button
+                                onClick={() => { setDateFrom(""); setDateTo(""); }}
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                                Clear
+                            </button>
+                        )}
+                        <button
+                            onClick={handleExportCSV}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Export CSV
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -644,7 +708,7 @@ export default function InstitutionDashboard() {
                     </Link>
                 </CardHeader>
                 <CardContent className="pt-4">
-                    {applications.length === 0 ? (
+                    {filteredApplications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3 text-muted-foreground">
                                 <InboxIcon />
@@ -664,7 +728,7 @@ export default function InstitutionDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {applications.slice(0, 5).map((app) => (
+                                    {filteredApplications.slice(0, 5).map((app) => (
                                         <tr key={app.id} className="hover:bg-accent/50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
