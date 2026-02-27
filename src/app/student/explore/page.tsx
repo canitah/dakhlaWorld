@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -128,7 +128,7 @@ function isNewProgram(createdAt: string): boolean {
     return Date.now() - new Date(createdAt).getTime() < twoDaysMs;
 }
 
-export default function ExplorePage() {
+function ExplorePage() {
     const { fetchWithAuth } = useApi();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -433,6 +433,14 @@ export default function ExplorePage() {
                 </div>
             </div>
         </DashboardLayout>
+    );
+}
+
+export default function ExplorePageWrapper() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-9 w-9 border-b-2 border-primary" /></div>}>
+            <ExplorePage />
+        </Suspense>
     );
 }
 
