@@ -600,10 +600,41 @@ export function Navbar() {
                     </div>
                 </div>
 
-                {/* Mobile menu dropdown */}
-                {mobileMenuOpen && (
-                    <div className="md:hidden max-w-7xl mx-auto mt-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                        <nav className="flex flex-col py-2">
+                {/* Mobile drawer — slides in from left */}
+                <div className="md:hidden">
+                    {/* Backdrop overlay */}
+                    <div
+                        className={cn(
+                            "fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
+                            mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                        )}
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+
+                    {/* Drawer panel */}
+                    <div
+                        className={cn(
+                            "fixed top-0 left-0 z-50 h-full w-[280px] bg-card border-r border-border shadow-2xl transition-transform duration-300 ease-in-out flex flex-col",
+                            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+                        )}
+                    >
+                        {/* Drawer header — logo + close */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
+                                <Image src="/logo.jpeg" alt="dazla." width={100} height={32} className="h-7 w-auto object-contain" />
+                            </Link>
+                            <button
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Nav links */}
+                        <nav className="flex flex-col py-3 flex-1">
                             {landingLinks.map((link) => {
                                 const isActive = link.href === "/" && pathname === "/";
                                 return (
@@ -612,10 +643,10 @@ export function Navbar() {
                                         href={link.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
-                                            "px-5 py-3 text-sm font-semibold tracking-wide uppercase transition-colors",
+                                            "px-5 py-3.5 text-sm font-semibold tracking-wide uppercase transition-colors",
                                             isActive
-                                                ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                                ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border-l-2 border-blue-600 dark:border-blue-400"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-accent border-l-2 border-transparent"
                                         )}
                                     >
                                         {link.label}
@@ -623,16 +654,18 @@ export function Navbar() {
                                 );
                             })}
                         </nav>
-                        <div className="border-t border-border px-5 py-4 flex flex-col gap-2">
-                            <Button variant="outline" asChild className="w-full font-semibold rounded-full h-10">
+
+                        {/* Bottom — auth buttons */}
+                        <div className="border-t border-border px-5 py-5 flex flex-col gap-2.5">
+                            <Button variant="outline" asChild className="w-full font-semibold rounded-full h-11">
                                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
                             </Button>
-                            <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full h-10 shadow-md shadow-blue-600/20">
+                            <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full h-11 shadow-md shadow-blue-600/20">
                                 <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
                             </Button>
                         </div>
                     </div>
-                )}
+                </div>
             </header>
         );
     }
