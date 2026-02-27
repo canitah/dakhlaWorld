@@ -7,6 +7,7 @@ import {
     setRefreshCookie,
 } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
+import { sendInstitutionWelcomeEmail } from "@/lib/mail";
 
 export async function POST(request: Request) {
     try {
@@ -48,6 +49,14 @@ export async function POST(request: Request) {
             );
         }
 
+        // Check if email is verified (pending = OTP not yet confirmed)
+        if (user.status === "pending") {
+            return NextResponse.json(
+                { error: "Please verify your email before logging in. Check your inbox for the verification code." },
+                { status: 403 }
+            );
+        }
+
         // Check if account is suspended
         if (user.status === "suspended") {
             return NextResponse.json(
@@ -62,6 +71,11 @@ export async function POST(request: Request) {
         const refreshToken = await generateRefreshToken(tokenPayload);
 
         await setRefreshCookie(refreshToken);
+
+        // Send institution welcome/pending email on first login (fire-and-forget)
+        if (user.role === "institution" && user.email) {
+            sendInstitutionWelcomeEmail(user.email, user.email).catch(() => { });
+        }
 
         return NextResponse.json({
             message: "Login successful",

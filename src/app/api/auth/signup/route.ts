@@ -7,7 +7,6 @@ import {
     setRefreshCookie,
 } from "@/lib/auth";
 import { signupSchema } from "@/lib/validations";
-import { sendInstitutionWelcomeEmail } from "@/lib/mail";
 
 export async function POST(request: Request) {
     try {
@@ -66,11 +65,6 @@ export async function POST(request: Request) {
                     status: "pending", // needs admin approval
                 },
             });
-
-            // Send welcome email (fire-and-forget)
-            if (email) {
-                sendInstitutionWelcomeEmail(email, email).catch(() => { });
-            }
         }
 
         // Generate tokens
