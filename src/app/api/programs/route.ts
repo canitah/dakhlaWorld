@@ -59,7 +59,7 @@ export async function GET(request: Request) {
         ]);
 
         // Sort by plan rank (descending) then by created_at (descending)
-        const sorted = allPrograms.sort((a, b) => {
+        const sorted = allPrograms.sort((a: any, b: any) => {
             const rankA = getPlanRank(a.institution.payment_requests[0]?.plan?.name);
             const rankB = getPlanRank(b.institution.payment_requests[0]?.plan?.name);
             if (rankB !== rankA) return rankB - rankA;
