@@ -365,3 +365,9 @@ input[type="reset"],
 .ant-btn {
   cursor: pointer !important;
 }
+
+/* Landing page floating cards animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}

@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { programSchema } from "@/lib/validations";
+import { getPlanTier, canActivateProgram } from "@/lib/plan-utils";
+
+// Helper: get the institution's current approved plan name
+async function getInstitutionPlanName(institutionId: number): Promise<string | null> {
+    const pr = await prisma.paymentRequest.findFirst({
+        where: { institution_id: institutionId, status: "approved" },
+        include: { plan: true },
+        orderBy: { updated_at: "desc" },
+    });
+    return pr?.plan?.name || null;
+}
 
 // GET /api/institutions/programs — List institution's programs
 export async function GET(request: Request) {
@@ -27,7 +38,19 @@ export async function GET(request: Request) {
             orderBy: { created_at: "desc" },
         });
 
-        return NextResponse.json({ programs });
+        // Return plan info alongside programs for the frontend to show limits
+        const planName = await getInstitutionPlanName(profile.id);
+        const tier = getPlanTier(planName);
+        const activeCount = programs.filter(p => p.is_active).length;
+
+        return NextResponse.json({
+            programs,
+            planInfo: {
+                planName: tier.label,
+                maxAdmissions: tier.maxAdmissions === Infinity ? -1 : tier.maxAdmissions,
+                activeCount,
+            },
+        });
     } catch (error) {
         console.error("List institution programs error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -54,6 +77,23 @@ export async function POST(request: Request) {
         if (profile.status !== "approved") {
             return NextResponse.json(
                 { error: "Your institution must be approved before posting programs" },
+                { status: 403 }
+            );
+        }
+
+        // ── Admission limit enforcement ──
+        const planName = await getInstitutionPlanName(profile.id);
+        const tier = getPlanTier(planName);
+        const activeCount = await prisma.program.count({
+            where: { institution_id: profile.id, is_active: true },
+        });
+
+        if (!canActivateProgram(planName, activeCount)) {
+            return NextResponse.json(
+                {
+                    error: `Your ${tier.label} plan allows only ${tier.maxAdmissions} active admissions. Please upgrade your plan to add more.`,
+                    code: "ADMISSION_LIMIT_REACHED",
+                },
                 { status: 403 }
             );
         }

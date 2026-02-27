@@ -48,7 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         initAuth();
-    }, [setAuth, setLoading, logout, router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return <>{children}</>;
 }

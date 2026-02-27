@@ -69,6 +69,7 @@ export default function InstitutionProgramsPage() {
     const [instStatus, setInstStatus] = useState<string>("pending");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+    const [planInfo, setPlanInfo] = useState<{ planName: string; maxAdmissions: number; activeCount: number } | null>(null);
 
     // Update URL when a program is selected/deselected
     const selectProgram = useCallback((program: Program | null) => {
@@ -100,6 +101,7 @@ export default function InstitutionProgramsPage() {
         if (res.ok) {
             const data = await res.json();
             setPrograms(data.programs);
+            if (data.planInfo) setPlanInfo(data.planInfo);
 
             // Auto-select program from URL on initial load
             const match = window.location.pathname.match(/\/institution\/programs\/(PRG-\d+)/);
@@ -178,6 +180,8 @@ export default function InstitutionProgramsPage() {
     };
 
     const isApproved = instStatus === "approved";
+    const isAtLimit = planInfo ? (planInfo.maxAdmissions !== -1 && planInfo.activeCount >= planInfo.maxAdmissions) : false;
+    const canPost = isApproved && !isAtLimit;
 
     /* Loading */
     if (isLoading) {
@@ -211,6 +215,40 @@ export default function InstitutionProgramsPage() {
                 </div>
             )}
 
+            {/* ── Admission Limit Banner ──────────────────────────── */}
+            {planInfo && (
+                <div className={`rounded-xl p-4 mb-6 flex items-start gap-3 ${isAtLimit
+                        ? "bg-red-500/10 border border-red-300 dark:border-red-700"
+                        : "bg-blue-500/10 border border-blue-200 dark:border-blue-800"
+                    }`}>
+                    <div className="shrink-0 mt-0.5">
+                        {isAtLimit ? (
+                            <AlertTriangle className="size-5 text-red-500" />
+                        ) : (
+                            <svg className="size-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <p className={`text-sm font-semibold ${isAtLimit ? "text-red-900 dark:text-red-400" : "text-blue-900 dark:text-blue-400"}`}>
+                            {planInfo.planName} Plan — {planInfo.maxAdmissions === -1 ? "Unlimited" : `${planInfo.activeCount}/${planInfo.maxAdmissions}`} Active Admissions
+                        </p>
+                        {isAtLimit && (
+                            <p className="text-sm text-red-700 dark:text-red-500 mt-0.5">
+                                You&apos;ve reached your plan&apos;s active admission limit. Upgrade your plan to post more programs.
+                            </p>
+                        )}
+                    </div>
+                    {isAtLimit && (
+                        <button
+                            onClick={() => router.push("/institution/billing")}
+                            className="shrink-0 px-4 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            Upgrade Plan
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* ── Page Header ────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
@@ -231,10 +269,10 @@ export default function InstitutionProgramsPage() {
                     <DialogTrigger asChild>
                         <Button
                             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 h-10 px-4 shadow-sm text-sm font-medium"
-                            disabled={!isApproved}
+                            disabled={!canPost}
                         >
-                            {isApproved ? <Plus className="size-4" /> : <Lock className="size-4" />}
-                            {isApproved ? "Post New Program" : "Posting Disabled"}
+                            {canPost ? <Plus className="size-4" /> : <Lock className="size-4" />}
+                            {!isApproved ? "Posting Disabled" : isAtLimit ? "Limit Reached" : "Post New Program"}
                         </Button>
                     </DialogTrigger>
 

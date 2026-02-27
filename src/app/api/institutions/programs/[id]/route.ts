@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { programSchema } from "@/lib/validations";
+import { canActivateProgram, getPlanTier } from "@/lib/plan-utils";
+
+// Helper: get the institution's current approved plan name
+async function getInstitutionPlanName(institutionId: number): Promise<string | null> {
+    const pr = await prisma.paymentRequest.findFirst({
+        where: { institution_id: institutionId, status: "approved" },
+        include: { plan: true },
+        orderBy: { updated_at: "desc" },
+    });
+    return pr?.plan?.name || null;
+}
 
 // GET /api/institutions/programs/[id]
 export async function GET(
@@ -64,6 +75,25 @@ export async function PUT(
 
         if (!existing) {
             return NextResponse.json({ error: "Program not found" }, { status: 404 });
+        }
+
+        // ── Admission limit check when activating a program ──
+        if (parsed.data.is_active === true && !existing.is_active) {
+            const planName = await getInstitutionPlanName(profile!.id);
+            const tier = getPlanTier(planName);
+            const activeCount = await prisma.program.count({
+                where: { institution_id: profile!.id, is_active: true },
+            });
+
+            if (!canActivateProgram(planName, activeCount)) {
+                return NextResponse.json(
+                    {
+                        error: `Your ${tier.label} plan allows only ${tier.maxAdmissions} active admissions. Please upgrade your plan.`,
+                        code: "ADMISSION_LIMIT_REACHED",
+                    },
+                    { status: 403 }
+                );
+            }
         }
 
         const program = await prisma.program.update({

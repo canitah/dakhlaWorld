@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
 import { useNotificationStore } from "@/store/notification-store";
 import { useSidebar } from "@/store/sidebar-store";
@@ -218,6 +219,8 @@ export function Navbar() {
 
     const handleLogout = async () => {
         await fetch("/api/auth/logout", { method: "POST" });
+        // Clear access_token cookie
+        document.cookie = "access_token=; path=/; max-age=0; samesite=strict";
         logout();
         router.push("/login");
     };
@@ -412,7 +415,51 @@ export function Navbar() {
         }
     };
 
-    if (!isMounted) return null;
+    // Hide navbar on login, signup, and verify-otp pages (can check before mount)
+    const isAuthPage = ["login", "signup", "verify-otp"].includes(pathname.split("/").filter(Boolean)[0] || "");
+    if (isAuthPage) return null;
+
+    // Determine if we're on a dashboard page (where the sidebar is visible)
+    const isDashboardPage = /^\/(student|institution|admin)(\/|$)/.test(pathname);
+    // Only show dashboard navbar features (search, breadcrumbs, profile) on dashboard pages
+    const showDashboardNav = isAuthenticated && isDashboardPage;
+
+    // Show a placeholder shell while mounting to avoid layout flash
+    if (!isMounted) {
+        if (!isDashboardPage) {
+            return (
+                <header className="sticky top-0 z-30 py-3 px-4 md:px-8 bg-background/60 backdrop-blur-md">
+                    <div className="max-w-7xl mx-auto bg-card/90 backdrop-blur-xl border border-border rounded-full px-4 md:px-6 py-2.5 flex items-center justify-between shadow-sm">
+                        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+                            <img src="/logo.jpeg" alt="dazla." className="h-8 w-auto object-contain" />
+                        </Link>
+                        <nav className="hidden md:flex items-center gap-1">
+                            <span className="relative px-4 py-2 text-sm font-semibold tracking-wide uppercase text-blue-600 dark:text-blue-400">
+                                Home
+                                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                            </span>
+                            {["About", "Programs", "Contact"].map((label) => (
+                                <span key={label} className="px-4 py-2 text-sm font-semibold tracking-wide uppercase text-muted-foreground">{label}</span>
+                            ))}
+                        </nav>
+                        <div className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-full" />
+                            <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full px-6 h-9 text-sm shadow-md shadow-blue-600/20">
+                                <Link href="/signup">Get Started</Link>
+                            </Button>
+                        </div>
+                    </div>
+                </header>
+            );
+        }
+        return (
+            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
+                <div className="flex h-16 items-center px-4 md:px-6">
+                    <div className="h-8" />
+                </div>
+            </header>
+        );
+    }
 
     // Profile dropdown menu items (antd Dropdown)
     const profileMenuItems: MenuProps["items"] = user
@@ -458,102 +505,176 @@ export function Navbar() {
         ]
         : [];
 
+    /* ═══════════════════════════════════════════════════════════════
+       LANDING / PUBLIC PAGE NAVBAR — floating pill with centered links
+       ═══════════════════════════════════════════════════════════════ */
+    if (!showDashboardNav) {
+        const landingLinks = [
+            { label: "Home", href: "/" },
+            { label: "About", href: "#about" },
+            { label: "Programs", href: "#programs" },
+            { label: "Contact", href: "#contact" },
+        ];
+
+        return (
+            <header className="sticky top-0 z-30 py-3 px-4 md:px-8 bg-background/60 backdrop-blur-md">
+                <div className="max-w-7xl mx-auto bg-card/90 backdrop-blur-xl border border-border rounded-full px-4 md:px-6 py-2.5 flex items-center justify-between shadow-sm">
+                    {/* Logo — left */}
+                    <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+                        <Image
+                            src="/logo.jpeg"
+                            alt="dazla."
+                            width={120}
+                            height={40}
+                            className="h-8 w-auto object-contain"
+                            priority
+                        />
+                    </Link>
+
+                    {/* Nav links — centered */}
+                    <nav className="hidden md:flex items-center gap-1">
+                        {landingLinks.map((link) => {
+                            const isActive = link.href === "/" && pathname === "/";
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={cn(
+                                        "relative px-4 py-2 text-sm font-semibold tracking-wide uppercase transition-colors",
+                                        isActive
+                                            ? "text-blue-600 dark:text-blue-400"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {link.label}
+                                    {isActive && (
+                                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    {/* Right — theme toggle + auth buttons */}
+                    <div className="flex items-center gap-2">
+                        {/* Theme Toggle */}
+                        <button
+                            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground relative cursor-pointer"
+                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                        >
+                            <svg className="h-[18px] w-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <svg className="absolute h-[18px] w-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                        </button>
+
+                        {/* Log in link */}
+                        <Button variant="ghost" asChild className="font-semibold text-sm hover:bg-accent rounded-full hidden sm:inline-flex">
+                            <Link href="/login">Log in</Link>
+                        </Button>
+
+                        {/* Get Started CTA */}
+                        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full px-6 h-9 text-sm shadow-md shadow-blue-600/20">
+                            <Link href="/signup">Get Started</Link>
+                        </Button>
+
+                        {/* Mobile hamburger */}
+                        <button className="md:hidden w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+        );
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       DASHBOARD NAVBAR — existing design (search, breadcrumbs, profile)
+       ═══════════════════════════════════════════════════════════════ */
     return (
         <header
             className={cn(
                 "sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border transition-all duration-300",
-                isAuthenticated
-                    ? isCollapsed
-                        ? "md:ml-[72px]"
-                        : "md:ml-[260px]"
-                    : ""
+                isCollapsed
+                    ? "md:ml-[72px]"
+                    : "md:ml-[260px]"
             )}
         >
             <div className="flex h-16 items-center justify-between px-4 md:px-6">
-                {/* Left Section: Logo (only when not authenticated) */}
-                {!isAuthenticated ? (
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2.5 group flex-shrink-0"
-                    >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white font-bold transition-transform group-hover:scale-105">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                        </div>
-                        <span className="hidden sm:block text-xl font-bold text-foreground tracking-tight">GAP</span>
-                    </Link>
-                ) : (
-                    <div className="hidden md:block" /> /* spacer */
-                )}
+                {/* Left Section: spacer (logo is in sidebar) */}
+                <div className="hidden md:block" />
 
-                {/* Breadcrumbs (authenticated only, left of search) */}
-                {isAuthenticated && user && breadcrumbItems.length > 0 && (
+                {/* Breadcrumbs */}
+                {user && breadcrumbItems.length > 0 && (
                     <div className="hidden md:block flex-shrink-0">
                         <Breadcrumb items={breadcrumbItems} />
                     </div>
                 )}
 
-                {/* Search Bar (authenticated only, shifted right) */}
-                {isAuthenticated && (
-                    <div className="flex-1 flex justify-center max-w-2xl ml-4 md:ml-8" ref={searchRef}>
-                        <div className="relative w-full max-w-lg">
-                            <SearchOutlined className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" style={{ fontSize: 16 }} />
-                            <input
-                                type="text"
-                                placeholder="Search"
-                                value={searchQuery}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                onFocus={() => {
-                                    if (searchResults.length > 0) setShowSearchResults(true);
-                                }}
-                                onKeyDown={handleSearchKeyDown}
-                                className="w-full h-10 pl-11 pr-4 rounded-full bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
-                            />
+                {/* Search Bar */}
+                <div className="flex-1 flex justify-center max-w-2xl ml-4 md:ml-8" ref={searchRef}>
+                    <div className="relative w-full max-w-lg">
+                        <SearchOutlined className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" style={{ fontSize: 16 }} />
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            value={searchQuery}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            onFocus={() => {
+                                if (searchResults.length > 0) setShowSearchResults(true);
+                            }}
+                            onKeyDown={handleSearchKeyDown}
+                            className="w-full h-10 pl-11 pr-4 rounded-full bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
+                        />
 
-                            {/* Search Results Dropdown */}
-                            {showSearchResults && (
-                                <div className="absolute top-full left-0 mt-1.5 w-full bg-popover rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                    {isSearching ? (
-                                        <div className="px-4 py-6 text-center">
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                                            <p className="text-xs text-muted-foreground">Searching...</p>
-                                        </div>
-                                    ) : searchResults.length === 0 ? (
-                                        <div className="px-4 py-6 text-center">
-                                            <p className="text-sm text-muted-foreground">No results found</p>
-                                        </div>
-                                    ) : (
-                                        <div className="max-h-72 overflow-y-auto py-1">
-                                            {searchResults.map((result, i) => (
-                                                <button
-                                                    key={`${result.type}-${result.title}-${i}`}
-                                                    onClick={() => handleSearchResultClick(result)}
-                                                    className="w-full text-left px-3 py-2.5 flex items-start gap-3 hover:bg-accent/50 transition-colors cursor-pointer"
-                                                >
-                                                    <span className="mt-0.5 text-muted-foreground flex-shrink-0">
-                                                        {getSearchResultIcon(result.type)}
-                                                    </span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-foreground truncate">
-                                                            {result.title}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground truncate">
-                                                            {result.subtitle}
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium mt-0.5 flex-shrink-0">
-                                                        {result.type}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        {/* Search Results Dropdown */}
+                        {showSearchResults && (
+                            <div className="absolute top-full left-0 mt-1.5 w-full bg-popover rounded-xl shadow-xl border border-border z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                {isSearching ? (
+                                    <div className="px-4 py-6 text-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                        <p className="text-xs text-muted-foreground">Searching...</p>
+                                    </div>
+                                ) : searchResults.length === 0 ? (
+                                    <div className="px-4 py-6 text-center">
+                                        <p className="text-sm text-muted-foreground">No results found</p>
+                                    </div>
+                                ) : (
+                                    <div className="max-h-72 overflow-y-auto py-1">
+                                        {searchResults.map((result, i) => (
+                                            <button
+                                                key={`${result.type}-${result.title}-${i}`}
+                                                onClick={() => handleSearchResultClick(result)}
+                                                className="w-full text-left px-3 py-2.5 flex items-start gap-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                                            >
+                                                <span className="mt-0.5 text-muted-foreground flex-shrink-0">
+                                                    {getSearchResultIcon(result.type)}
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-foreground truncate">
+                                                        {result.title}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground truncate">
+                                                        {result.subtitle}
+                                                    </p>
+                                                </div>
+                                                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium mt-0.5 flex-shrink-0">
+                                                    {result.type}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
+
 
                 {/* Right Section */}
                 <div className="flex items-center gap-1.5 md:gap-2.5">
@@ -573,7 +694,7 @@ export function Navbar() {
                         </svg>
                     </button>
 
-                    {isAuthenticated && user ? (
+                    {user && (
                         <>
                             {/* Notifications — icon only with antd Badge */}
                             <div className="relative" ref={notifRef}>
@@ -728,36 +849,6 @@ export function Navbar() {
                                 </AntAvatar>
                             </Dropdown>
                         </>
-                    ) : (
-                        <div className="flex gap-2">
-                            <Button
-                                variant="ghost"
-                                asChild
-                                className="font-medium hover:bg-accent"
-                            >
-                                <Link href="/login">
-                                    <span className="hidden sm:inline">Log in</span>
-                                    <span className="sm:hidden">
-                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                                        </svg>
-                                    </span>
-                                </Link>
-                            </Button>
-                            <Button
-                                asChild
-                                className="bg-blue-600 hover:bg-blue-700 font-medium shadow-sm"
-                            >
-                                <Link href="/signup">
-                                    <span className="hidden sm:inline">Sign up</span>
-                                    <span className="sm:hidden">
-                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                        </svg>
-                                    </span>
-                                </Link>
-                            </Button>
-                        </div>
                     )}
                 </div>
             </div>

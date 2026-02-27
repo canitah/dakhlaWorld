@@ -17,7 +17,7 @@ interface Program {
     category: string | null;
     duration: string | null;
     created_at: string;
-    institution: { name: string; city: string | null };
+    institution: { name: string; city: string | null; planTier?: string };
 }
 
 interface ProgramDetail {
@@ -451,26 +451,69 @@ function ProgramCard({
     onClick: () => void;
     onSave: (e: React.MouseEvent) => void;
 }) {
+    const tier = program.institution.planTier || "Starter";
+    const isGrowth = tier.toLowerCase().includes("growth");
+    const isPro = tier.toLowerCase().includes("pro");
+    const isFeatured = tier.toLowerCase().includes("featured");
+    const isPremium = isGrowth || isPro || isFeatured;
+
+    // Tier-specific styles
+    const tierBorder = isFeatured
+        ? "border-l-amber-500"
+        : isPro
+            ? "border-l-purple-500"
+            : isGrowth
+                ? "border-l-blue-500"
+                : "border-l-transparent";
+
+    const tierGlow = isFeatured
+        ? "shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)] hover:shadow-[0_0_20px_-3px_rgba(245,158,11,0.3)]"
+        : isPro
+            ? "shadow-[0_0_12px_-3px_rgba(139,92,246,0.15)] hover:shadow-[0_0_18px_-3px_rgba(139,92,246,0.25)]"
+            : "";
+
     return (
         <div
             onClick={onClick}
             className={`
                 relative px-4 py-4 cursor-pointer
                 border-b border-border
-                transition-colors duration-150
+                transition-all duration-200
+                border-l-[3px]
                 ${isSelected
-                    ? "bg-primary/5 border-l-[3px] border-l-primary"
-                    : "bg-card hover:bg-muted/50 border-l-[3px] border-l-transparent"
+                    ? `bg-primary/5 border-l-primary`
+                    : `bg-card hover:bg-muted/50 ${isPremium && !isSelected ? tierBorder : "border-l-transparent"}`
                 }
+                ${tierGlow}
             `}
         >
-            {/* Row 1: badge + save icon */}
+            {/* Row 1: badge + plan tier + save icon */}
             <div className="flex items-start justify-between mb-2">
-                {isNewProgram(program.created_at) ? (
-                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
-                        New
-                    </span>
-                ) : <span />}
+                <div className="flex items-center gap-2">
+                    {isNewProgram(program.created_at) && (
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                            New
+                        </span>
+                    )}
+                    {isFeatured && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 animate-pulse">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                            Featured
+                        </span>
+                    )}
+                    {isPro && !isFeatured && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 border border-purple-500/30 px-2.5 py-0.5 text-[11px] font-bold text-purple-600 dark:text-purple-400">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            Pro
+                        </span>
+                    )}
+                    {isGrowth && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/25 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /></svg>
+                            Growth
+                        </span>
+                    )}
+                </div>
                 <button
                     onClick={onSave}
                     className={`p-1 rounded transition-colors cursor-pointer ${isSaved
