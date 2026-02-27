@@ -86,7 +86,7 @@ export async function GET(request: Request) {
                 take: 5,
             });
 
-            programs.forEach((p) => {
+            programs.forEach((p: any) => {
                 results.push({
                     type: "Program",
                     title: p.title,
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
                     take: 5,
                 });
 
-                programs.forEach((p) => {
+                programs.forEach((p: any) => {
                     results.push({
                         type: "Program",
                         title: p.title,
@@ -137,7 +137,7 @@ export async function GET(request: Request) {
                 take: 5,
             });
 
-            institutions.forEach((inst) => {
+            institutions.forEach((inst: any) => {
                 results.push({
                     type: "Institution",
                     title: inst.name,
@@ -154,7 +154,7 @@ export async function GET(request: Request) {
                 take: 5,
             });
 
-            categories.forEach((c) => {
+            categories.forEach((c: any) => {
                 results.push({
                     type: "Category",
                     title: c.name,
@@ -171,7 +171,7 @@ export async function GET(request: Request) {
                 take: 5,
             });
 
-            cities.forEach((c) => {
+            cities.forEach((c: any) => {
                 results.push({
                     type: "City",
                     title: c.name,

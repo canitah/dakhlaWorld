@@ -70,7 +70,7 @@ export async function GET(request: Request) {
         const paginated = sorted.slice((page - 1) * limit, page * limit);
 
         // Map to response format — include plan tier for frontend card styling
-        const programs = paginated.map(p => ({
+        const programs = paginated.map((p: any) => ({
             id: p.id,
             title: p.title,
             category: p.category,

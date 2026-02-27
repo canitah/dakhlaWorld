@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         // Return plan info alongside programs for the frontend to show limits
         const planName = await getInstitutionPlanName(profile.id);
         const tier = getPlanTier(planName);
-        const activeCount = programs.filter(p => p.is_active).length;
+        const activeCount = programs.filter((p: any) => p.is_active).length;
 
         return NextResponse.json({
             programs,
