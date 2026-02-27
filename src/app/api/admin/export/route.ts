@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
         // Build CSV
         const headers = ["ID", "Student Name", "Student Email", "City", "Education", "Program", "Category", "Institution", "Status", "Date"];
-        const rows = applications.map((app) => [
+        const rows = applications.map((app: any) => [
             app.id,
             app.student?.full_name || "",
             app.student?.user?.email || "",
