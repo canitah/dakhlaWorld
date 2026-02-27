@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         // Create a notification for each admin about the report
         if (admins.length > 0) {
             await prisma.notification.createMany({
-                data: admins.map((admin) => ({
+                data: admins.map((admin: any) => ({
                     user_id: admin.id,
                     title: "Notification Reported",
                     message: `User #${authResult.user.userId} reported notification #${notificationId}${reason ? `: "${reason}"` : ""}. Original: "${notification.title}"`,

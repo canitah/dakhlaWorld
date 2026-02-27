@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         // Create in-app notification for each admin
         if (admins.length > 0) {
             await prisma.notification.createMany({
-                data: admins.map((admin) => ({
+                data: admins.map((admin: any) => ({
                     user_id: admin.id,
                     title: "Institution Appeal Received",
                     message: `"${profile.name}" has appealed their rejection and re-submitted for approval. Please review their profile.`,
