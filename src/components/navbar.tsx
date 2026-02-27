@@ -115,6 +115,7 @@ export function Navbar() {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showSearchResults, setShowSearchResults] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -531,7 +532,7 @@ export function Navbar() {
                         />
                     </Link>
 
-                    {/* Nav links — centered */}
+                    {/* Nav links — centered (desktop only) */}
                     <nav className="hidden md:flex items-center gap-1">
                         {landingLinks.map((link) => {
                             const isActive = link.href === "/" && pathname === "/";
@@ -571,24 +572,67 @@ export function Navbar() {
                             </svg>
                         </button>
 
-                        {/* Log in link */}
-                        <Button variant="ghost" asChild className="font-semibold text-sm hover:bg-accent rounded-full hidden sm:inline-flex">
+                        {/* Log in link — desktop only */}
+                        <Button variant="ghost" asChild className="font-semibold text-sm hover:bg-accent rounded-full hidden md:inline-flex">
                             <Link href="/login">Log in</Link>
                         </Button>
 
-                        {/* Get Started CTA */}
-                        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full px-6 h-9 text-sm shadow-md shadow-blue-600/20">
+                        {/* Get Started CTA — desktop only */}
+                        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full px-6 h-9 text-sm shadow-md shadow-blue-600/20 hidden md:inline-flex">
                             <Link href="/signup">Get Started</Link>
                         </Button>
 
-                        {/* Mobile hamburger */}
-                        <button className="md:hidden w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
+                        {/* Mobile hamburger toggle */}
+                        <button
+                            className="md:hidden w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        >
+                            {mobileMenuOpen ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            )}
                         </button>
                     </div>
                 </div>
+
+                {/* Mobile menu dropdown */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden max-w-7xl mx-auto mt-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <nav className="flex flex-col py-2">
+                            {landingLinks.map((link) => {
+                                const isActive = link.href === "/" && pathname === "/";
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={cn(
+                                            "px-5 py-3 text-sm font-semibold tracking-wide uppercase transition-colors",
+                                            isActive
+                                                ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                        )}
+                                    >
+                                        {link.label}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                        <div className="border-t border-border px-5 py-4 flex flex-col gap-2">
+                            <Button variant="outline" asChild className="w-full font-semibold rounded-full h-10">
+                                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
+                            </Button>
+                            <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full h-10 shadow-md shadow-blue-600/20">
+                                <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </header>
         );
     }
