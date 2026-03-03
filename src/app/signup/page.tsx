@@ -192,8 +192,8 @@
 // }
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
@@ -211,6 +211,7 @@ import { message } from "antd";
 export default function SignupPage() {
     const router = useRouter();
     const { setAuth } = useAuthStore();
+    const searchParamsObj = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -219,6 +220,14 @@ export default function SignupPage() {
         confirmPassword: "",
         role: "student" as "student" | "institution",
     });
+
+    // Read role from URL query params (e.g. /signup?role=institution)
+    useEffect(() => {
+        const roleParam = searchParamsObj.get("role");
+        if (roleParam === "institution" || roleParam === "student") {
+            setFormData(prev => ({ ...prev, role: roleParam }));
+        }
+    }, [searchParamsObj]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -280,12 +289,12 @@ export default function SignupPage() {
                     <div className="inline-flex items-center justify-center mb-4">
                         <img
                             src="/logo.jpeg"
-                            alt="dazla."
+                            alt="dakhla."
                             className="h-12 w-auto object-contain"
                         />
                     </div>
                     <h1 className="text-3xl font-bold text-foreground mb-2">Create Account</h1>
-                    <p className="text-muted-foreground">Join dazla. and start your journey</p>
+                    <p className="text-muted-foreground">Join dakhla. and start your journey</p>
                 </div>
 
                 <Card className="border border-border shadow-sm">
@@ -441,6 +450,7 @@ export default function SignupPage() {
                                     </div>
                                     <Input
                                         id="password"
+                                        name="new-password"
                                         type="password"
                                         placeholder="Min 8 characters"
                                         className="pl-10 h-11 border-border"
@@ -450,6 +460,7 @@ export default function SignupPage() {
                                         }
                                         required
                                         minLength={8}
+                                        autoComplete="new-password"
                                     />
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -483,6 +494,7 @@ export default function SignupPage() {
                                     </div>
                                     <Input
                                         id="confirmPassword"
+                                        name="new-password"
                                         type="password"
                                         placeholder="Re-enter password"
                                         className="pl-10 h-11 border-border"
@@ -494,6 +506,7 @@ export default function SignupPage() {
                                             })
                                         }
                                         required
+                                        autoComplete="new-password"
                                     />
                                 </div>
                             </div>

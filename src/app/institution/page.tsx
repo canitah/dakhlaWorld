@@ -258,6 +258,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { message } from "antd";
 
 
@@ -360,6 +361,7 @@ const EyeIcon = () => (
 
 export default function InstitutionDashboard() {
     const { fetchWithAuth } = useApi();
+    const router = useRouter();
     const [profile, setProfile] = useState<InstitutionProfile | null>(null);
     const [applications, setApplications] = useState<Application[]>([]);
     const [programs, setPrograms] = useState<Program[]>([]);
@@ -380,6 +382,11 @@ export default function InstitutionDashboard() {
 
             if (profRes.ok) {
                 const data = await profRes.json();
+                // Redirect to setup if profile is incomplete (missing category or description)
+                if (!data.profile?.category && !data.profile?.description) {
+                    router.replace("/institution/profile");
+                    return;
+                }
                 setProfile(data.profile);
             }
             if (appRes.ok) {

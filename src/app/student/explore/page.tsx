@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -8,6 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Button as AntButton, message } from "antd";
 import { CheckCircleOutlined, LoadingOutlined, SendOutlined } from "@ant-design/icons";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Upload, FileText, CheckCircle2, Copy, X } from "lucide-react";
 
 /* ─────────────────────────── Types ─────────────────────────── */
 
@@ -17,6 +26,9 @@ interface Program {
     category: string | null;
     duration: string | null;
     created_at: string;
+    fee: number | null;
+    schedule_type: string | null;
+    study_field: string | null;
     institution: { name: string; city: string | null; planTier?: string };
 }
 
@@ -31,6 +43,9 @@ interface ProgramDetail {
     external_url: string | null;
     is_active: boolean;
     created_at: string;
+    fee: number | null;
+    schedule_type: string | null;
+    study_field: string | null;
     institution: {
         id: number;
         name: string;
@@ -40,6 +55,41 @@ interface ProgramDetail {
         contact_email: string | null;
     };
     _count: { applications: number };
+}
+
+interface StudentPrefs {
+    preferred_schedule: string | null;
+    budget_min: number | null;
+    budget_max: number | null;
+    preferred_field: string | null;
+}
+
+const SCHEDULE_OPTIONS = ["Full-time", "Part-time", "Remote", "Hybrid"];
+
+function MatchBadge({ label }: { label: string }) {
+    return (
+        <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            {label}
+        </span>
+    );
+}
+
+function getMatches(program: { fee?: number | null; schedule_type?: string | null; study_field?: string | null }, prefs: StudentPrefs | null): string[] {
+    if (!prefs) return [];
+    const matches: string[] = [];
+    if (prefs.preferred_schedule && program.schedule_type && program.schedule_type.toLowerCase() === prefs.preferred_schedule.toLowerCase()) {
+        matches.push(program.schedule_type);
+    }
+    if (prefs.preferred_field && program.study_field && program.study_field.toLowerCase().includes(prefs.preferred_field.toLowerCase())) {
+        matches.push(program.study_field);
+    }
+    if (program.fee != null && prefs.budget_min != null && prefs.budget_max != null && program.fee >= prefs.budget_min && program.fee <= prefs.budget_max) {
+        matches.push(`Rs ${program.fee.toLocaleString()}`);
+    } else if (program.fee != null && prefs.budget_max != null && program.fee <= prefs.budget_max) {
+        matches.push(`Rs ${program.fee.toLocaleString()}`);
+    }
+    return matches;
 }
 
 /* ─────────────────────────── Icons ─────────────────────────── */
@@ -141,12 +191,32 @@ function ExplorePage() {
     const [selectedProgram, setSelectedProgram] = useState<ProgramDetail | null>(null);
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [isDetailLoading, setIsDetailLoading] = useState(false);
-    // Mobile: show detail panel instead of list
     const [mobileView, setMobileView] = useState<"list" | "detail">("list");
-    // Track saved program IDs for bookmark toggle UI
     const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
     const [appliedIds, setAppliedIds] = useState<Set<number>>(new Set());
     const [applyingId, setApplyingId] = useState<number | null>(null);
+    // Student preferences for matching badges
+    const [studentPrefs, setStudentPrefs] = useState<StudentPrefs | null>(null);
+    // Advanced filters
+    const [showFilters, setShowFilters] = useState(false);
+    const [scheduleFilter, setScheduleFilter] = useState("");
+    const [studyFieldFilter, setStudyFieldFilter] = useState("");
+    const [feeMin, setFeeMin] = useState("");
+    const [feeMax, setFeeMax] = useState("");
+    const [cityFilter, setCityFilter] = useState("");
+
+    // ── CV Upload Modal State ──
+    const [cvModalOpen, setCvModalOpen] = useState(false);
+    const [cvModalProgramId, setCvModalProgramId] = useState<number | null>(null);
+    const [cvFile, setCvFile] = useState<File | null>(null);
+    const [isUploadingCv, setIsUploadingCv] = useState(false);
+    const cvInputRef = useRef<HTMLInputElement>(null);
+
+    // ── Success Modal State ──
+    const [successModalOpen, setSuccessModalOpen] = useState(false);
+    const [successAppCode, setSuccessAppCode] = useState("");
+    const [successProgramTitle, setSuccessProgramTitle] = useState("");
+    const [copied, setCopied] = useState(false);
 
     // Derive category tabs dynamically from loaded programs
     const categories = useMemo(() => {
@@ -156,11 +226,30 @@ function ExplorePage() {
         return ["All", ...Array.from(new Set(cats)).sort()];
     }, [programs]);
 
-    // Load saved program IDs on mount so bookmarks persist across refreshes
+    // Load saved program IDs + student preferences on mount
     useEffect(() => {
         loadSavedIds();
         loadAppliedIds();
+        loadStudentPrefs();
     }, []);
+
+    async function loadStudentPrefs() {
+        try {
+            const res = await fetchWithAuth("/students/profile");
+            if (res.ok) {
+                const data = await res.json();
+                const p = data.profile;
+                if (p) {
+                    setStudentPrefs({
+                        preferred_schedule: p.preferred_schedule || null,
+                        budget_min: p.budget_min ?? null,
+                        budget_max: p.budget_max ?? null,
+                        preferred_field: p.preferred_field || null,
+                    });
+                }
+            }
+        } catch { /* ignore */ }
+    }
 
     async function loadAppliedIds() {
         const res = await fetchWithAuth("/applications");
@@ -210,6 +299,11 @@ function ExplorePage() {
             limit: "12",
             ...(searchQuery && { search: searchQuery }),
             ...(category && category !== "All" && { category }),
+            ...(scheduleFilter && { schedule_type: scheduleFilter }),
+            ...(studyFieldFilter && { study_field: studyFieldFilter }),
+            ...(feeMin && { fee_min: feeMin }),
+            ...(feeMax && { fee_max: feeMax }),
+            ...(cityFilter && { city: cityFilter }),
         });
         const res = await fetchWithAuth(`/programs?${params}`);
         if (res.ok) {
@@ -218,6 +312,17 @@ function ExplorePage() {
             setTotalPages(data.pagination.totalPages);
         }
         setIsLoading(false);
+    }
+
+    function clearFilters() {
+        setScheduleFilter("");
+        setStudyFieldFilter("");
+        setFeeMin("");
+        setFeeMax("");
+        setCityFilter("");
+        setPage(1);
+        // Reload with no filters next tick
+        setTimeout(() => loadPrograms(), 0);
     }
 
     const viewProgramDetail = async (programId: number) => {
@@ -237,17 +342,51 @@ function ExplorePage() {
         setIsDetailLoading(false);
     };
 
-    const handleApply = async (programId: number) => {
-        setApplyingId(programId);
+    // Opens CV modal instead of applying directly
+    const handleApply = (programId: number) => {
+        setCvModalProgramId(programId);
+        setCvFile(null);
+        setCvModalOpen(true);
+    };
+
+    // Actually submits the application (optionally with CV)
+    const submitApplication = async () => {
+        if (!cvModalProgramId) return;
+        setApplyingId(cvModalProgramId);
+        setIsUploadingCv(true);
+
         try {
+            // Upload CV first if provided
+            if (cvFile) {
+                const formData = new FormData();
+                formData.append("cv", cvFile);
+                const cvRes = await fetchWithAuth("/students/profile/cv", {
+                    method: "POST",
+                    body: formData,
+                });
+                if (!cvRes.ok) {
+                    message.error("Failed to upload CV. Application not submitted.");
+                    setIsUploadingCv(false);
+                    setApplyingId(null);
+                    return;
+                }
+            }
+
+            // Submit application
             const res = await fetchWithAuth("/applications", {
                 method: "POST",
-                body: JSON.stringify({ program_id: programId }),
+                body: JSON.stringify({ program_id: cvModalProgramId }),
             });
             const data = await res.json();
             if (res.ok) {
-                message.success("Application submitted successfully!");
-                setAppliedIds((prev) => new Set(prev).add(programId));
+                setAppliedIds((prev) => new Set(prev).add(cvModalProgramId));
+                setCvModalOpen(false);
+                // Show success dialog
+                const progTitle = programs.find(p => p.id === cvModalProgramId)?.title || selectedProgram?.title || "";
+                setSuccessProgramTitle(progTitle);
+                setSuccessAppCode(data.application?.application_code || "");
+                setSuccessModalOpen(true);
+                setCopied(false);
             } else {
                 message.error(data.error || "Failed to submit application");
             }
@@ -255,6 +394,7 @@ function ExplorePage() {
             message.error("Something went wrong. Please try again.");
         } finally {
             setApplyingId(null);
+            setIsUploadingCv(false);
         }
     };
 
@@ -325,6 +465,92 @@ function ExplorePage() {
                 </div>
             </div>
 
+            {/* ── Advanced Filters Panel ── */}
+            <div className="mt-3">
+                <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="text-sm font-medium text-primary hover:underline cursor-pointer flex items-center gap-1"
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                        <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
+                        <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
+                    {showFilters ? "Hide Filters" : "Advanced Filters"}
+                </button>
+
+                {showFilters && (
+                    <div className="mt-3 p-4 border border-border rounded-xl bg-card space-y-4 animate-in fade-in duration-200">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Schedule Type */}
+                            <div>
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Schedule</label>
+                                <select
+                                    value={scheduleFilter}
+                                    onChange={(e) => setScheduleFilter(e.target.value)}
+                                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm"
+                                >
+                                    <option value="">All</option>
+                                    {SCHEDULE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+
+                            {/* Study Field */}
+                            <div>
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Study Field</label>
+                                <Input
+                                    placeholder="e.g., Computer Science"
+                                    value={studyFieldFilter}
+                                    onChange={(e) => setStudyFieldFilter(e.target.value)}
+                                    className="h-9 text-sm"
+                                />
+                            </div>
+
+                            {/* Budget Min */}
+                            <div>
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Fee Min (PKR)</label>
+                                <Input
+                                    type="number"
+                                    placeholder="0"
+                                    value={feeMin}
+                                    onChange={(e) => setFeeMin(e.target.value)}
+                                    className="h-9 text-sm"
+                                />
+                            </div>
+
+                            {/* Budget Max */}
+                            <div>
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Fee Max (PKR)</label>
+                                <Input
+                                    type="number"
+                                    placeholder="1000000"
+                                    value={feeMax}
+                                    onChange={(e) => setFeeMax(e.target.value)}
+                                    className="h-9 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <Button
+                                onClick={() => { setPage(1); loadPrograms(); }}
+                                className="h-9 px-6 bg-primary hover:bg-primary/90 text-sm font-medium rounded-lg"
+                            >
+                                Apply Filters
+                            </Button>
+                            <button
+                                onClick={clearFilters}
+                                className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* ── Split layout ── */}
             <div className="flex gap-0 min-h-[70vh]" style={{ height: "calc(100vh - 260px)" }}>
 
@@ -355,6 +581,7 @@ function ExplorePage() {
                                         program={program}
                                         isSelected={selectedId === program.id}
                                         isSaved={savedIds.has(program.id)}
+                                        studentPrefs={studentPrefs}
                                         onClick={() => viewProgramDetail(program.id)}
                                         onSave={(e) => { e.stopPropagation(); handleSave(program.id); }}
                                     />
@@ -425,6 +652,7 @@ function ExplorePage() {
                             isSaved={savedIds.has(selectedProgram.id)}
                             isApplied={appliedIds.has(selectedProgram.id)}
                             isApplying={applyingId === selectedProgram.id}
+                            studentPrefs={studentPrefs}
                             onApply={handleApply}
                             onSave={handleSave}
                             onInstitutionClick={(id: number) => { router.push(`/student/institution/${id}`); }}
@@ -432,6 +660,128 @@ function ExplorePage() {
                     )}
                 </div>
             </div>
+
+            {/* ═══════════ CV Upload Modal ═══════════ */}
+            <Dialog open={cvModalOpen} onOpenChange={(open) => { if (!open) { setCvModalOpen(false); setCvFile(null); } }}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-lg">
+                            <Upload className="w-5 h-5 text-blue-500" />
+                            Upload Your CV (Optional)
+                        </DialogTitle>
+                        <DialogDescription>
+                            Attach your CV/resume to strengthen your application. You can also skip this step.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-5 pt-2">
+                        {/* File Drop Area */}
+                        <div
+                            className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 ${cvFile ? "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10" : "border-border"}`}
+                            onClick={() => cvInputRef.current?.click()}
+                        >
+                            <input
+                                ref={cvInputRef}
+                                type="file"
+                                accept=".pdf"
+                                className="hidden"
+                                onChange={(e) => { if (e.target.files?.[0]) setCvFile(e.target.files[0]); }}
+                            />
+                            {cvFile ? (
+                                <div className="flex items-center justify-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                        <FileText className="w-5 h-5 text-blue-500" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-semibold text-foreground">{cvFile.name}</p>
+                                        <p className="text-xs text-muted-foreground">{(cvFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                    </div>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setCvFile(null); }}
+                                        className="ml-auto p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                                        <Upload className="w-5 h-5 text-muted-foreground" />
+                                    </div>
+                                    <p className="text-sm font-medium text-foreground">Click to select your CV</p>
+                                    <p className="text-xs text-muted-foreground mt-1">PDF format only, max 5MB</p>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
+                                className="flex-1 h-11"
+                                disabled={isUploadingCv}
+                                onClick={() => { setCvFile(null); submitApplication(); }}
+                            >
+                                Skip & Apply
+                            </Button>
+                            <Button
+                                className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+                                disabled={!cvFile || isUploadingCv}
+                                onClick={submitApplication}
+                            >
+                                {isUploadingCv ? "Submitting..." : "Upload & Apply"}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ═══════════ Success Modal ═══════════ */}
+            <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+                <DialogContent className="sm:max-w-[420px] text-center">
+                    {/* Decorative success circle */}
+                    <div className="flex justify-center pt-4">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-in zoom-in duration-300">
+                            <CheckCircle2 className="w-10 h-10 text-white" />
+                        </div>
+                    </div>
+
+                    <DialogHeader className="pt-4">
+                        <DialogTitle className="text-xl font-bold text-center">Application Submitted!</DialogTitle>
+                        <DialogDescription className="text-center text-sm pt-1">
+                            Your application for <strong className="text-foreground">{successProgramTitle}</strong> has been submitted successfully.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Application Code */}
+                    {successAppCode && (
+                        <div className="mx-4 my-4">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Application Code</Label>
+                            <div className="mt-2 flex items-center justify-center gap-2 p-4 rounded-xl bg-accent border border-border">
+                                <code className="text-lg font-bold font-mono text-foreground tracking-wider">{successAppCode}</code>
+                                <button
+                                    onClick={() => { navigator.clipboard.writeText(successAppCode); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                                    className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                    title="Copy code"
+                                >
+                                    {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">Use this code to track your application status.</p>
+                        </div>
+                    )}
+
+                    <div className="px-4 pb-4">
+                        <Button
+                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                            onClick={() => setSuccessModalOpen(false)}
+                        >
+                            Done
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </DashboardLayout>
     );
 }
@@ -450,15 +800,18 @@ function ProgramCard({
     program,
     isSelected,
     isSaved,
+    studentPrefs,
     onClick,
     onSave,
 }: {
     program: Program;
     isSelected: boolean;
     isSaved: boolean;
+    studentPrefs: StudentPrefs | null;
     onClick: () => void;
     onSave: (e: React.MouseEvent) => void;
 }) {
+    const matches = getMatches(program, studentPrefs);
     const tier = program.institution.planTier || "Starter";
     const isGrowth = tier.toLowerCase().includes("growth");
     const isPro = tier.toLowerCase().includes("pro");
@@ -546,7 +899,7 @@ function ProgramCard({
             </div>
 
             {/* Row 4: Pills */}
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-2">
                 {program.category && (
                     <span className="inline-flex items-center border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
                         {program.category}
@@ -562,7 +915,24 @@ function ProgramCard({
                         <MapPinIcon /> {program.institution.city}
                     </span>
                 )}
+                {program.fee != null && (
+                    <span className="inline-flex items-center border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
+                        Rs {program.fee.toLocaleString()}
+                    </span>
+                )}
+                {program.schedule_type && (
+                    <span className="inline-flex items-center border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
+                        {program.schedule_type}
+                    </span>
+                )}
             </div>
+
+            {/* Matched attributes */}
+            {matches.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                    {matches.map((m) => <MatchBadge key={m} label={m} />)}
+                </div>
+            )}
 
             {/* Row 5: Easily apply */}
             <div className="flex items-center gap-1.5 text-[13px] font-medium text-primary">
@@ -580,6 +950,7 @@ function DetailPanel({
     isSaved,
     isApplied,
     isApplying,
+    studentPrefs,
     onApply,
     onSave,
     onInstitutionClick,
@@ -588,10 +959,12 @@ function DetailPanel({
     isSaved: boolean;
     isApplied: boolean;
     isApplying: boolean;
+    studentPrefs: StudentPrefs | null;
     onApply: (id: number) => void;
     onSave: (id: number) => void;
     onInstitutionClick: (id: number) => void;
 }) {
+    const matches = getMatches(program, studentPrefs);
     return (
         <div className="h-full flex flex-col">
 
@@ -666,6 +1039,16 @@ function DetailPanel({
                     </button>
                 </div>
             </div>
+
+            {/* Matched attributes banner */}
+            {matches.length > 0 && (
+                <div className="px-6 py-3 border-b border-border bg-emerald-50/50 dark:bg-emerald-500/5 flex-shrink-0">
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">Matches your preferences</p>
+                    <div className="flex flex-wrap gap-2">
+                        {matches.map((m) => <MatchBadge key={m} label={m} />)}
+                    </div>
+                </div>
+            )}
 
             {/* ── Scrollable body ── */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
@@ -756,6 +1139,60 @@ function DetailPanel({
                                 </span>
                             </div>
                         </div>
+
+                        {/* Fee */}
+                        {program.fee != null && (
+                            <div className="flex items-start gap-3">
+                                <span className="mt-0.5 text-muted-foreground flex-shrink-0">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p className="text-[13px] font-semibold text-foreground mb-1.5">Total Fee</p>
+                                    <span className="inline-flex items-center border border-border bg-muted/50 rounded-md px-3 py-1.5 text-[13px] font-medium text-foreground">
+                                        Rs {program.fee.toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Schedule Type */}
+                        {program.schedule_type && (
+                            <div className="flex items-start gap-3">
+                                <span className="mt-0.5 text-muted-foreground flex-shrink-0">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 3v4M8 3v4M2 11h20" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p className="text-[13px] font-semibold text-foreground mb-1.5">Schedule</p>
+                                    <span className="inline-flex items-center border border-border bg-muted/50 rounded-md px-3 py-1.5 text-[13px] font-medium text-foreground">
+                                        {program.schedule_type}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Study Field */}
+                        {program.study_field && (
+                            <div className="flex items-start gap-3">
+                                <span className="mt-0.5 text-muted-foreground flex-shrink-0">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" /><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p className="text-[13px] font-semibold text-foreground mb-1.5">Study Field</p>
+                                    <span className="inline-flex items-center border border-border bg-muted/50 rounded-md px-3 py-1.5 text-[13px] font-medium text-foreground">
+                                        {program.study_field}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

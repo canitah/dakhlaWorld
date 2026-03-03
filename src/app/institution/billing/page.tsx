@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -238,6 +239,7 @@ interface PaymentReq {
 
 export default function InstitutionBillingPage() {
     const { fetchWithAuth } = useApi();
+    const router = useRouter();
     const [dbPlans, setDbPlans] = useState<DbPlan[]>([]);
     const [requests, setRequests] = useState<PaymentReq[]>([]);
     const [isLoading, setIsLoading] = useState(true);

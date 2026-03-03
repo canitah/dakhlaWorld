@@ -27,6 +27,8 @@ import {
     ClipboardCheck,
     X,
     ChevronRight,
+    DollarSign,
+    Briefcase,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -43,7 +45,17 @@ interface Program {
     is_active: boolean;
     created_at: string;
     _count: { applications: number };
+    fee: number | null;
+    schedule_type: string | null;
+    study_field: string | null;
 }
+
+const SCHEDULE_OPTIONS = [
+    { value: "Full-time", label: "Full-time" },
+    { value: "Part-time", label: "Part-time" },
+    { value: "Remote", label: "Remote" },
+    { value: "Hybrid", label: "Hybrid" },
+];
 
 const emptyProgram = {
     title: "",
@@ -54,6 +66,9 @@ const emptyProgram = {
     application_method: "internal",
     external_url: "",
     is_active: true,
+    fee: null as number | null,
+    schedule_type: "",
+    study_field: "",
 };
 
 /* ── Main Page Component ──────────────────────────────────────── */
@@ -155,6 +170,9 @@ export default function InstitutionProgramsPage() {
             application_method: program.application_method || "internal",
             external_url: program.external_url || "",
             is_active: program.is_active,
+            fee: program.fee,
+            schedule_type: program.schedule_type || "",
+            study_field: program.study_field || "",
         });
         setIsDialogOpen(true);
     };
@@ -218,8 +236,8 @@ export default function InstitutionProgramsPage() {
             {/* ── Admission Limit Banner ──────────────────────────── */}
             {planInfo && (
                 <div className={`rounded-xl p-4 mb-6 flex items-start gap-3 ${isAtLimit
-                        ? "bg-red-500/10 border border-red-300 dark:border-red-700"
-                        : "bg-blue-500/10 border border-blue-200 dark:border-blue-800"
+                    ? "bg-red-500/10 border border-red-300 dark:border-red-700"
+                    : "bg-blue-500/10 border border-blue-200 dark:border-blue-800"
                     }`}>
                     <div className="shrink-0 mt-0.5">
                         {isAtLimit ? (
@@ -340,6 +358,47 @@ export default function InstitutionProgramsPage() {
                                     />
                                 </Form.Item>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Form.Item
+                                    name="study_field"
+                                    label={<span className="font-medium">Study Field</span>}
+                                >
+                                    <AntInput
+                                        prefix={<BookOutlined className="text-gray-400" />}
+                                        placeholder="e.g., Computer Science"
+                                        size="large"
+                                        onChange={(e) => setForm({ ...form, study_field: e.target.value })}
+                                    />
+                                </Form.Item>
+
+                                <Form.Item
+                                    name="schedule_type"
+                                    label={<span className="font-medium">Schedule Type</span>}
+                                >
+                                    <AntSelect
+                                        size="large"
+                                        placeholder="Select schedule"
+                                        onChange={(value) => setForm({ ...form, schedule_type: value })}
+                                        getPopupContainer={(trigger) => trigger.parentElement || document.body}
+                                        options={SCHEDULE_OPTIONS}
+                                        allowClear
+                                    />
+                                </Form.Item>
+                            </div>
+
+                            <Form.Item
+                                name="fee"
+                                label={<span className="font-medium">Total Fee / Budget (PKR)</span>}
+                            >
+                                <AntInput
+                                    type="number"
+                                    prefix={<span className="text-gray-400 text-sm">Rs</span>}
+                                    placeholder="e.g., 500000"
+                                    size="large"
+                                    onChange={(e) => setForm({ ...form, fee: e.target.value ? parseInt(e.target.value) : null })}
+                                />
+                            </Form.Item>
 
                             <Form.Item
                                 name="eligibility"
@@ -555,6 +614,37 @@ function ProgramCard({
                     </div>
                 </div>
 
+                {/* Fee, Schedule, Study Field row */}
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                    {program.fee != null && (
+                        <div className="flex items-center gap-1.5">
+                            <DollarSign className="size-3.5 text-green-500 shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-[9px] uppercase tracking-wider font-semibold text-muted-foreground leading-none">Fee</p>
+                                <p className="text-sm font-medium text-foreground truncate">Rs {program.fee.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    )}
+                    {program.schedule_type && (
+                        <div className="flex items-center gap-1.5">
+                            <Briefcase className="size-3.5 text-indigo-500 shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-[9px] uppercase tracking-wider font-semibold text-muted-foreground leading-none">Schedule</p>
+                                <p className="text-sm font-medium text-foreground truncate">{program.schedule_type}</p>
+                            </div>
+                        </div>
+                    )}
+                    {program.study_field && (
+                        <div className="flex items-center gap-1.5">
+                            <BookOpen className="size-3.5 text-teal-500 shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-[9px] uppercase tracking-wider font-semibold text-muted-foreground leading-none">Study Field</p>
+                                <p className="text-sm font-medium text-foreground truncate">{program.study_field}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <Separator className="mb-3" />
 
                 {/* Footer badges + expand arrow */}
@@ -689,6 +779,44 @@ function ProgramDetailPanel({
                                 </p>
                             </div>
                         </div>
+                        {/* Fee */}
+                        {program.fee != null && (
+                            <div className="flex items-start gap-3">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/10 shrink-0">
+                                    <DollarSign className="size-4 text-emerald-500" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Total Fee</p>
+                                    <p className="text-sm font-medium text-foreground">Rs {program.fee.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Schedule Type */}
+                        {program.schedule_type && (
+                            <div className="flex items-start gap-3">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-500/10 shrink-0">
+                                    <Briefcase className="size-4 text-indigo-500" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Schedule</p>
+                                    <p className="text-sm font-medium text-foreground">{program.schedule_type}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Study Field */}
+                        {program.study_field && (
+                            <div className="flex items-start gap-3">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-teal-500/10 shrink-0">
+                                    <BookOpen className="size-4 text-teal-500" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Study Field</p>
+                                    <p className="text-sm font-medium text-foreground">{program.study_field}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Eligibility (full width) */}

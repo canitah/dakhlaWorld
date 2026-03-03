@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -33,6 +34,10 @@ import {
     ChevronDown,
     X,
     Plus,
+    Clock,
+    DollarSign,
+    BookOpen,
+    Briefcase,
 } from "lucide-react";
 
 interface Application {
@@ -62,6 +67,10 @@ interface StudentDetail {
     learning_goal: string | null;
     cv_url: string | null;
     profile_picture_url: string | null;
+    preferred_schedule: string | null;
+    budget_min: number | null;
+    budget_max: number | null;
+    preferred_field: string | null;
     user: { email: string | null; phone: string | null };
 }
 
@@ -116,6 +125,7 @@ function matchesFilter(value: string, operator: FilterOperator, filterValue: str
 
 export default function InstitutionApplicationsPage() {
     const { fetchWithAuth } = useApi();
+    const router = useRouter();
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
@@ -649,6 +659,51 @@ export default function InstitutionApplicationsPage() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Preferred Field & Schedule */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {selectedStudent.preferred_field && (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                <BookOpen className="size-3.5" />
+                                                Preferred Field
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {selectedStudent.preferred_field}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {selectedStudent.preferred_schedule && (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                <Clock className="size-3.5" />
+                                                Preferred Schedule
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {selectedStudent.preferred_schedule}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Budget Range */}
+                                {(selectedStudent.budget_min !== null || selectedStudent.budget_max !== null) && (
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            <DollarSign className="size-3.5" />
+                                            Budget Range (PKR)
+                                        </div>
+                                        <div className="p-2.5 rounded-lg bg-accent border border-border">
+                                            <span className="text-sm font-medium text-foreground">
+                                                {selectedStudent.budget_min?.toLocaleString() ?? "—"} – {selectedStudent.budget_max?.toLocaleString() ?? "—"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Personal Statement */}
                                 {selectedStudent.personal_statement && (

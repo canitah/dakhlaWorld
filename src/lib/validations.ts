@@ -29,16 +29,47 @@ export const sendOtpSchema = z.object({
 });
 
 // ─── Student Profile ─────────────────────────────────────
+// Helper: convert empty strings to undefined so optional fields don't fail validation
+const emptyToUndefined = z.preprocess(
+    (val) => (val === null || (typeof val === "string" && val.trim() === "") ? undefined : val),
+    z.string().optional(),
+);
+
 export const studentProfileSchema = z.object({
-    student_type: z.enum(["local", "international"]).optional(),
-    full_name: z.string().min(2).max(100).optional(),
-    city: z.string().max(100).optional(),
-    age_range: z.string().optional(),
-    intended_field: z.string().max(200).optional(),
-    personal_statement: z.string().max(2000).optional(),
-    education_level: z.string().optional(),
-    experience_level: z.string().optional(),
-    learning_goal: z.string().max(500).optional(),
+    student_type: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z.enum(["local", "international"]).optional(),
+    ),
+    full_name: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().min(2).max(100).optional(),
+    ),
+    city: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().max(100).optional(),
+    ),
+    age_range: emptyToUndefined,
+    intended_field: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().max(200).optional(),
+    ),
+    personal_statement: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().max(2000).optional(),
+    ),
+    education_level: emptyToUndefined,
+    experience_level: emptyToUndefined,
+    learning_goal: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().max(500).optional(),
+    ),
+    preferred_schedule: emptyToUndefined,
+    budget_min: z.number().int().min(0).optional().nullable(),
+    budget_max: z.number().int().min(0).optional().nullable(),
+    preferred_field: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().max(200).optional(),
+    ),
 });
 
 // ─── Institution Profile ─────────────────────────────────
@@ -63,6 +94,9 @@ export const programSchema = z.object({
         { message: "Please enter a valid URL" }
     ),
     is_active: z.boolean().optional(),
+    fee: z.number().int().min(0).optional().nullable(),
+    schedule_type: z.string().optional().nullable(),
+    study_field: z.string().max(200).optional().nullable(),
 });
 
 // ─── Application ─────────────────────────────────────────

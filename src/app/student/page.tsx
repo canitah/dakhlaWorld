@@ -286,6 +286,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { message } from "antd";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -393,6 +394,7 @@ const BookmarkIcon = () => (
 export default function StudentDashboard() {
     const { fetchWithAuth } = useApi();
     const { user } = useAuthStore();
+    const router = useRouter();
     const [programs, setPrograms] = useState<Program[]>([]);
     const [applications, setApplications] = useState<Application[]>([]);
     const [search, setSearch] = useState("");
@@ -402,6 +404,16 @@ export default function StudentDashboard() {
 
     async function loadData() {
         try {
+            // Check profile completeness — redirect to setup if empty
+            const profileRes = await fetchWithAuth("/students/profile");
+            if (profileRes.ok) {
+                const profileData = await profileRes.json();
+                if (!profileData.profile?.full_name) {
+                    router.replace("/student/profile");
+                    return;
+                }
+            }
+
             const [progRes, appRes] = await Promise.all([
                 fetchWithAuth("/programs?limit=8"),
                 fetchWithAuth("/applications"),
@@ -509,8 +521,8 @@ export default function StudentDashboard() {
                                 <p className="text-3xl font-bold">{item.value}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>
                                 <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
-                                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                        : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                                     }`}>
                                     {item.badge}
                                 </span>

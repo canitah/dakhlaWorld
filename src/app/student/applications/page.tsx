@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -23,6 +24,7 @@ interface Application {
 
 export default function StudentApplicationsPage() {
     const { fetchWithAuth } = useApi();
+    const router = useRouter();
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [trackingCode, setTrackingCode] = useState("");

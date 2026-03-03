@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSidebar } from "@/store/sidebar-store";
 import { Tooltip } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
@@ -180,6 +180,13 @@ export function Sidebar({
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+    // Listen for navbar hamburger button toggle
+    useEffect(() => {
+        const handler = () => setIsMobileOpen((prev) => !prev);
+        window.addEventListener("toggle-mobile-sidebar", handler);
+        return () => window.removeEventListener("toggle-mobile-sidebar", handler);
+    }, []);
+
     const links =
         role === "student"
             ? studentLinks
@@ -189,15 +196,7 @@ export function Sidebar({
 
     return (
         <>
-            {/* Mobile Menu Button */}
-            <button
-                onClick={() => setIsMobileOpen(true)}
-                className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer"
-            >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
+            {/* Mobile Menu Button — in navbar, not floating */}
 
             {/* Mobile Overlay */}
             {isMobileOpen && (

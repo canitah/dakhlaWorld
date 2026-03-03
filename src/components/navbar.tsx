@@ -416,9 +416,9 @@ export function Navbar() {
         }
     };
 
-    // Hide navbar on login, signup, and verify-otp pages (can check before mount)
+    // Hide navbar on login, signup, verify-otp, and home pages
     const isAuthPage = ["login", "signup", "verify-otp"].includes(pathname.split("/").filter(Boolean)[0] || "");
-    if (isAuthPage) return null;
+    if (isAuthPage || pathname === "/") return null;
 
     // Determine if we're on a dashboard page (where the sidebar is visible)
     const isDashboardPage = /^\/(student|institution|admin)(\/|$)/.test(pathname);
@@ -683,11 +683,20 @@ export function Navbar() {
                     : "md:ml-[260px]"
             )}
         >
-            <div className="flex h-16 items-center justify-between px-4 md:px-6">
-                {/* Left Section: spacer (logo is in sidebar) */}
-                <div className="hidden md:block" />
+            <div className="flex h-16 items-center gap-3 px-4 md:px-6">
+                {/* Mobile hamburger — top left */}
+                <button
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent("toggle-mobile-sidebar"));
+                    }}
+                    className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer flex-shrink-0"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
 
-                {/* Breadcrumbs */}
+                {/* Breadcrumbs — left aligned */}
                 {user && breadcrumbItems.length > 0 && (
                     <div className="hidden md:block flex-shrink-0">
                         <Breadcrumb items={breadcrumbItems} />
@@ -695,7 +704,7 @@ export function Navbar() {
                 )}
 
                 {/* Search Bar */}
-                <div className="flex-1 flex justify-center max-w-2xl ml-4 md:ml-8" ref={searchRef}>
+                <div className="flex-1 flex justify-center" ref={searchRef}>
                     <div className="relative w-full max-w-lg">
                         <SearchOutlined className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" style={{ fontSize: 16 }} />
                         <input

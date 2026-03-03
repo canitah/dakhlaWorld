@@ -39,6 +39,10 @@ model StudentProfile {
   created_at          DateTime         @default(now())
   updated_at          DateTime         @updatedAt
   profile_picture_url String?
+  preferred_schedule  String?
+  budget_min          Int?
+  budget_max          Int?
+  preferred_field     String?
   applications        Application[]
   saved_admissions    SavedAdmission[]
   user                User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -80,6 +84,9 @@ model Program {
   created_at         DateTime           @default(now())
   updated_at         DateTime           @updatedAt
   program_code       String             @unique @db.VarChar(255)
+  fee                Int?
+  schedule_type      String?
+  study_field        String?
   applications       Application[]
   institution        InstitutionProfile @relation(fields: [institution_id], references: [id], onDelete: Cascade)
   saved_admissions   SavedAdmission[]

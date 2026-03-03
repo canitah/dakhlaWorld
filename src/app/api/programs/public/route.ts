@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getPlanRank } from "@/lib/plan-utils";
 
-// GET /api/programs — List programs with filters (public for authenticated users)
-// Programs are sorted by institution plan tier (Featured > Pro > Growth > Starter), then by created_at desc
+// GET /api/programs/public — Public endpoint for homepage program listings
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -11,11 +10,12 @@ export async function GET(request: Request) {
         const category = searchParams.get("category") || "";
         const city = searchParams.get("city") || "";
         const scheduleType = searchParams.get("schedule_type") || "";
-        const studyField = searchParams.get("study_field") || "";
+        const company = searchParams.get("company") || "";
+        const datePosted = searchParams.get("date_posted") || "";
         const feeMin = searchParams.get("fee_min") ? parseInt(searchParams.get("fee_min")!) : null;
         const feeMax = searchParams.get("fee_max") ? parseInt(searchParams.get("fee_max")!) : null;
         const page = parseInt(searchParams.get("page") || "1");
-        const limit = parseInt(searchParams.get("limit") || "12");
+        const limit = parseInt(searchParams.get("limit") || "20");
 
         const where: Record<string, unknown> = {
             is_active: true,
@@ -26,24 +26,19 @@ export async function GET(request: Request) {
             where.OR = [
                 { title: { contains: search, mode: "insensitive" } },
                 { institution: { name: { contains: search, mode: "insensitive" } } },
+                { study_field: { contains: search, mode: "insensitive" } },
             ];
         }
 
-        if (category) {
-            where.category = category;
-        }
+        if (category) where.category = category;
 
-        if (city) {
-            where.institution = { ...(where.institution as object || {}), city };
-        }
+        // Build institution filter
+        const instFilter: Record<string, unknown> = { status: "approved" };
+        if (city) instFilter.city = city;
+        if (company) instFilter.name = company;
+        if (city || company) where.institution = instFilter;
 
-        if (scheduleType) {
-            where.schedule_type = scheduleType;
-        }
-
-        if (studyField) {
-            where.study_field = { contains: studyField, mode: "insensitive" };
-        }
+        if (scheduleType) where.schedule_type = scheduleType;
 
         if (feeMin !== null || feeMax !== null) {
             const feeFilter: Record<string, number> = {};
@@ -52,7 +47,24 @@ export async function GET(request: Request) {
             where.fee = feeFilter;
         }
 
-        // Fetch all matching programs with institution payment info for ranking
+        // Date posted filter
+        if (datePosted) {
+            const now = new Date();
+            let sinceDate: Date | null = null;
+            if (datePosted === "today") {
+                sinceDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            } else if (datePosted === "3days") {
+                sinceDate = new Date(now.getTime() - 3 * 86400000);
+            } else if (datePosted === "7days") {
+                sinceDate = new Date(now.getTime() - 7 * 86400000);
+            } else if (datePosted === "14days") {
+                sinceDate = new Date(now.getTime() - 14 * 86400000);
+            }
+            if (sinceDate) {
+                where.created_at = { gte: sinceDate };
+            }
+        }
+
         const [allPrograms, total] = await Promise.all([
             prisma.program.findMany({
                 where,
@@ -63,7 +75,7 @@ export async function GET(request: Request) {
                             name: true,
                             city: true,
                             category: true,
-                            status: true,
+                            profile_picture_url: true,
                             payment_requests: {
                                 where: { status: "approved" },
                                 include: { plan: true },
@@ -72,12 +84,13 @@ export async function GET(request: Request) {
                             },
                         },
                     },
+                    _count: { select: { applications: true } },
                 },
             }),
             prisma.program.count({ where }),
         ]);
 
-        // Sort by plan rank (descending) then by created_at (descending)
+        // Sort by plan rank then by date
         const sorted = allPrograms.sort((a: any, b: any) => {
             const rankA = getPlanRank(a.institution.payment_requests[0]?.plan?.name);
             const rankB = getPlanRank(b.institution.payment_requests[0]?.plan?.name);
@@ -85,46 +98,50 @@ export async function GET(request: Request) {
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
-        // Paginate after sorting
         const paginated = sorted.slice((page - 1) * limit, page * limit);
 
-        // Map to response format — include plan tier for frontend card styling
+        // Get filter options
+        const [categories, cities, scheduleTypes, institutions] = await Promise.all([
+            prisma.program.findMany({ where: { is_active: true, institution: { status: "approved" } }, select: { category: true }, distinct: ["category"] }),
+            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { city: true }, distinct: ["city"] }),
+            prisma.program.findMany({ where: { is_active: true, institution: { status: "approved" } }, select: { schedule_type: true }, distinct: ["schedule_type"] }),
+            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { name: true }, orderBy: { name: "asc" } }),
+        ]);
+
         const programs = paginated.map((p: any) => ({
             id: p.id,
             title: p.title,
             category: p.category,
             duration: p.duration,
-            eligibility: p.eligibility,
             deadline: p.deadline,
-            application_method: p.application_method,
-            external_url: p.external_url,
-            is_active: p.is_active,
-            created_at: p.created_at,
-            program_code: p.program_code,
             fee: p.fee,
             schedule_type: p.schedule_type,
             study_field: p.study_field,
+            eligibility: p.eligibility,
+            created_at: p.created_at,
             institution: {
                 id: p.institution.id,
                 name: p.institution.name,
                 city: p.institution.city,
                 category: p.institution.category,
-                status: p.institution.status,
+                profilePicture: p.institution.profile_picture_url,
                 planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
             },
+            applicants: p._count.applications,
         }));
 
         return NextResponse.json({
             programs,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
+            filters: {
+                categories: categories.map(c => c.category).filter(Boolean),
+                cities: cities.map(c => c.city).filter(Boolean),
+                scheduleTypes: scheduleTypes.map(s => s.schedule_type).filter(Boolean),
+                companies: institutions.map(i => i.name).filter(Boolean),
             },
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
     } catch (error) {
-        console.error("List programs error:", error);
+        console.error("Public programs error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
