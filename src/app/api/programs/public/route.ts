@@ -111,6 +111,7 @@ export async function GET(request: Request) {
         const programs = paginated.map((p: any) => ({
             id: p.id,
             title: p.title,
+            description: p.description,
             category: p.category,
             duration: p.duration,
             deadline: p.deadline,
@@ -118,6 +119,9 @@ export async function GET(request: Request) {
             schedule_type: p.schedule_type,
             study_field: p.study_field,
             eligibility: p.eligibility,
+            application_method: p.application_method,
+            external_url: p.external_url,
+            program_code: p.program_code,
             created_at: p.created_at,
             institution: {
                 id: p.institution.id,

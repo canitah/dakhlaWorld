@@ -177,7 +177,12 @@ export default function LoginPage() {
             document.cookie = `access_token=${data.accessToken}; path=/; max-age=900; samesite=strict`;
 
             message.success("Welcome back!");
-            router.push(`/${data.user.role}`);
+            // Redirect institutions with incomplete profiles to profile page
+            if (data.user.role === "institution" && data.profileComplete === false) {
+                router.push("/institution/profile");
+            } else {
+                router.push(`/${data.user.role}`);
+            }
         } catch {
             message.error("Something went wrong");
         } finally {

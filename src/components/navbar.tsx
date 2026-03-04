@@ -418,7 +418,7 @@ export function Navbar() {
 
     // Hide navbar on login, signup, verify-otp, and home pages
     const isAuthPage = ["login", "signup", "verify-otp"].includes(pathname.split("/").filter(Boolean)[0] || "");
-    if (isAuthPage || pathname === "/") return null;
+    if (isAuthPage || pathname === "/" || pathname.startsWith("/institution-detail")) return null;
 
     // Determine if we're on a dashboard page (where the sidebar is visible)
     const isDashboardPage = /^\/(student|institution|admin)(\/|$)/.test(pathname);

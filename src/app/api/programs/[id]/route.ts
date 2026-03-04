@@ -27,6 +27,10 @@ export async function GET(
                         contact_email: true,
                     },
                 },
+                questions: {
+                    select: { id: true, question: true, is_required: true },
+                    orderBy: { id: "asc" as const },
+                },
                 _count: { select: { applications: true } },
             },
         });

@@ -29,13 +29,23 @@ import {
     ChevronRight,
     DollarSign,
     Briefcase,
+    MessageSquare,
+    Power,
+    FileText,
 } from "lucide-react";
 import dayjs from "dayjs";
+
+interface ProgramQuestion {
+    id?: number;
+    question: string;
+    is_required: boolean;
+}
 
 interface Program {
     id: number;
     program_code: string;
     title: string;
+    description: string | null;
     category: string | null;
     duration: string | null;
     eligibility: string | null;
@@ -48,6 +58,7 @@ interface Program {
     fee: number | null;
     schedule_type: string | null;
     study_field: string | null;
+    questions?: ProgramQuestion[];
 }
 
 const SCHEDULE_OPTIONS = [
@@ -59,6 +70,7 @@ const SCHEDULE_OPTIONS = [
 
 const emptyProgram = {
     title: "",
+    description: "",
     category: "",
     duration: "",
     eligibility: "",
@@ -85,6 +97,7 @@ export default function InstitutionProgramsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
     const [planInfo, setPlanInfo] = useState<{ planName: string; maxAdmissions: number; activeCount: number } | null>(null);
+    const [formQuestions, setFormQuestions] = useState<ProgramQuestion[]>([]);
 
     // Update URL when a program is selected/deselected
     const selectProgram = useCallback((program: Program | null) => {
@@ -139,7 +152,7 @@ export default function InstitutionProgramsPage() {
         try {
             const res = await fetchWithAuth(url, {
                 method,
-                body: JSON.stringify(form),
+                body: JSON.stringify({ ...form, questions: formQuestions }),
             });
 
             if (res.ok) {
@@ -147,6 +160,7 @@ export default function InstitutionProgramsPage() {
                 setIsDialogOpen(false);
                 setEditingId(null);
                 setForm(emptyProgram);
+                setFormQuestions([]);
                 loadPrograms();
             } else {
                 const data = await res.json();
@@ -163,6 +177,7 @@ export default function InstitutionProgramsPage() {
         setEditingId(program.id);
         setForm({
             title: program.title,
+            description: program.description || "",
             category: program.category || "",
             duration: program.duration || "",
             eligibility: program.eligibility || "",
@@ -174,6 +189,7 @@ export default function InstitutionProgramsPage() {
             schedule_type: program.schedule_type || "",
             study_field: program.study_field || "",
         });
+        setFormQuestions(program.questions || []);
         setIsDialogOpen(true);
     };
 
@@ -195,6 +211,24 @@ export default function InstitutionProgramsPage() {
                 }
             },
         });
+    };
+
+    const handleToggleActive = async (program: Program) => {
+        const newActive = !program.is_active;
+        const res = await fetchWithAuth(`/institutions/programs/${program.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ ...program, is_active: newActive, deadline: program.deadline ? program.deadline.split("T")[0] : "" }),
+        });
+        if (res.ok) {
+            message.success(newActive ? "Program activated" : "Program deactivated");
+            loadPrograms();
+            if (selectedProgram?.id === program.id) {
+                setSelectedProgram({ ...program, is_active: newActive });
+            }
+        } else {
+            const data = await res.json();
+            message.error(data.error || "Failed to update program status");
+        }
     };
 
     const isApproved = instStatus === "approved";
@@ -281,7 +315,7 @@ export default function InstitutionProgramsPage() {
                     open={isDialogOpen}
                     onOpenChange={(v) => {
                         setIsDialogOpen(v);
-                        if (!v) { setEditingId(null); setForm(emptyProgram); }
+                        if (!v) { setEditingId(null); setForm(emptyProgram); setFormQuestions([]); }
                     }}
                 >
                     <DialogTrigger asChild>
@@ -412,6 +446,18 @@ export default function InstitutionProgramsPage() {
                                 />
                             </Form.Item>
 
+                            <Form.Item
+                                label={<span className="font-medium">Program Description</span>}
+                            >
+                                <AntInput.TextArea
+                                    placeholder="Describe this program — what students will learn, career outcomes, etc."
+                                    rows={4}
+                                    value={form.description}
+                                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                                    style={{ resize: "none" }}
+                                />
+                            </Form.Item>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <Form.Item
                                     name="deadline"
@@ -457,6 +503,59 @@ export default function InstitutionProgramsPage() {
                                     />
                                 </Form.Item>
                             )}
+
+                            {/* ── Custom Questions Section ── */}
+                            <div className="border border-border rounded-xl p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm flex items-center gap-2">
+                                        <MessageSquare className="size-4 text-blue-500" />
+                                        Application Questions
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormQuestions([...formQuestions, { question: "", is_required: true }])}
+                                        className="text-xs text-blue-600 hover:underline cursor-pointer font-medium"
+                                    >
+                                        + Add Question
+                                    </button>
+                                </div>
+                                {formQuestions.length === 0 && (
+                                    <p className="text-xs text-muted-foreground">No custom questions. Students will only submit their CV when applying.</p>
+                                )}
+                                {formQuestions.map((q, i) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                        <AntInput
+                                            placeholder={`Question ${i + 1}`}
+                                            value={q.question}
+                                            onChange={(e) => {
+                                                const updated = [...formQuestions];
+                                                updated[i] = { ...updated[i], question: e.target.value };
+                                                setFormQuestions(updated);
+                                            }}
+                                            className="flex-1"
+                                        />
+                                        <label className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap mt-1.5 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={q.is_required}
+                                                onChange={(e) => {
+                                                    const updated = [...formQuestions];
+                                                    updated[i] = { ...updated[i], is_required: e.target.checked };
+                                                    setFormQuestions(updated);
+                                                }}
+                                            />
+                                            Required
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormQuestions(formQuestions.filter((_, j) => j !== i))}
+                                            className="p-1 text-red-400 hover:text-red-600 cursor-pointer mt-0.5"
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
 
                             <Form.Item className="mb-0 pt-2">
                                 <AntButton
@@ -520,6 +619,7 @@ export default function InstitutionProgramsPage() {
                         onClose={() => selectProgram(null)}
                         onEdit={handleEdit}
                         onDelete={handleDeleteRequest}
+                        onToggleActive={handleToggleActive}
                     />
                 </div>
             ) : (
@@ -681,11 +781,13 @@ function ProgramDetailPanel({
     onClose,
     onEdit,
     onDelete,
+    onToggleActive,
 }: {
     program: Program;
     onClose: () => void;
     onEdit: (p: Program) => void;
     onDelete: (id: number) => void;
+    onToggleActive: (p: Program) => void;
 }) {
     return (
         <Card className="flex-1 overflow-hidden">
@@ -851,6 +953,38 @@ function ProgramDetailPanel({
                             </div>
                         </div>
                     )}
+
+                    {/* Description */}
+                    {program.description && (
+                        <div className="flex items-start gap-3 mt-5">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 shrink-0">
+                                <FileText className="size-4 text-blue-500" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Description</p>
+                                <p className="text-sm font-medium text-foreground leading-relaxed whitespace-pre-line">{program.description}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Questions */}
+                    {program.questions && program.questions.length > 0 && (
+                        <div className="flex items-start gap-3 mt-5">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-violet-500/10 shrink-0">
+                                <MessageSquare className="size-4 text-violet-500" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Application Questions</p>
+                                <ul className="space-y-1">
+                                    {program.questions.map((q, i) => (
+                                        <li key={q.id || i} className="text-sm text-foreground">
+                                            {i + 1}. {q.question}{q.is_required && <span className="text-red-400 ml-1">*</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <Separator />
@@ -864,6 +998,17 @@ function ProgramDetailPanel({
                     >
                         <Pencil className="size-4" />
                         Edit Program
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className={`flex items-center gap-2 text-sm ${program.is_active
+                            ? "text-amber-600 border-amber-200 dark:border-amber-800 hover:bg-amber-500/10"
+                            : "text-emerald-600 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/10"
+                            }`}
+                        onClick={() => onToggleActive(program)}
+                    >
+                        <Power className="size-4" />
+                        {program.is_active ? "Deactivate" : "Activate"}
                     </Button>
                     <Button
                         variant="outline"

@@ -128,6 +128,20 @@ export async function POST(request: Request) {
             },
         });
 
+        // Save question answers if provided
+        if (body.answers && Array.isArray(body.answers)) {
+            const answersData = body.answers
+                .filter((a: any) => a.question_id && typeof a.answer === "string" && a.answer.trim())
+                .map((a: any) => ({
+                    application_id: application.id,
+                    question_id: a.question_id,
+                    answer: a.answer.trim(),
+                }));
+            if (answersData.length > 0) {
+                await prisma.questionAnswer.createMany({ data: answersData });
+            }
+        }
+
         // Send confirmation email to student (fire-and-forget)
         const studentUser = await prisma.user.findUnique({
             where: { id: authResult.user.userId },

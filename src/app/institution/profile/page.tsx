@@ -33,6 +33,8 @@ import {
     AlertCircle,
     Save,
     Camera,
+    Globe,
+    Linkedin,
 } from "lucide-react";
 
 // ─── Mandatory fields ───
@@ -54,6 +56,9 @@ const STEPS = [
     { key: "city", label: "Where is your institution located?", icon: MapPin, placeholder: "e.g., Lahore", mandatory: true },
     { key: "contact_email", label: "What's the best contact email?", icon: Mail, placeholder: "admissions@example.com", mandatory: true },
     { key: "description", label: "Describe your institution briefly", icon: FileText, type: "textarea" as const, placeholder: "Tell students what makes your institution special...", mandatory: true },
+    { key: "linkedin_url", label: "LinkedIn page URL (optional)", icon: Linkedin, placeholder: "https://linkedin.com/company/...", mandatory: false },
+    { key: "facebook_url", label: "Facebook page URL (optional)", icon: Globe, placeholder: "https://facebook.com/...", mandatory: false },
+    { key: "instagram_url", label: "Instagram page URL (optional)", icon: Globe, placeholder: "https://instagram.com/...", mandatory: false },
 ];
 
 interface Profile {
@@ -64,6 +69,9 @@ interface Profile {
     contact_email: string | null;
     status: string;
     profile_picture_url: string | null;
+    linkedin_url: string | null;
+    facebook_url: string | null;
+    instagram_url: string | null;
 }
 
 function isProfileComplete(p: Profile | null): boolean {
@@ -89,6 +97,7 @@ export default function InstitutionProfilePage() {
     const [direction, setDirection] = useState<"forward" | "backward">("forward");
     const [wizardData, setWizardData] = useState<Record<string, string>>({
         name: "", category: "", city: "", contact_email: "", description: "",
+        linkedin_url: "", facebook_url: "", instagram_url: "",
     });
     const [wizardError, setWizardError] = useState("");
 
@@ -111,6 +120,9 @@ export default function InstitutionProfilePage() {
                     city: p.city || "",
                     contact_email: p.contact_email || "",
                     description: p.description || "",
+                    linkedin_url: p.linkedin_url || "",
+                    facebook_url: p.facebook_url || "",
+                    instagram_url: p.instagram_url || "",
                 });
             }
         }
@@ -126,6 +138,7 @@ export default function InstitutionProfilePage() {
     const canProceed = () => {
         setWizardError("");
         const val = wizardData[currentStep.key];
+        if (!currentStep.mandatory) return true;
         if (currentStep.key === "name") return val.length >= 2;
         if (currentStep.key === "contact_email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
         return !!val;

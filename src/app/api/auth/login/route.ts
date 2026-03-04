@@ -72,9 +72,34 @@ export async function POST(request: Request) {
 
         await setRefreshCookie(refreshToken);
 
-        // Send institution welcome/pending email on first login (fire-and-forget)
+        // Send institution welcome/pending email only once (first login after signup)
         if (user.role === "institution" && user.email) {
-            sendInstitutionWelcomeEmail(user.email, user.email).catch(() => { });
+            const instProfile = await prisma.institutionProfile.findUnique({
+                where: { user_id: user.id },
+                select: { welcome_sent: true },
+            });
+            if (instProfile && !instProfile.welcome_sent) {
+                sendInstitutionWelcomeEmail(user.email, user.email).catch(() => { });
+                prisma.institutionProfile.update({
+                    where: { user_id: user.id },
+                    data: { welcome_sent: true },
+                }).catch(() => { });
+            }
+        }
+
+        // Check institution profile completeness for redirect
+        let profileComplete = true;
+        if (user.role === "institution") {
+            const instProfile = await prisma.institutionProfile.findUnique({
+                where: { user_id: user.id },
+                select: { name: true, category: true, city: true, contact_email: true, description: true },
+            });
+            if (instProfile) {
+                const requiredFields = [instProfile.name, instProfile.category, instProfile.city, instProfile.contact_email, instProfile.description];
+                profileComplete = requiredFields.every(f => f !== null && f !== undefined && String(f).trim() !== "");
+            } else {
+                profileComplete = false;
+            }
         }
 
         return NextResponse.json({
@@ -87,6 +112,7 @@ export async function POST(request: Request) {
                 status: user.status,
             },
             accessToken,
+            profileComplete,
         });
     } catch (error) {
         console.error("Login error:", error);

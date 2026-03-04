@@ -79,11 +79,15 @@ export const institutionProfileSchema = z.object({
     city: z.string().max(100).optional(),
     description: z.string().max(3000).optional(),
     contact_email: z.string().email().optional(),
+    linkedin_url: z.string().url().optional().nullable().or(z.literal("")),
+    facebook_url: z.string().url().optional().nullable().or(z.literal("")),
+    instagram_url: z.string().url().optional().nullable().or(z.literal("")),
 });
 
 // ─── Program ─────────────────────────────────────────────
 export const programSchema = z.object({
     title: z.string().min(2).max(200),
+    description: z.string().max(5000).optional().nullable(),
     category: z.string().max(100).optional(),
     duration: z.string().max(100).optional(),
     eligibility: z.string().max(2000).optional(),

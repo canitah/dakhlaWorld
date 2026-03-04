@@ -63,6 +63,10 @@ model InstitutionProfile {
   updated_at          DateTime         @updatedAt
   rejection_reason    String?
   profile_picture_url String?
+  linkedin_url        String?
+  facebook_url        String?
+  instagram_url       String?
+  welcome_sent        Boolean          @default(false)
   user                User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
   payment_requests    PaymentRequest[]
   programs            Program[]
@@ -74,6 +78,7 @@ model Program {
   id                 Int                @id @default(autoincrement())
   institution_id     Int
   title              String
+  description        String?
   category           String?
   duration           String?
   eligibility        String?
@@ -90,6 +95,7 @@ model Program {
   applications       Application[]
   institution        InstitutionProfile @relation(fields: [institution_id], references: [id], onDelete: Cascade)
   saved_admissions   SavedAdmission[]
+  questions          ProgramQuestion[]
 
   @@index([institution_id])
   @@index([category])
@@ -98,20 +104,46 @@ model Program {
 }
 
 model Application {
-  id               Int            @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
   program_id       Int
   student_id       Int
-  status           String         @default("submitted")
-  created_at       DateTime       @default(now())
-  updated_at       DateTime       @updatedAt
-  application_code String         @unique @db.VarChar(255)
-  program          Program        @relation(fields: [program_id], references: [id], onDelete: Cascade)
-  student          StudentProfile @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  status           String           @default("submitted")
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+  application_code String           @unique @db.VarChar(255)
+  program          Program          @relation(fields: [program_id], references: [id], onDelete: Cascade)
+  student          StudentProfile   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  answers          QuestionAnswer[]
 
   @@unique([program_id, student_id])
   @@index([student_id])
   @@index([program_id])
   @@map("applications")
+}
+
+model ProgramQuestion {
+  id          Int              @id @default(autoincrement())
+  program_id  Int
+  question    String
+  is_required Boolean          @default(true)
+  program     Program          @relation(fields: [program_id], references: [id], onDelete: Cascade)
+  answers     QuestionAnswer[]
+
+  @@index([program_id])
+  @@map("program_questions")
+}
+
+model QuestionAnswer {
+  id             Int             @id @default(autoincrement())
+  application_id Int
+  question_id    Int
+  answer         String
+  application    Application     @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  question       ProgramQuestion @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@index([application_id])
+  @@index([question_id])
+  @@map("question_answers")
 }
 
 model SavedAdmission {

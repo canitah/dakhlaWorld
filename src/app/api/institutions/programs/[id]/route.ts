@@ -32,7 +32,10 @@ export async function GET(
 
         const program = await prisma.program.findFirst({
             where: { id: parseInt(id), institution_id: profile!.id },
-            include: { _count: { select: { applications: true } } },
+            include: {
+                _count: { select: { applications: true } },
+                questions: { select: { id: true, question: true, is_required: true } },
+            },
         });
 
         if (!program) {
@@ -103,6 +106,23 @@ export async function PUT(
                 deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
             },
         });
+
+        // Update questions if provided
+        if (body.questions !== undefined && Array.isArray(body.questions)) {
+            // Delete old questions
+            await prisma.programQuestion.deleteMany({ where: { program_id: program.id } });
+            // Create new questions
+            const questionsData = body.questions
+                .filter((q: any) => typeof q.question === "string" && q.question.trim())
+                .map((q: any) => ({
+                    program_id: program.id,
+                    question: q.question.trim(),
+                    is_required: q.is_required !== false,
+                }));
+            if (questionsData.length > 0) {
+                await prisma.programQuestion.createMany({ data: questionsData });
+            }
+        }
 
         return NextResponse.json({ program, message: "Program updated successfully" });
     } catch (error) {

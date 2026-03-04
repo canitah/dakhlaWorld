@@ -11,11 +11,13 @@ const publicPaths = [
     "/login",
     "/signup",
     "/verify-otp",
+    "/institution-detail",
     "/api/auth/signup",
     "/api/auth/login",
     "/api/auth/send-otp",
     "/api/auth/verify-otp",
     "/api/auth/refresh",
+    "/api/institutions/public",
 ];
 
 // Role-based route prefixes

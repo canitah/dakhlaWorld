@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -49,6 +49,9 @@ import {
     Check,
     X,
     ArrowRight,
+    Upload,
+    FileText,
+    ImageIcon,
 } from "lucide-react";
 
 /* ─── Static plan definitions (always shown, no DB dependency) ─── */
@@ -248,8 +251,9 @@ export default function InstitutionBillingPage() {
     const [selectedPlan, setSelectedPlan] = useState<PlanDef | null>(null);
     const [showDialog, setShowDialog] = useState(false);
     const [transRef, setTransRef] = useState("");
-    const [screenshotUrl, setScreenshotUrl] = useState("");
+    const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const screenshotInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadData();
@@ -274,7 +278,7 @@ export default function InstitutionBillingPage() {
         setSelectedPlan(plan);
         setShowDialog(true);
         setTransRef("");
-        setScreenshotUrl("");
+        setScreenshotFile(null);
     };
 
     const handleSubmit = async () => {
@@ -292,6 +296,31 @@ export default function InstitutionBillingPage() {
         }
 
         setIsSubmitting(true);
+
+        let screenshotUrl: string | undefined;
+
+        // Upload screenshot to Cloudinary if provided
+        if (screenshotFile) {
+            try {
+                const formData = new FormData();
+                formData.append("file", screenshotFile);
+                formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "gap_unsigned");
+                formData.append("folder", "gap/payment-screenshots");
+
+                const uploadRes = await fetch(
+                    `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+                    { method: "POST", body: formData }
+                );
+                if (uploadRes.ok) {
+                    const uploadData = await uploadRes.json();
+                    screenshotUrl = uploadData.secure_url;
+                } else {
+                    message.warning("Could not upload screenshot, but continuing with payment submission.");
+                }
+            } catch {
+                message.warning("Screenshot upload failed, but continuing.");
+            }
+        }
 
         const res = await fetchWithAuth("/billing", {
             method: "POST",
@@ -552,12 +581,45 @@ export default function InstitutionBillingPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-foreground">Screenshot URL (optional proof)</Label>
-                                    <Input
-                                        value={screenshotUrl}
-                                        onChange={(e) => setScreenshotUrl(e.target.value)}
-                                        placeholder="https://..."
-                                    />
+                                    <Label className="text-foreground">Transaction Screenshot (optional proof)</Label>
+                                    <div
+                                        className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 ${screenshotFile ? "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10" : "border-border"
+                                            }`}
+                                        onClick={() => screenshotInputRef.current?.click()}
+                                    >
+                                        <input
+                                            ref={screenshotInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => { if (e.target.files?.[0]) setScreenshotFile(e.target.files[0]); }}
+                                        />
+                                        {screenshotFile ? (
+                                            <div className="flex items-center justify-center gap-3">
+                                                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                                    <ImageIcon className="w-4 h-4 text-blue-500" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-sm font-medium text-foreground">{screenshotFile.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{(screenshotFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setScreenshotFile(null); }}
+                                                    className="ml-auto p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                                                    <Upload className="w-4 h-4 text-muted-foreground" />
+                                                </div>
+                                                <p className="text-sm font-medium text-foreground">Click to upload screenshot</p>
+                                                <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG, or JPEG</p>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                                 <Button
                                     onClick={handleSubmit}

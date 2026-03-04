@@ -34,6 +34,7 @@ export async function GET(request: Request) {
             where: { institution_id: profile.id },
             include: {
                 _count: { select: { applications: true } },
+                questions: { select: { id: true, question: true, is_required: true } },
             },
             orderBy: { created_at: "desc" },
         });
@@ -123,6 +124,20 @@ export async function POST(request: Request) {
                 deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
             },
         });
+
+        // Create questions if provided
+        if (body.questions && Array.isArray(body.questions)) {
+            const questionsData = body.questions
+                .filter((q: any) => typeof q.question === "string" && q.question.trim())
+                .map((q: any) => ({
+                    program_id: program.id,
+                    question: q.question.trim(),
+                    is_required: q.is_required !== false,
+                }));
+            if (questionsData.length > 0) {
+                await prisma.programQuestion.createMany({ data: questionsData });
+            }
+        }
 
         return NextResponse.json(
             { program, message: "Program created successfully" },

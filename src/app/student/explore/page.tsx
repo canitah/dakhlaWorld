@@ -23,6 +23,7 @@ import { Upload, FileText, CheckCircle2, Copy, X } from "lucide-react";
 interface Program {
     id: number;
     title: string;
+    description: string | null;
     category: string | null;
     duration: string | null;
     created_at: string;
@@ -35,6 +36,7 @@ interface Program {
 interface ProgramDetail {
     id: number;
     title: string;
+    description: string | null;
     category: string | null;
     duration: string | null;
     eligibility: string | null;
@@ -55,6 +57,7 @@ interface ProgramDetail {
         contact_email: string | null;
     };
     _count: { applications: number };
+    questions?: { id: number; question: string; is_required: boolean }[];
 }
 
 interface StudentPrefs {
@@ -197,19 +200,21 @@ function ExplorePage() {
     const [applyingId, setApplyingId] = useState<number | null>(null);
     // Student preferences for matching badges
     const [studentPrefs, setStudentPrefs] = useState<StudentPrefs | null>(null);
-    // Advanced filters
-    const [showFilters, setShowFilters] = useState(false);
+    // Advanced filters (always visible)
     const [scheduleFilter, setScheduleFilter] = useState("");
     const [studyFieldFilter, setStudyFieldFilter] = useState("");
     const [feeMin, setFeeMin] = useState("");
     const [feeMax, setFeeMax] = useState("");
     const [cityFilter, setCityFilter] = useState("");
 
-    // ── CV Upload Modal State ──
-    const [cvModalOpen, setCvModalOpen] = useState(false);
-    const [cvModalProgramId, setCvModalProgramId] = useState<number | null>(null);
+    // ── Multi-step Application Wizard State ──
+    const [wizardOpen, setWizardOpen] = useState(false);
+    const [wizardProgramId, setWizardProgramId] = useState<number | null>(null);
+    const [wizardQuestions, setWizardQuestions] = useState<{ id: number; question: string; is_required: boolean }[]>([]);
+    const [wizardAnswers, setWizardAnswers] = useState<Record<number, string>>({});
+    const [wizardStep, setWizardStep] = useState(0); // 0..N-1 = questions, N = CV upload step
     const [cvFile, setCvFile] = useState<File | null>(null);
-    const [isUploadingCv, setIsUploadingCv] = useState(false);
+    const [isSubmittingApp, setIsSubmittingApp] = useState(false);
     const cvInputRef = useRef<HTMLInputElement>(null);
 
     // ── Success Modal State ──
@@ -342,18 +347,55 @@ function ExplorePage() {
         setIsDetailLoading(false);
     };
 
-    // Opens CV modal instead of applying directly
-    const handleApply = (programId: number) => {
-        setCvModalProgramId(programId);
-        setCvFile(null);
-        setCvModalOpen(true);
+    // Opens multi-step wizard — or redirects externally
+    const handleApply = async (programId: number) => {
+        try {
+            // Fetch program detail to check application method + get questions  
+            const res = await fetchWithAuth(`/programs/${programId}`);
+            if (res.ok) {
+                const data = await res.json();
+                const program = data.program;
+
+                // If external application method, redirect to external URL
+                if (program?.application_method === "external" && program?.external_url) {
+                    window.open(program.external_url, "_blank", "noopener,noreferrer");
+                    return;
+                }
+
+                // Internal: open multi-step wizard
+                const questions = program?.questions || [];
+                setWizardQuestions(questions);
+                setWizardAnswers({});
+                setWizardStep(0);
+                setCvFile(null);
+                setWizardProgramId(programId);
+                setWizardOpen(true);
+            } else {
+                message.error("Could not load program details");
+            }
+        } catch {
+            message.error("Something went wrong.");
+        }
     };
 
-    // Actually submits the application (optionally with CV)
+    // Total wizard steps: questions + 1 (CV upload)
+    const totalWizardSteps = wizardQuestions.length + 1;
+    const isOnCvStep = wizardStep >= wizardQuestions.length;
+
+    const canGoNext = () => {
+        if (isOnCvStep) return true;
+        const q = wizardQuestions[wizardStep];
+        if (q?.is_required) {
+            return !!(wizardAnswers[q.id] && wizardAnswers[q.id].trim());
+        }
+        return true;
+    };
+
+    // Actually submits the application (with answers + optional CV)
     const submitApplication = async () => {
-        if (!cvModalProgramId) return;
-        setApplyingId(cvModalProgramId);
-        setIsUploadingCv(true);
+        if (!wizardProgramId) return;
+        setApplyingId(wizardProgramId);
+        setIsSubmittingApp(true);
 
         try {
             // Upload CV first if provided
@@ -366,23 +408,28 @@ function ExplorePage() {
                 });
                 if (!cvRes.ok) {
                     message.error("Failed to upload CV. Application not submitted.");
-                    setIsUploadingCv(false);
+                    setIsSubmittingApp(false);
                     setApplyingId(null);
                     return;
                 }
             }
 
+            // Build answers array
+            const answers = wizardQuestions
+                .filter((q) => wizardAnswers[q.id] && wizardAnswers[q.id].trim())
+                .map((q) => ({ question_id: q.id, answer: wizardAnswers[q.id].trim() }));
+
             // Submit application
             const res = await fetchWithAuth("/applications", {
                 method: "POST",
-                body: JSON.stringify({ program_id: cvModalProgramId }),
+                body: JSON.stringify({ program_id: wizardProgramId, answers }),
             });
             const data = await res.json();
             if (res.ok) {
-                setAppliedIds((prev) => new Set(prev).add(cvModalProgramId));
-                setCvModalOpen(false);
+                setAppliedIds((prev) => new Set(prev).add(wizardProgramId));
+                setWizardOpen(false);
                 // Show success dialog
-                const progTitle = programs.find(p => p.id === cvModalProgramId)?.title || selectedProgram?.title || "";
+                const progTitle = programs.find(p => p.id === wizardProgramId)?.title || selectedProgram?.title || "";
                 setSuccessProgramTitle(progTitle);
                 setSuccessAppCode(data.application?.application_code || "");
                 setSuccessModalOpen(true);
@@ -394,7 +441,7 @@ function ExplorePage() {
             message.error("Something went wrong. Please try again.");
         } finally {
             setApplyingId(null);
-            setIsUploadingCv(false);
+            setIsSubmittingApp(false);
         }
     };
 
@@ -465,90 +512,95 @@ function ExplorePage() {
                 </div>
             </div>
 
-            {/* ── Advanced Filters Panel ── */}
+            {/* ── Filters Panel (always visible) ── */}
             <div className="mt-3">
-                <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="text-sm font-medium text-primary hover:underline cursor-pointer flex items-center gap-1"
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                        <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
-                        <line x1="17" y1="16" x2="23" y2="16" />
-                    </svg>
-                    {showFilters ? "Hide Filters" : "Advanced Filters"}
-                </button>
-
-                {showFilters && (
-                    <div className="mt-3 p-4 border border-border rounded-xl bg-card space-y-4 animate-in fade-in duration-200">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {/* Schedule Type */}
-                            <div>
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Schedule</label>
-                                <select
-                                    value={scheduleFilter}
-                                    onChange={(e) => setScheduleFilter(e.target.value)}
-                                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm"
-                                >
-                                    <option value="">All</option>
-                                    {SCHEDULE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                            </div>
-
-                            {/* Study Field */}
-                            <div>
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Study Field</label>
-                                <Input
-                                    placeholder="e.g., Computer Science"
-                                    value={studyFieldFilter}
-                                    onChange={(e) => setStudyFieldFilter(e.target.value)}
-                                    className="h-9 text-sm"
-                                />
-                            </div>
-
-                            {/* Budget Min */}
-                            <div>
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Fee Min (PKR)</label>
-                                <Input
-                                    type="number"
-                                    placeholder="0"
-                                    value={feeMin}
-                                    onChange={(e) => setFeeMin(e.target.value)}
-                                    className="h-9 text-sm"
-                                />
-                            </div>
-
-                            {/* Budget Max */}
-                            <div>
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Fee Max (PKR)</label>
-                                <Input
-                                    type="number"
-                                    placeholder="1000000"
-                                    value={feeMax}
-                                    onChange={(e) => setFeeMax(e.target.value)}
-                                    className="h-9 text-sm"
-                                />
-                            </div>
+                <div className="p-4 border border-border rounded-xl bg-card space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                            <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
+                            <line x1="17" y1="16" x2="23" y2="16" />
+                        </svg>
+                        Filters
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {/* Schedule Type */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Schedule</label>
+                            <select
+                                value={scheduleFilter}
+                                onChange={(e) => setScheduleFilter(e.target.value)}
+                                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm"
+                            >
+                                <option value="">All</option>
+                                {SCHEDULE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                            </select>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <Button
-                                onClick={() => { setPage(1); loadPrograms(); }}
-                                className="h-9 px-6 bg-primary hover:bg-primary/90 text-sm font-medium rounded-lg"
-                            >
-                                Apply Filters
-                            </Button>
-                            <button
-                                onClick={clearFilters}
-                                className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-                            >
-                                Clear All
-                            </button>
+                        {/* Study Field */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Study Field</label>
+                            <Input
+                                placeholder="e.g., Computer Science"
+                                value={studyFieldFilter}
+                                onChange={(e) => setStudyFieldFilter(e.target.value)}
+                                className="h-9 text-sm"
+                            />
+                        </div>
+
+                        {/* City */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">City</label>
+                            <Input
+                                placeholder="e.g., Lahore"
+                                value={cityFilter}
+                                onChange={(e) => setCityFilter(e.target.value)}
+                                className="h-9 text-sm"
+                            />
+                        </div>
+
+                        {/* Budget Min */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Fee Min (PKR)</label>
+                            <Input
+                                type="number"
+                                placeholder="0"
+                                value={feeMin}
+                                onChange={(e) => setFeeMin(e.target.value)}
+                                className="h-9 text-sm"
+                            />
+                        </div>
+
+                        {/* Budget Max */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Fee Max (PKR)</label>
+                            <Input
+                                type="number"
+                                placeholder="1000000"
+                                value={feeMax}
+                                onChange={(e) => setFeeMax(e.target.value)}
+                                className="h-9 text-sm"
+                            />
                         </div>
                     </div>
-                )}
+
+                    <div className="flex items-center gap-3">
+                        <Button
+                            onClick={() => { setPage(1); loadPrograms(); }}
+                            className="h-9 px-6 bg-primary hover:bg-primary/90 text-sm font-medium rounded-lg"
+                        >
+                            Apply Filters
+                        </Button>
+                        <button
+                            onClick={clearFilters}
+                            className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* ── Split layout ── */}
@@ -661,76 +713,164 @@ function ExplorePage() {
                 </div>
             </div>
 
-            {/* ═══════════ CV Upload Modal ═══════════ */}
-            <Dialog open={cvModalOpen} onOpenChange={(open) => { if (!open) { setCvModalOpen(false); setCvFile(null); } }}>
-                <DialogContent className="sm:max-w-[480px]">
+            {/* ═══════════ Multi-Step Application Wizard ═══════════ */}
+            <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) { setWizardOpen(false); setCvFile(null); setWizardStep(0); } }}>
+                <DialogContent className="sm:max-w-[520px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-lg">
                             <Upload className="w-5 h-5 text-blue-500" />
-                            Upload Your CV (Optional)
+                            Apply to Program
                         </DialogTitle>
                         <DialogDescription>
-                            Attach your CV/resume to strengthen your application. You can also skip this step.
+                            {wizardQuestions.length > 0
+                                ? `Step ${wizardStep + 1} of ${totalWizardSteps} — ${isOnCvStep ? "Upload CV" : "Answer Question"}`
+                                : "Upload your CV/resume to strengthen your application."
+                            }
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-5 pt-2">
-                        {/* File Drop Area */}
-                        <div
-                            className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 ${cvFile ? "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10" : "border-border"}`}
-                            onClick={() => cvInputRef.current?.click()}
-                        >
-                            <input
-                                ref={cvInputRef}
-                                type="file"
-                                accept=".pdf"
-                                className="hidden"
-                                onChange={(e) => { if (e.target.files?.[0]) setCvFile(e.target.files[0]); }}
+                    {/* Progress bar */}
+                    {totalWizardSteps > 1 && (
+                        <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+                                style={{ width: `${((wizardStep + 1) / totalWizardSteps) * 100}%` }}
                             />
-                            {cvFile ? (
-                                <div className="flex items-center justify-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                        <FileText className="w-5 h-5 text-blue-500" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="text-sm font-semibold text-foreground">{cvFile.name}</p>
-                                        <p className="text-xs text-muted-foreground">{(cvFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                    </div>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setCvFile(null); }}
-                                        className="ml-auto p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                                        <Upload className="w-5 h-5 text-muted-foreground" />
-                                    </div>
-                                    <p className="text-sm font-medium text-foreground">Click to select your CV</p>
-                                    <p className="text-xs text-muted-foreground mt-1">PDF format only, max 5MB</p>
-                                </>
-                            )}
                         </div>
+                    )}
 
-                        {/* Action Buttons */}
+                    <div className="space-y-5 pt-1">
+                        {/* ── Question Step ── */}
+                        {!isOnCvStep && wizardQuestions[wizardStep] && (
+                            <div className="space-y-3">
+                                <div className="bg-accent rounded-xl p-4 border border-border">
+                                    <p className="text-[13px] text-muted-foreground font-medium mb-1">
+                                        Question {wizardStep + 1} of {wizardQuestions.length}
+                                        {wizardQuestions[wizardStep].is_required && (
+                                            <span className="text-red-500 ml-1">*</span>
+                                        )}
+                                    </p>
+                                    <p className="text-[15px] font-semibold text-foreground leading-snug">
+                                        {wizardQuestions[wizardStep].question}
+                                    </p>
+                                </div>
+                                <textarea
+                                    value={wizardAnswers[wizardQuestions[wizardStep].id] || ""}
+                                    onChange={(e) => setWizardAnswers({
+                                        ...wizardAnswers,
+                                        [wizardQuestions[wizardStep].id]: e.target.value,
+                                    })}
+                                    placeholder="Type your answer here..."
+                                    rows={4}
+                                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 placeholder:text-muted-foreground"
+                                />
+                                {wizardQuestions[wizardStep].is_required && !wizardAnswers[wizardQuestions[wizardStep].id]?.trim() && (
+                                    <p className="text-xs text-red-500 flex items-center gap-1">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        This question is required
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── CV Upload Step ── */}
+                        {isOnCvStep && (
+                            <div className="space-y-3">
+                                <div className="bg-accent rounded-xl p-4 border border-border">
+                                    <p className="text-[13px] text-muted-foreground font-medium mb-1">
+                                        Final Step
+                                    </p>
+                                    <p className="text-[15px] font-semibold text-foreground leading-snug">
+                                        Upload your CV / Resume (Optional)
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Attach your CV to strengthen your application. You can skip this step.
+                                    </p>
+                                </div>
+                                <div
+                                    className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 ${cvFile ? "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10" : "border-border"}`}
+                                    onClick={() => cvInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={cvInputRef}
+                                        type="file"
+                                        accept=".pdf"
+                                        className="hidden"
+                                        onChange={(e) => { if (e.target.files?.[0]) setCvFile(e.target.files[0]); }}
+                                    />
+                                    {cvFile ? (
+                                        <div className="flex items-center justify-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                                <FileText className="w-5 h-5 text-blue-500" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-semibold text-foreground">{cvFile.name}</p>
+                                                <p className="text-xs text-muted-foreground">{(cvFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setCvFile(null); }}
+                                                className="ml-auto p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                                                <Upload className="w-5 h-5 text-muted-foreground" />
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">Click to select your CV</p>
+                                            <p className="text-xs text-muted-foreground mt-1">PDF format only, max 5MB</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Navigation Buttons ── */}
                         <div className="flex gap-3">
-                            <Button
-                                variant="outline"
-                                className="flex-1 h-11"
-                                disabled={isUploadingCv}
-                                onClick={() => { setCvFile(null); submitApplication(); }}
-                            >
-                                Skip & Apply
-                            </Button>
-                            <Button
-                                className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
-                                disabled={!cvFile || isUploadingCv}
-                                onClick={submitApplication}
-                            >
-                                {isUploadingCv ? "Submitting..." : "Upload & Apply"}
-                            </Button>
+                            {wizardStep > 0 && (
+                                <Button
+                                    variant="outline"
+                                    className="h-11 px-5"
+                                    onClick={() => setWizardStep(wizardStep - 1)}
+                                    disabled={isSubmittingApp}
+                                >
+                                    ← Back
+                                </Button>
+                            )}
+
+                            {!isOnCvStep ? (
+                                <Button
+                                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                                    disabled={!canGoNext()}
+                                    onClick={() => setWizardStep(wizardStep + 1)}
+                                >
+                                    Next →
+                                </Button>
+                            ) : (
+                                <div className="flex gap-3 flex-1">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1 h-11"
+                                        disabled={isSubmittingApp}
+                                        onClick={() => { setCvFile(null); submitApplication(); }}
+                                    >
+                                        {cvFile ? "Skip CV" : "Submit"} {!cvFile && "Application"}
+                                    </Button>
+                                    {cvFile && (
+                                        <Button
+                                            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+                                            disabled={isSubmittingApp}
+                                            onClick={submitApplication}
+                                        >
+                                            {isSubmittingApp ? "Submitting..." : "Upload & Apply"}
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </DialogContent>
@@ -1203,6 +1343,32 @@ function DetailPanel({
                         <p className="text-[14px] text-muted-foreground whitespace-pre-line leading-relaxed">
                             {program.eligibility}
                         </p>
+                    </div>
+                )}
+
+                {/* Program Description */}
+                {program.description && (
+                    <div className="border-t pt-5">
+                        <h3 className="text-[15px] font-bold text-foreground mb-3">About this program</h3>
+                        <p className="text-[14px] text-muted-foreground whitespace-pre-line leading-relaxed">
+                            {program.description}
+                        </p>
+                    </div>
+                )}
+
+                {/* Application Questions */}
+                {program.questions && program.questions.length > 0 && (
+                    <div className="border-t pt-5">
+                        <h3 className="text-[15px] font-bold text-foreground mb-3">Application Questions</h3>
+                        <p className="text-[13px] text-muted-foreground mb-3">You will need to answer these questions when applying:</p>
+                        <ul className="space-y-2">
+                            {program.questions.map((q, i) => (
+                                <li key={q.id} className="text-[14px] text-foreground flex items-start gap-2">
+                                    <span className="font-semibold text-muted-foreground">{i + 1}.</span>
+                                    <span>{q.question}{q.is_required && <span className="text-red-400 ml-1">*</span>}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 )}
 

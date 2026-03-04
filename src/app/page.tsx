@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -20,6 +21,12 @@ import {
   Calendar,
   Briefcase,
   Menu,
+  Moon,
+  Sun,
+  BookOpen,
+  Tag,
+  Hash,
+  Link2,
 } from "lucide-react";
 
 /* ─────────────── Types ─────────────── */
@@ -33,6 +40,9 @@ interface Program {
   schedule_type: string | null;
   study_field: string | null;
   eligibility: string | null;
+  application_method: string | null;
+  external_url: string | null;
+  program_code: string | null;
   created_at: string;
   institution: {
     id: number;
@@ -139,6 +149,7 @@ function FilterDropdown({
 /* ─────────────── Main Page ─────────────── */
 export default function HomePage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   // Data
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -259,7 +270,7 @@ export default function HomePage() {
               </nav>
             </div>
 
-            {/* Right: Auth */}
+            {/* Right: Auth + Theme */}
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/signup?role=institution"
@@ -270,10 +281,18 @@ export default function HomePage() {
               <div className="h-5 w-px bg-border hidden sm:block" />
               <Link
                 href="/login"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Sign in
               </Link>
+              {/* Theme toggle */}
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                title="Toggle theme"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
               {/* Mobile menu toggle */}
               <button
                 className="sm:hidden p-1.5 rounded-md hover:bg-accent"
@@ -283,19 +302,46 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-          {/* Mobile dropdown menu */}
-          {mobileMenuOpen && (
-            <div className="sm:hidden border-t border-border py-2 space-y-1">
-              <Link href="/signup?role=institution" className="block px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md" onClick={() => setMobileMenuOpen(false)}>
-                Employers / Post Program
-              </Link>
-              <Link href="/login" className="block px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md" onClick={() => setMobileMenuOpen(false)}>
-                Sign in
-              </Link>
-            </div>
-          )}
         </div>
       </header>
+
+      {/* ═══════════ MOBILE SIDEBAR ═══════════ */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] sm:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Sidebar */}
+          <div className="absolute top-0 left-0 h-full w-64 bg-card border-r border-border shadow-xl flex flex-col animate-in slide-in-from-left duration-200">
+            {/* Sidebar header */}
+            <div className="flex items-center justify-between h-14 px-4 border-b border-border">
+              <Link href="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                <img src="/logo.jpeg" alt="dazla." className="h-7 w-auto object-contain" />
+              </Link>
+              <button
+                className="p-1.5 rounded-md hover:bg-accent"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Sidebar nav */}
+            <nav className="flex-1 py-3 px-3 space-y-1">
+              <Link href="/" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                Home
+              </Link>
+              <Link href="/signup?role=institution" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                Employers / Post Program
+              </Link>
+              <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                Sign in
+              </Link>
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════ SEARCH BAR ═══════════ */}
       <div className="bg-card border-b border-border">
@@ -602,10 +648,6 @@ export default function HomePage() {
 
                     {/* Bottom row */}
                     <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {program.applicants} applicant{program.applicants !== 1 ? "s" : ""}
-                      </span>
                       {program.deadline && (
                         <span className="flex items-center gap-1 text-red-500 dark:text-red-400 font-medium">
                           <Clock className="w-3 h-3" />
@@ -635,9 +677,12 @@ export default function HomePage() {
                       <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1">
                         {selectedProgram.title}
                       </h2>
-                      <p className="text-sm text-foreground font-medium flex items-center gap-1.5 mb-0.5">
+                      <p
+                        className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
+                        onClick={() => router.push(`/institution-detail/${selectedProgram.institution.id}`)}
+                      >
                         {selectedProgram.institution.name}
-                        <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                        <ExternalLink className="w-3 h-3" />
                       </p>
                       {selectedProgram.institution.city && (
                         <p className="text-sm text-muted-foreground mb-1">
@@ -659,7 +704,10 @@ export default function HomePage() {
                         >
                           Apply now
                         </Button>
-                        <button className="h-10 w-10 flex items-center justify-center rounded-full border border-border hover:border-blue-400 transition-colors text-muted-foreground hover:text-blue-600">
+                        <button
+                          className="h-10 w-10 flex items-center justify-center rounded-full border border-border hover:border-blue-400 transition-colors text-muted-foreground hover:text-blue-600"
+                          onClick={() => router.push("/login")}
+                        >
                           <Bookmark className="w-4 h-4" />
                         </button>
                       </div>
@@ -672,6 +720,9 @@ export default function HomePage() {
                       </h3>
 
                       <div className="space-y-4">
+                        {selectedProgram.program_code && (
+                          <DetailRow icon={<Hash />} label="Program Code" value={selectedProgram.program_code} />
+                        )}
                         {selectedProgram.fee !== null && (
                           <DetailRow icon={<DollarSign />} label="Fee" value={formatFee(selectedProgram.fee)} />
                         )}
@@ -679,16 +730,38 @@ export default function HomePage() {
                           <DetailRow icon={<Briefcase />} label="Schedule Type" value={selectedProgram.schedule_type} />
                         )}
                         {selectedProgram.category && (
-                          <DetailRow icon={<GraduationCap />} label="Category" value={selectedProgram.category} />
+                          <DetailRow icon={<Tag />} label="Category" value={selectedProgram.category} />
                         )}
                         {selectedProgram.duration && (
                           <DetailRow icon={<Clock />} label="Duration" value={selectedProgram.duration} />
                         )}
                         {selectedProgram.study_field && (
-                          <DetailRow icon={<GraduationCap />} label="Study Field" value={selectedProgram.study_field} />
+                          <DetailRow icon={<BookOpen />} label="Study Field" value={selectedProgram.study_field} />
                         )}
                         {selectedProgram.eligibility && (
                           <DetailRow icon={<Users />} label="Eligibility" value={selectedProgram.eligibility} />
+                        )}
+                        {selectedProgram.application_method && (
+                          <DetailRow icon={<Link2 />} label="Application Method" value={selectedProgram.application_method === "external" ? "External Application" : "Apply via GAP"} />
+                        )}
+                        {selectedProgram.external_url && selectedProgram.application_method === "external" && (
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5 [&>svg]:w-4 [&>svg]:h-4 [&>svg]:text-muted-foreground">
+                              <ExternalLink />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground">External Link</p>
+                              <a
+                                href={selectedProgram.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline break-all"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {selectedProgram.external_url}
+                              </a>
+                            </div>
+                          </div>
                         )}
                         {selectedProgram.deadline && (
                           <div className="flex items-start gap-3">
@@ -703,21 +776,6 @@ export default function HomePage() {
                         )}
                         <DetailRow icon={<Calendar />} label="Posted Date" value={formatDate(selectedProgram.created_at)} />
                         <DetailRow icon={<Building2 />} label="Institution" value={`${selectedProgram.institution.name}${selectedProgram.institution.category ? ` · ${selectedProgram.institution.category}` : ""}`} />
-                        <DetailRow icon={<Users />} label="Applicants" value={`${selectedProgram.applicants} student${selectedProgram.applicants !== 1 ? "s" : ""} applied`} />
-                      </div>
-
-                      {/* CTA */}
-                      <div className="mt-8 pt-5 border-t border-border">
-                        <Button
-                          className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg shadow-md"
-                          onClick={() => router.push("/signup?role=student")}
-                        >
-                          Sign up to Apply
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                        <p className="text-xs text-center text-muted-foreground mt-2">
-                          Create a free account to apply for this program
-                        </p>
                       </div>
                     </div>
                   </div>
