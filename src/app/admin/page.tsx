@@ -378,7 +378,49 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* ── ROW 1: Stat Cards with Sparklines ─────────────────────────────── */}
+            {/* ── Pending Activities Alert ─────────────────────────────────────── */}
+            {(analytics.pendingInstitutions > 0 || analytics.pendingPayments > 0) && (
+                <div className="mb-6 rounded-xl border-2 border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-500/10 p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-base font-bold text-red-700 dark:text-red-400 mb-1">
+                                Pending Activities Require Your Attention
+                            </h3>
+                            <div className="space-y-1.5">
+                                {analytics.pendingInstitutions > 0 && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-red-700 dark:text-red-300">
+                                            <strong>{analytics.pendingInstitutions}</strong> institution{analytics.pendingInstitutions !== 1 ? "s" : ""} awaiting approval
+                                        </span>
+                                        <Link href="/admin/institutions?status=pending">
+                                            <button className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded-md transition-colors cursor-pointer">
+                                                Review Now →
+                                            </button>
+                                        </Link>
+                                    </div>
+                                )}
+                                {analytics.pendingPayments > 0 && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-red-700 dark:text-red-300">
+                                            <strong>{analytics.pendingPayments}</strong> payment{analytics.pendingPayments !== 1 ? "s" : ""} pending verification
+                                        </span>
+                                        <Link href="/admin/payments">
+                                            <button className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded-md transition-colors cursor-pointer">
+                                                Review Now →
+                                            </button>
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
                     { title: "Total Users", value: analytics.totalUsers, color: "#3b82f6", badge: "+12%", positive: true },

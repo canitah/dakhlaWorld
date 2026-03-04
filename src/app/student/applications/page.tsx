@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileText } from "lucide-react";
+import { Search, FileText, Filter, X, CalendarDays } from "lucide-react";
 
 interface Application {
     id: number;
@@ -31,6 +31,13 @@ export default function StudentApplicationsPage() {
     const [trackingResult, setTrackingResult] = useState<Application | null>(null);
     const [trackingError, setTrackingError] = useState<string | null>(null);
     const [isTracking, setIsTracking] = useState(false);
+
+    // Filter states
+    const [filterStatus, setFilterStatus] = useState("all");
+    const [filterInstitution, setFilterInstitution] = useState("all");
+    const [filterCategory, setFilterCategory] = useState("all");
+    const [filterDateFrom, setFilterDateFrom] = useState("");
+    const [filterDateTo, setFilterDateTo] = useState("");
 
     useEffect(() => {
         async function load() {
@@ -64,6 +71,51 @@ export default function StudentApplicationsPage() {
         } finally {
             setIsTracking(false);
         }
+    };
+
+    // Derive unique filter options from applications
+    const statuses = useMemo(() => {
+        const set = new Set(applications.map((a) => a.status));
+        return Array.from(set).sort();
+    }, [applications]);
+
+    const institutions = useMemo(() => {
+        const set = new Set(applications.map((a) => a.program.institution.name));
+        return Array.from(set).sort();
+    }, [applications]);
+
+    const categories = useMemo(() => {
+        const set = new Set(applications.map((a) => a.program.category).filter(Boolean) as string[]);
+        return Array.from(set).sort();
+    }, [applications]);
+
+    // Filtered applications
+    const filtered = useMemo(() => {
+        return applications.filter((app) => {
+            if (filterStatus !== "all" && app.status !== filterStatus) return false;
+            if (filterInstitution !== "all" && app.program.institution.name !== filterInstitution) return false;
+            if (filterCategory !== "all" && app.program.category !== filterCategory) return false;
+            if (filterDateFrom) {
+                const from = new Date(filterDateFrom);
+                if (new Date(app.created_at) < from) return false;
+            }
+            if (filterDateTo) {
+                const to = new Date(filterDateTo);
+                to.setHours(23, 59, 59, 999);
+                if (new Date(app.created_at) > to) return false;
+            }
+            return true;
+        });
+    }, [applications, filterStatus, filterInstitution, filterCategory, filterDateFrom, filterDateTo]);
+
+    const hasActiveFilters = filterStatus !== "all" || filterInstitution !== "all" || filterCategory !== "all" || filterDateFrom || filterDateTo;
+
+    const clearFilters = () => {
+        setFilterStatus("all");
+        setFilterInstitution("all");
+        setFilterCategory("all");
+        setFilterDateFrom("");
+        setFilterDateTo("");
     };
 
     if (isLoading) {
@@ -149,9 +201,98 @@ export default function StudentApplicationsPage() {
             ) : (
                 <Card>
                     <CardHeader>
-                        <CardTitle>All Applications ({applications.length})</CardTitle>
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                            <CardTitle>All Applications ({filtered.length}{filtered.length !== applications.length ? ` of ${applications.length}` : ""})</CardTitle>
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 transition-colors cursor-pointer"
+                                >
+                                    <X className="size-3.5" /> Clear Filters
+                                </button>
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent>
+                        {/* Filters Row */}
+                        <div className="mb-4 flex flex-wrap items-end gap-3 p-3 rounded-lg border border-border bg-accent/30">
+                            <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground mr-1">
+                                <Filter className="size-4" /> Filters
+                            </div>
+
+                            {/* Status Filter */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Status</label>
+                                <select
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                >
+                                    <option value="all">All</option>
+                                    {statuses.map((s) => (
+                                        <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Institution Filter */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Institution</label>
+                                <select
+                                    value={filterInstitution}
+                                    onChange={(e) => setFilterInstitution(e.target.value)}
+                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[200px]"
+                                >
+                                    <option value="all">All</option>
+                                    {institutions.map((i) => (
+                                        <option key={i} value={i}>{i}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Category Filter */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Category</label>
+                                <select
+                                    value={filterCategory}
+                                    onChange={(e) => setFilterCategory(e.target.value)}
+                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[200px]"
+                                >
+                                    <option value="all">All</option>
+                                    {categories.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Date From */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                                    <CalendarDays className="size-3" /> From
+                                </label>
+                                <input
+                                    type="date"
+                                    value={filterDateFrom}
+                                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                />
+                            </div>
+
+                            {/* Date To */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                                    <CalendarDays className="size-3" /> To
+                                </label>
+                                <input
+                                    type="date"
+                                    value={filterDateTo}
+                                    onChange={(e) => setFilterDateTo(e.target.value)}
+                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Table */}
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
@@ -165,28 +306,36 @@ export default function StudentApplicationsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {applications.map((app) => (
-                                        <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
-                                            <td className="py-3">
-                                                <Badge variant="outline" className="text-xs font-mono">
-                                                    {app.application_code}
-                                                </Badge>
-                                            </td>
-                                            <td className="py-3 text-sm font-medium">{app.program.title}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {app.program.institution.name}
-                                            </td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {app.program.category || "—"}
-                                            </td>
-                                            <td className="py-3">
-                                                <StatusBadge status={app.status} />
-                                            </td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {new Date(app.created_at).toLocaleDateString()}
+                                    {filtered.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                                                No applications match the selected filters.
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        filtered.map((app) => (
+                                            <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
+                                                <td className="py-3">
+                                                    <Badge variant="outline" className="text-xs font-mono">
+                                                        {app.application_code}
+                                                    </Badge>
+                                                </td>
+                                                <td className="py-3 text-sm font-medium">{app.program.title}</td>
+                                                <td className="py-3 text-sm text-muted-foreground">
+                                                    {app.program.institution.name}
+                                                </td>
+                                                <td className="py-3 text-sm text-muted-foreground">
+                                                    {app.program.category || "—"}
+                                                </td>
+                                                <td className="py-3">
+                                                    <StatusBadge status={app.status} />
+                                                </td>
+                                                <td className="py-3 text-sm text-muted-foreground">
+                                                    {new Date(app.created_at).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

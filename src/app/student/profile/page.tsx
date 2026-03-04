@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
@@ -139,6 +140,7 @@ export default function StudentProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [profileComplete, setProfileComplete] = useState(false);
+    const [viewMode, setViewMode] = useState<"view" | "edit">("edit");
 
     // Wizard state
     const [step, setStep] = useState(0);
@@ -162,6 +164,7 @@ export default function StudentProfilePage() {
             setProfile(data.profile);
             const complete = isProfileComplete(data.profile);
             setProfileComplete(complete);
+            if (complete) setViewMode("view");
             // Pre-fill wizard data from existing profile
             if (data.profile) {
                 const p = data.profile;
@@ -251,8 +254,10 @@ export default function StudentProfilePage() {
                     message.success("Profile setup completed!");
                     router.replace("/student/explore");
                 } else {
-                    // Already completed — just save and stay
+                    // Already completed — save, reload, and switch to view mode
                     message.success("Profile updated successfully!");
+                    await loadProfile();
+                    setViewMode("view");
                     setIsSaving(false);
                 }
             } else {
@@ -277,7 +282,79 @@ export default function StudentProfilePage() {
         );
     }
 
-    // ─── Always render step-by-step wizard ───
+    // ─── CV-style read-only view when profile is complete ───
+    if (profileComplete && viewMode === "view" && profile) {
+        const cvFields: { label: string; value: string | null | undefined }[] = [
+            { label: "Full Name", value: profile.full_name },
+            { label: "Student Type", value: profile.student_type },
+            { label: "City", value: profile.city },
+            { label: "Age Range", value: profile.age_range },
+            { label: "Education Level", value: profile.education_level },
+            { label: "Experience Level", value: profile.experience_level },
+            { label: "Preferred Field", value: profile.preferred_field },
+            { label: "Intended Field", value: profile.intended_field },
+            { label: "Learning Goal", value: profile.learning_goal },
+            { label: "Preferred Schedule", value: profile.preferred_schedule },
+            { label: "Budget Range", value: profile.budget_min != null && profile.budget_max != null ? `PKR ${profile.budget_min.toLocaleString()} – ${profile.budget_max.toLocaleString()}` : null },
+            { label: "Personal Statement", value: profile.personal_statement },
+        ];
+
+        return (
+            <DashboardLayout role="student">
+                <div className="w-full max-w-2xl mx-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">My Profile</h1>
+                        <Button
+                            variant="outline"
+                            className="gap-2 h-10"
+                            onClick={() => { setStep(0); setViewMode("edit"); }}
+                        >
+                            <Pencil className="w-4 h-4" /> Edit Profile
+                        </Button>
+                    </div>
+
+                    {/* Profile Picture */}
+                    <div className="mb-6 p-6 rounded-2xl border border-border bg-card shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                            <IdcardOutlined className="text-blue-500" />
+                            <span className="font-semibold text-foreground">Profile Picture</span>
+                        </div>
+                        <div className="flex justify-center">
+                            <ProfilePictureCropper
+                                currentImageUrl={profile.profile_picture_url}
+                                onUploadSuccess={(url) => {
+                                    setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
+                                    setProfilePicture(url);
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* CV-style card */}
+                    <Card className="shadow-sm">
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                                {cvFields.map((field) => {
+                                    const val = field.value;
+                                    const isLong = field.label === "Personal Statement" || field.label === "Learning Goal";
+                                    return (
+                                        <div key={field.label} className={isLong ? "sm:col-span-2" : ""}>
+                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{field.label}</p>
+                                            <p className={`text-sm font-medium text-foreground ${!val ? "italic text-muted-foreground" : ""}`}>
+                                                {val ? (field.label === "Student Type" || field.label === "Experience Level" ? val.charAt(0).toUpperCase() + val.slice(1) : val) : "Not provided"}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // ─── Wizard (edit mode or first-time setup) ───
     const StepIcon = currentStep.icon;
 
     return (
@@ -286,11 +363,18 @@ export default function StudentProfilePage() {
                 {/* Title and Step Counter */}
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                        {profileComplete ? "My Profile" : "Student Profile Wizard"}
+                        {profileComplete ? "Edit Profile" : "Student Profile Wizard"}
                     </h1>
-                    <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                        Step {step + 1} of {STEPS.length}
-                    </span>
+                    <div className="flex items-center gap-3">
+                        {profileComplete && (
+                            <Button variant="ghost" size="sm" onClick={() => setViewMode("view")} className="text-muted-foreground">
+                                ← Back to Profile
+                            </Button>
+                        )}
+                        <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                            Step {step + 1} of {STEPS.length}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Progress Bar */}
@@ -302,25 +386,6 @@ export default function StudentProfilePage() {
                     size={["100%", 8]}
                     className="mb-6"
                 />
-
-                {/* Profile Picture Section — always visible for completed profiles */}
-                {profileComplete && (
-                    <div className="mb-6 p-6 rounded-2xl border border-border bg-card shadow-sm">
-                        <div className="flex items-center gap-2 mb-4">
-                            <IdcardOutlined className="text-blue-500" />
-                            <span className="font-semibold text-foreground">Profile Picture</span>
-                        </div>
-                        <div className="flex justify-center">
-                            <ProfilePictureCropper
-                                currentImageUrl={profile!.profile_picture_url}
-                                onUploadSuccess={(url) => {
-                                    setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
-                                    setProfilePicture(url);
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
 
                 {/* Step Content */}
                 <div className="flex items-center justify-center min-h-[400px]">

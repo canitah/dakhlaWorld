@@ -35,6 +35,7 @@ import {
     Camera,
     Globe,
     Linkedin,
+    Pencil,
 } from "lucide-react";
 
 // ─── Mandatory fields ───
@@ -91,6 +92,7 @@ export default function InstitutionProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [profileComplete, setProfileComplete] = useState(false);
+    const [viewMode, setViewMode] = useState<"view" | "edit">("edit");
 
     // Wizard state
     const [step, setStep] = useState(0);
@@ -112,6 +114,7 @@ export default function InstitutionProfilePage() {
             setProfile(data.profile);
             const complete = isProfileComplete(data.profile);
             setProfileComplete(complete);
+            if (complete) setViewMode("view");
             if (data.profile) {
                 const p = data.profile;
                 setWizardData({
@@ -176,8 +179,10 @@ export default function InstitutionProfilePage() {
                     message.success("Institution profile setup completed!");
                     router.replace("/institution");
                 } else {
-                    // Already completed — just save and stay
+                    // Already completed — save, reload, and switch to view mode
                     message.success("Profile updated successfully!");
+                    await loadProfile();
+                    setViewMode("view");
                     setIsSaving(false);
                 }
             } else {
@@ -202,7 +207,102 @@ export default function InstitutionProfilePage() {
         );
     }
 
-    // ─── Always render step-by-step wizard ───
+    // ─── CV-style read-only view when profile is complete ───
+    if (profileComplete && viewMode === "view" && profile) {
+        const cvFields: { label: string; value: string | null | undefined }[] = [
+            { label: "Institution Name", value: profile.name },
+            { label: "Category", value: profile.category },
+            { label: "City", value: profile.city },
+            { label: "Contact Email", value: profile.contact_email },
+            { label: "Description", value: profile.description },
+            { label: "LinkedIn", value: profile.linkedin_url },
+            { label: "Facebook", value: profile.facebook_url },
+            { label: "Instagram", value: profile.instagram_url },
+        ];
+
+        return (
+            <DashboardLayout role="institution">
+                <div className="w-full max-w-2xl mx-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Institution Profile</h1>
+                        <Button
+                            variant="outline"
+                            className="gap-2 h-10"
+                            onClick={() => { setStep(0); setViewMode("edit"); }}
+                        >
+                            <Pencil className="w-4 h-4" /> Edit Profile
+                        </Button>
+                    </div>
+
+                    {/* Status Banners */}
+                    {profile.status === "pending" && (
+                        <Alert
+                            type="info"
+                            showIcon
+                            icon={<ClockCircleOutlined />}
+                            className="mb-6"
+                            message="Awaiting Admin Approval"
+                            description="Your profile is complete. Our admin team will review and approve your institution shortly."
+                        />
+                    )}
+                    {profile.status === "rejected" && (
+                        <Alert
+                            type="error"
+                            showIcon
+                            icon={<CloseCircleOutlined />}
+                            className="mb-6"
+                            message="Registration Rejected"
+                            description="Your institution registration was rejected. Please update your profile and re-apply."
+                        />
+                    )}
+
+                    {/* Profile Picture */}
+                    <div className="mb-6 p-6 rounded-2xl border border-border bg-card shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                            <IdcardOutlined className="text-blue-500" />
+                            <span className="font-semibold text-foreground">Profile Picture</span>
+                        </div>
+                        <div className="flex justify-center">
+                            <ProfilePictureCropper
+                                currentImageUrl={profile.profile_picture_url}
+                                onUploadSuccess={(url) => {
+                                    setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
+                                    setProfilePicture(url);
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* CV-style card */}
+                    <Card className="shadow-sm">
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                                {cvFields.map((field) => {
+                                    const val = field.value;
+                                    const isLong = field.label === "Description";
+                                    const isLink = field.label === "LinkedIn" || field.label === "Facebook" || field.label === "Instagram";
+                                    return (
+                                        <div key={field.label} className={isLong ? "sm:col-span-2" : ""}>
+                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{field.label}</p>
+                                            {val && isLink ? (
+                                                <a href={val} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 underline hover:no-underline break-all">{val}</a>
+                                            ) : (
+                                                <p className={`text-sm font-medium text-foreground ${!val ? "italic text-muted-foreground" : ""}`}>
+                                                    {val || "Not provided"}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // ─── Wizard (edit mode or first-time setup) ───
     const StepIcon = currentStep.icon;
 
     return (
@@ -211,11 +311,18 @@ export default function InstitutionProfilePage() {
                 {/* Title and Step Counter */}
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                        {profileComplete ? "Institution Profile" : "Institution Profile Wizard"}
+                        {profileComplete ? "Edit Profile" : "Institution Profile Wizard"}
                     </h1>
-                    <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                        Step {step + 1} of {STEPS.length}
-                    </span>
+                    <div className="flex items-center gap-3">
+                        {profileComplete && (
+                            <Button variant="ghost" size="sm" onClick={() => setViewMode("view")} className="text-muted-foreground">
+                                ← Back to Profile
+                            </Button>
+                        )}
+                        <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                            Step {step + 1} of {STEPS.length}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Progress Bar */}
@@ -227,47 +334,6 @@ export default function InstitutionProfilePage() {
                     size={["100%", 8]}
                     className="mb-6"
                 />
-
-                {/* Status Banners */}
-                {profileComplete && profile!.status === "pending" && (
-                    <Alert
-                        type="info"
-                        showIcon
-                        icon={<ClockCircleOutlined />}
-                        className="mb-6"
-                        message="Awaiting Admin Approval"
-                        description="Your profile is complete. Our admin team will review and approve your institution shortly."
-                    />
-                )}
-                {profileComplete && profile!.status === "rejected" && (
-                    <Alert
-                        type="error"
-                        showIcon
-                        icon={<CloseCircleOutlined />}
-                        className="mb-6"
-                        message="Registration Rejected"
-                        description="Your institution registration was rejected. Please update your profile and re-apply."
-                    />
-                )}
-
-                {/* Profile Picture Section — always visible for completed profiles */}
-                {profileComplete && (
-                    <div className="mb-6 p-6 rounded-2xl border border-border bg-card shadow-sm">
-                        <div className="flex items-center gap-2 mb-4">
-                            <IdcardOutlined className="text-blue-500" />
-                            <span className="font-semibold text-foreground">Profile Picture</span>
-                        </div>
-                        <div className="flex justify-center">
-                            <ProfilePictureCropper
-                                currentImageUrl={profile!.profile_picture_url}
-                                onUploadSuccess={(url) => {
-                                    setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
-                                    setProfilePicture(url);
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
 
                 {/* Step Content */}
                 <div className="flex items-center justify-center min-h-[400px]">
@@ -289,9 +355,15 @@ export default function InstitutionProfilePage() {
                                 {currentStep.label}
                             </h2>
                             <div className="flex justify-center mb-6">
-                                <span className="text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-full">
-                                    * Required
-                                </span>
+                                {currentStep.mandatory ? (
+                                    <span className="text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-full">
+                                        * Required
+                                    </span>
+                                ) : (
+                                    <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                                        Optional
+                                    </span>
+                                )}
                             </div>
 
                             {/* Input */}
