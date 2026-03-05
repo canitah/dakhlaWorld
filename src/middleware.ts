@@ -74,6 +74,22 @@ export async function middleware(request: NextRequest) {
     try {
         const { payload } = await jwtVerify(effectiveToken, ACCESS_SECRET);
         const role = payload.role as string;
+        const userStatus = payload.status as string | undefined;
+
+        // Block unverified users from accessing authenticated pages
+        if (userStatus === "pending") {
+            if (pathname.startsWith("/api/")) {
+                return NextResponse.json(
+                    { error: "Please verify your email first" },
+                    { status: 403 }
+                );
+            }
+            const verifyUrl = new URL("/verify-otp", request.url);
+            if (payload.userId) verifyUrl.searchParams.set("userId", String(payload.userId));
+            if (payload.email) verifyUrl.searchParams.set("email", String(payload.email));
+            verifyUrl.searchParams.set("reason", "unverified");
+            return NextResponse.redirect(verifyUrl);
+        }
 
         // Check role-based access for dashboard pages
         const dashboardPrefixes = ["/student", "/institution", "/admin"];

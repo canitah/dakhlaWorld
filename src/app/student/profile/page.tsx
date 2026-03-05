@@ -142,7 +142,7 @@ export default function StudentProfilePage() {
     const [profileComplete, setProfileComplete] = useState(false);
     const [viewMode, setViewMode] = useState<"view" | "edit">("edit");
 
-    // Wizard state
+    // Wizard state (for first-time setup only)
     const [step, setStep] = useState(0);
     const [direction, setDirection] = useState<"forward" | "backward">("forward");
     const [wizardData, setWizardData] = useState<Record<string, string | number | null>>({
@@ -152,8 +152,6 @@ export default function StudentProfilePage() {
         budget_min: null, budget_max: null, personal_statement: "",
     });
     const [wizardError, setWizardError] = useState("");
-
-    // Profile picture section toggle — removed, always shown for complete profiles
 
     useEffect(() => { loadProfile(); }, []);
 
@@ -188,7 +186,7 @@ export default function StudentProfilePage() {
         setIsLoading(false);
     }
 
-    /* ═══════════ Wizard Handlers ═══════════ */
+    /* ═══════════ Wizard Handlers (first-time setup) ═══════════ */
 
     const currentStep = STEPS[step];
     const isLastStep = step === STEPS.length - 1;
@@ -212,7 +210,7 @@ export default function StudentProfilePage() {
         }
         setWizardError("");
         if (isLastStep) {
-            handleWizardSave();
+            handleSaveProfile();
             return;
         }
         setDirection("forward");
@@ -225,7 +223,7 @@ export default function StudentProfilePage() {
         setStep((s) => Math.max(0, s - 1));
     };
 
-    const handleWizardSave = async () => {
+    const handleSaveProfile = async () => {
         setIsSaving(true);
         try {
             const payload: Record<string, unknown> = {
@@ -301,13 +299,13 @@ export default function StudentProfilePage() {
 
         return (
             <DashboardLayout role="student">
-                <div className="w-full max-w-2xl mx-auto">
+                <div className="w-full">
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">My Profile</h1>
                         <Button
                             variant="outline"
                             className="gap-2 h-10"
-                            onClick={() => { setStep(0); setViewMode("edit"); }}
+                            onClick={() => setViewMode("edit")}
                         >
                             <Pencil className="w-4 h-4" /> Edit Profile
                         </Button>
@@ -354,7 +352,208 @@ export default function StudentProfilePage() {
         );
     }
 
-    // ─── Wizard (edit mode or first-time setup) ───
+    // ─── Single-page edit mode (for completed profiles) ───
+    if (profileComplete && viewMode === "edit") {
+        return (
+            <DashboardLayout role="student">
+                <div className="w-full">
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Edit Profile</h1>
+                        <Button variant="ghost" size="sm" onClick={() => setViewMode("view")} className="text-muted-foreground">
+                            ← Back to Profile
+                        </Button>
+                    </div>
+
+                    <Card className="shadow-sm">
+                        <CardContent className="p-6 space-y-6">
+                            {/* Full Name */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Full Name <span className="text-red-500">*</span></Label>
+                                <ShadInput
+                                    placeholder="Enter your full name"
+                                    value={(wizardData.full_name as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, full_name: e.target.value })}
+                                    className="h-11"
+                                />
+                            </div>
+
+                            {/* Student Type */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Student Type <span className="text-red-500">*</span></Label>
+                                <select
+                                    value={(wizardData.student_type as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, student_type: e.target.value })}
+                                    className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground"
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="local">Local Student</option>
+                                    <option value="international">International Student</option>
+                                </select>
+                            </div>
+
+                            {/* City */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">City <span className="text-red-500">*</span></Label>
+                                <ShadInput
+                                    placeholder="e.g., Lahore, Karachi"
+                                    value={(wizardData.city as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, city: e.target.value })}
+                                    className="h-11"
+                                />
+                            </div>
+
+                            {/* Age Range */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Age Range <span className="text-red-500">*</span></Label>
+                                <select
+                                    value={(wizardData.age_range as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, age_range: e.target.value })}
+                                    className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground"
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="16-20">16–20</option>
+                                    <option value="21-25">21–25</option>
+                                    <option value="26-30">26–30</option>
+                                    <option value="31+">31+</option>
+                                </select>
+                            </div>
+
+                            {/* Education Level */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Education Level <span className="text-red-500">*</span></Label>
+                                <select
+                                    value={(wizardData.education_level as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, education_level: e.target.value })}
+                                    className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground"
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="Matriculation">Matriculation</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Bachelors">Bachelor&apos;s</option>
+                                    <option value="Masters">Master&apos;s</option>
+                                    <option value="PhD">PhD</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            {/* Experience Level */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Experience Level <span className="text-red-500">*</span></Label>
+                                <select
+                                    value={(wizardData.experience_level as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, experience_level: e.target.value })}
+                                    className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground"
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="none">No Experience</option>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="experienced">Experienced</option>
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Preferred Field */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Preferred Field <span className="text-red-500">*</span></Label>
+                                    <ShadInput
+                                        placeholder="e.g., Computer Science"
+                                        value={(wizardData.preferred_field as string) || ""}
+                                        onChange={(e) => setWizardData({ ...wizardData, preferred_field: e.target.value })}
+                                        className="h-11"
+                                    />
+                                </div>
+
+                                {/* Intended Field */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Intended Field</Label>
+                                    <ShadInput
+                                        placeholder="e.g., Medicine"
+                                        value={(wizardData.intended_field as string) || ""}
+                                        onChange={(e) => setWizardData({ ...wizardData, intended_field: e.target.value })}
+                                        className="h-11"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Learning Goal */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Learning Goal</Label>
+                                <ShadInput
+                                    placeholder="e.g., Get a degree, learn new skills"
+                                    value={(wizardData.learning_goal as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, learning_goal: e.target.value })}
+                                    className="h-11"
+                                />
+                            </div>
+
+                            {/* Preferred Schedule */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Preferred Schedule <span className="text-red-500">*</span></Label>
+                                <select
+                                    value={(wizardData.preferred_schedule as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, preferred_schedule: e.target.value })}
+                                    className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground"
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="Full-time">Full-time</option>
+                                    <option value="Part-time">Part-time</option>
+                                    <option value="Remote">Remote</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+
+                            {/* Budget Range */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Budget Range (PKR) <span className="text-red-500">*</span></Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <ShadInput
+                                        type="number"
+                                        placeholder="Min e.g., 50000"
+                                        value={wizardData.budget_min ?? ""}
+                                        onChange={(e) => setWizardData({ ...wizardData, budget_min: e.target.value ? parseInt(e.target.value) : null })}
+                                        className="h-11"
+                                    />
+                                    <ShadInput
+                                        type="number"
+                                        placeholder="Max e.g., 500000"
+                                        value={wizardData.budget_max ?? ""}
+                                        onChange={(e) => setWizardData({ ...wizardData, budget_max: e.target.value ? parseInt(e.target.value) : null })}
+                                        className="h-11"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Personal Statement */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Personal Statement</Label>
+                                <textarea
+                                    placeholder="Share your goals, interests, and what motivates you..."
+                                    value={(wizardData.personal_statement as string) || ""}
+                                    onChange={(e) => setWizardData({ ...wizardData, personal_statement: e.target.value })}
+                                    className="w-full h-32 px-4 py-3 text-sm rounded-xl border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                                <Button variant="outline" onClick={() => setViewMode("view")}>Cancel</Button>
+                                <Button
+                                    onClick={handleSaveProfile}
+                                    disabled={isSaving}
+                                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 h-11 rounded-full shadow-md shadow-blue-600/20"
+                                >
+                                    {isSaving ? "Saving..." : <><Save className="w-4 h-4" /> Save Profile</>}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // ─── Wizard (first-time setup only) ───
     const StepIcon = currentStep.icon;
 
     return (
@@ -363,18 +562,11 @@ export default function StudentProfilePage() {
                 {/* Title and Step Counter */}
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                        {profileComplete ? "Edit Profile" : "Student Profile Wizard"}
+                        Student Profile Wizard
                     </h1>
-                    <div className="flex items-center gap-3">
-                        {profileComplete && (
-                            <Button variant="ghost" size="sm" onClick={() => setViewMode("view")} className="text-muted-foreground">
-                                ← Back to Profile
-                            </Button>
-                        )}
-                        <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                            Step {step + 1} of {STEPS.length}
-                        </span>
-                    </div>
+                    <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                        Step {step + 1} of {STEPS.length}
+                    </span>
                 </div>
 
                 {/* Progress Bar */}
@@ -519,11 +711,7 @@ export default function StudentProfilePage() {
                             className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 h-11 rounded-full shadow-md shadow-blue-600/20"
                         >
                             {isSaving ? "Saving..." : isLastStep ? (
-                                profileComplete ? (
-                                    <><Save className="w-4 h-4" /> Save Profile</>
-                                ) : (
-                                    <><Sparkles className="w-4 h-4" /> Complete Setup</>
-                                )
+                                <><Sparkles className="w-4 h-4" /> Complete Setup</>
                             ) : (
                                 <>Next <ChevronRight className="w-4 h-4" /></>
                             )}

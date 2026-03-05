@@ -27,6 +27,10 @@ import {
   Tag,
   Hash,
   Link2,
+  Star,
+  Quote,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 /* ─────────────── Types ─────────────── */
@@ -794,6 +798,10 @@ export default function HomePage() {
         </div>
       </div>
 
+
+      {/* ═══════════ TESTIMONIALS CAROUSEL ═══════════ */}
+      <TestimonialsSection />
+
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="bg-card border-t border-border py-6 mt-auto">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -824,5 +832,215 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
         <p className="text-sm text-muted-foreground whitespace-pre-line break-words">{value}</p>
       </div>
     </div>
+  );
+}
+
+/* ─── Testimonials Data ─── */
+const TESTIMONIALS = [
+  // Early Users / Beta Students
+  { name: "Ayesha Khan", title: "Inter Student", city: "Karachi", category: "student", emoji: "🎓", quote: "I was so confused about where to apply after Intermediate. Dakhla made it very easy to compare institutions and see admission details in one place. I didn't have to visit multiple websites. It saved me so much time!" },
+  { name: "Muhammad Hamza", title: "Matric Student", city: "Multan", category: "student", emoji: "🎓", quote: "Living in a smaller city, we don't always get timely admission updates. Through Dakhla, I found institutions I didn't even know were accepting applications. It really helped me explore more options." },
+  { name: "Hira Ahmed", title: "Undergraduate Applicant", city: "Lahore", category: "student", emoji: "🎓", quote: "I work part-time and don't have time to search different university websites daily. Dakhla gave me admission information in one place and made applying very simple." },
+  { name: "Ali Raza", title: "FSC Pre-Engineering", city: "Faisalabad", category: "student", emoji: "🎓", quote: "No one in my family had applied to universities before. Dakhla made the process less overwhelming. I could clearly see deadlines and requirements without confusion." },
+  { name: "Mrs. Farah Siddiqui", title: "Parent", city: "Islamabad", category: "parent", emoji: "👩‍👧", quote: "As a parent, I wanted a safe and reliable platform to check admission information for my daughter. Dakhla felt organized and easy to understand." },
+  // Skill-Based
+  { name: "Usman Tariq", title: "Diploma in Graphic Design", city: "Karachi", category: "skill", emoji: "🎨", quote: "I wasn't interested in a traditional university degree. I wanted a practical skill. Through Dakhla, I found diploma programs that matched my interest in design. It made searching for skill-based institutes much easier." },
+  { name: "Sana Javed", title: "Web Development Course", city: "Lahore", category: "skill", emoji: "💻", quote: "I wanted to learn web development but didn't know which institute to trust. Dakhla helped me explore different options and compare courses without confusion." },
+  { name: "Bilal Ahmed", title: "Electrical Technician Course", city: "Faisalabad", category: "skill", emoji: "🔧", quote: "Not everyone wants a 4-year degree. I was looking for a technical course that could help me start earning faster. Dakhla showed me institutes offering skill-based programs near me." },
+  { name: "Areeba Malik", title: "Makeup & Beautician Cert.", city: "Islamabad", category: "skill", emoji: "🎨", quote: "I wanted to pursue a professional certification instead of a university program. Dakhla helped me discover institutes offering certified beauty courses in my city." },
+  { name: "Imran Shah", title: "Digital Marketing Course", city: "Multan", category: "skill", emoji: "🚀", quote: "After graduation, I realized I needed practical skills to compete in the job market. Dakhla helped me find short professional courses that aligned with my career goals." },
+  // Culinary & Baking
+  { name: "Zainab Iqbal", title: "Culinary Arts Applicant", city: "Lahore", category: "skill", emoji: "👩‍🍳", quote: "I always loved cooking and wanted to turn it into a profession. Through Dakhla, I found culinary institutes offering professional chef courses. It helped me take my passion seriously." },
+  { name: "Hafsa Noor", title: "Baking & Pastry Cert.", city: "Karachi", category: "skill", emoji: "🍰", quote: "I wanted to start my own baking business but needed proper training. Dakhla helped me discover short baking courses in my city without spending hours searching online." },
+  // Sports
+  { name: "Ahmed Raza", title: "Sports Coaching Program", city: "Islamabad", category: "sports", emoji: "⚽", quote: "I've always been passionate about football but didn't know there were professional coaching certifications available. Dakhla helped me explore sports-related programs I never knew existed." },
+  { name: "Saad Malik", title: "Fitness & Athletic Training", city: "Faisalabad", category: "sports", emoji: "🏏", quote: "Not everyone wants a traditional degree. I wanted to pursue sports and fitness professionally. Dakhla made it easy to find institutes offering certified training programs." },
+  { name: "Maham Ali", title: "Sports Diploma", city: "Multan", category: "sports", emoji: "🎾", quote: "As a girl interested in sports, it's not always easy to find the right information. Dakhla helped me explore safe and professional options in sports education." },
+];
+
+const SNIPPET_QUOTES = [
+  "Finally, a platform that makes admissions simple.",
+  "Everything in one place. No confusion.",
+  "Saved me hours of searching.",
+  "Perfect for students who don't know where to start.",
+  "Turn your passion into a profession.",
+  "From kitchen to career — Dakhla made it simple.",
+  "Sports isn't just a hobby. It can be your future.",
+  "Not just degrees — real-world skills.",
+];
+
+const TESTIMONIAL_TABS = [
+  { label: "All", value: "all" },
+  { label: "⭐ Early Users", value: "student" },
+  { label: "💡 Skill-Based", value: "skill" },
+  { label: "🏆 Parents & Sports", value: "other" },
+];
+
+function TestimonialsSection() {
+  const [activeTab, setActiveTab] = useState("all");
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const filtered = useMemo(() => {
+    if (activeTab === "all") return TESTIMONIALS;
+    if (activeTab === "other") return TESTIMONIALS.filter(t => t.category === "parent" || t.category === "sports");
+    return TESTIMONIALS.filter(t => t.category === activeTab);
+  }, [activeTab]);
+
+  // Pages of 3
+  const pageSize = 3;
+  const totalPages = Math.ceil(filtered.length / pageSize);
+
+  // Auto-slide
+  useEffect(() => {
+    if (isPaused || totalPages <= 1) return;
+    intervalRef.current = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % totalPages);
+    }, 5000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isPaused, totalPages]);
+
+  // Reset slide on tab change
+  useEffect(() => { setCurrentSlide(0); }, [activeTab]);
+
+  const currentTestimonials = filtered.slice(currentSlide * pageSize, currentSlide * pageSize + pageSize);
+
+  return (
+    <section
+      className="bg-gradient-to-b from-background via-accent/30 to-background py-16 sm:py-20"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold mb-4">
+            <Star className="w-4 h-4 fill-current" />
+            What Students Say
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">
+            Trusted by Students Across Pakistan
+          </h2>
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+            Real stories from real students who found their path through Dakhla.
+          </p>
+        </div>
+
+        {/* Snippet Quotes Marquee */}
+        <div className="mb-10 overflow-hidden relative">
+          <div className="flex gap-4 animate-marquee whitespace-nowrap">
+            {[...SNIPPET_QUOTES, ...SNIPPET_QUOTES].map((q, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/80 backdrop-blur-sm text-sm font-medium text-muted-foreground shrink-0"
+              >
+                <Quote className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                {q}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Category Tabs */}
+        <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+          {TESTIMONIAL_TABS.map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${activeTab === tab.value
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-blue-300"
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Testimonial Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 min-h-[280px]">
+          {currentTestimonials.map((t, i) => (
+            <div
+              key={`${currentSlide}-${i}`}
+              className="relative flex flex-col bg-card border border-border rounded-2xl p-7 shadow-sm hover:shadow-xl hover:border-blue-500/40 transition-all duration-300 hover:-translate-y-1.5 group animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              {/* Subtle background glow on hover */}
+              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-blue-500/5 group-hover:bg-blue-500/10 transition-all duration-500 blur-3xl" />
+
+              {/* Quote icon */}
+              <div className="relative mb-5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 flex items-center justify-center ring-1 ring-blue-500/10">
+                  <Quote className="w-6 h-6 text-blue-500" />
+                </div>
+              </div>
+
+              {/* Stars */}
+              <div className="relative flex gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <Star key={n} className="w-[18px] h-[18px] text-amber-400 fill-amber-400 drop-shadow-sm" />
+                ))}
+              </div>
+
+              {/* Quote text */}
+              <p className="relative text-[15px] text-foreground leading-relaxed mb-6 line-clamp-5">
+                &ldquo;{t.quote}&rdquo;
+              </p>
+
+              {/* Author — pushed to bottom */}
+              <div className="flex-1" />
+              <div className="relative pt-5 border-t border-border/60">
+                <p className="text-sm font-bold text-foreground">{t.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t.title} · {t.city}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Navigation */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setCurrentSlide(prev => (prev - 1 + totalPages) % totalPages)}
+              className="w-10 h-10 rounded-full border border-border bg-card hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i)}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${currentSlide === i
+                    ? "w-8 bg-blue-600"
+                    : "w-2.5 bg-border hover:bg-muted-foreground/50"
+                    }`}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentSlide(prev => (prev + 1) % totalPages)}
+              className="w-10 h-10 rounded-full border border-border bg-card hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+    </section>
   );
 }

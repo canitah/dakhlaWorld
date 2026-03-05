@@ -30,6 +30,8 @@ interface Program {
     fee: number | null;
     schedule_type: string | null;
     study_field: string | null;
+    deadline: string | null;
+    applicants?: number;
     institution: { name: string; city: string | null; planTier?: string };
 }
 
@@ -190,6 +192,7 @@ function ExplorePage() {
     const [category, setCategory] = useState("");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [perPage, setPerPage] = useState(12);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedProgram, setSelectedProgram] = useState<ProgramDetail | null>(null);
     const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -222,6 +225,12 @@ function ExplorePage() {
     const [successAppCode, setSuccessAppCode] = useState("");
     const [successProgramTitle, setSuccessProgramTitle] = useState("");
     const [copied, setCopied] = useState(false);
+
+    // ── Autocomplete Suggestions ──
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchInputRef = useRef<HTMLDivElement>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Derive category tabs dynamically from loaded programs
     const categories = useMemo(() => {
@@ -270,7 +279,7 @@ function ExplorePage() {
 
     useEffect(() => {
         loadPrograms();
-    }, [page, category]);
+    }, [page, category, perPage]);
 
     // Auto-select program from URL ?program=ID
     useEffect(() => {
@@ -301,7 +310,7 @@ function ExplorePage() {
         const searchQuery = searchOverride !== undefined ? searchOverride : search;
         const params = new URLSearchParams({
             page: page.toString(),
-            limit: "12",
+            limit: perPage.toString(),
             ...(searchQuery && { search: searchQuery }),
             ...(category && category !== "All" && { category }),
             ...(scheduleFilter && { schedule_type: scheduleFilter }),
@@ -328,6 +337,35 @@ function ExplorePage() {
         setPage(1);
         // Reload with no filters next tick
         setTimeout(() => loadPrograms(), 0);
+    }
+
+    // ── Autocomplete: fetch suggestions when typing ──
+    function handleSearchChange(value: string) {
+        setSearch(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (value.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const params = new URLSearchParams({ search: value, limit: "6", page: "1" });
+                const res = await fetchWithAuth(`/programs?${params}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const titles: string[] = (data.programs ?? []).map((p: Program) => p.title);
+                    // Also include unique institution names
+                    const instNames = Array.from(new Set((data.programs ?? []).map((p: Program) => p.institution.name))) as string[];
+                    const all = [...new Set([...titles, ...instNames])].slice(0, 6);
+                    setSuggestions(all);
+                    setShowSuggestions(all.length > 0);
+                }
+            } catch { /* ignore */ }
+        }, 300);
+    }
+
+    function selectSuggestion(value: string) {
+        setSearch(value);
+        setShowSuggestions(false);
+        setPage(1);
+        loadPrograms(value);
     }
 
     const viewProgramDetail = async (programId: number) => {
@@ -472,20 +510,37 @@ function ExplorePage() {
 
                 {/* Search row */}
                 <div className="flex gap-2">
-                    <div className="relative flex-1">
+                    <div className="relative flex-1" ref={searchInputRef}>
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                             <SearchIcon />
                         </span>
                         <Input
                             placeholder="Search programs, institutions..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && (setPage(1), loadPrograms())}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") { setShowSuggestions(false); setPage(1); loadPrograms(); } }}
+                            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                             className="h-11 pl-10 rounded-xl"
                         />
+                        {/* Autocomplete dropdown */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute z-50 left-0 right-0 top-full mt-1 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                                {suggestions.map((s, i) => (
+                                    <button
+                                        key={i}
+                                        onMouseDown={() => selectSuggestion(s)}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-accent/70 cursor-pointer flex items-center gap-2 border-b border-border last:border-b-0"
+                                    >
+                                        <SearchIcon />
+                                        <span className="truncate">{s}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <Button
-                        onClick={() => { setPage(1); loadPrograms(); }}
+                        onClick={() => { setShowSuggestions(false); setPage(1); loadPrograms(); }}
                         className="h-11 px-5 bg-primary hover:bg-primary/90 rounded-xl font-medium shadow-sm"
                     >
                         Search
@@ -650,9 +705,20 @@ function ExplorePage() {
                                     >
                                         ← Previous
                                     </button>
-                                    <span className="text-xs text-muted-foreground">
-                                        Page {page} of {totalPages}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs text-muted-foreground">
+                                            Page {page} of {totalPages}
+                                        </span>
+                                        <select
+                                            value={perPage}
+                                            onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                                            className="h-7 px-2 text-xs rounded border border-border bg-background text-foreground cursor-pointer"
+                                        >
+                                            <option value={10}>10/page</option>
+                                            <option value={20}>20/page</option>
+                                            <option value={50}>50/page</option>
+                                        </select>
+                                    </div>
                                     <button
                                         disabled={page === totalPages}
                                         onClick={() => setPage(page + 1)}
@@ -1065,6 +1131,16 @@ function ProgramCard({
                         {program.schedule_type}
                     </span>
                 )}
+                {program.applicants != null && (
+                    <span className="inline-flex items-center gap-1.5 border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
+                        <UsersIcon /> {program.applicants} applicant{program.applicants !== 1 ? "s" : ""}
+                    </span>
+                )}
+                {program.deadline && new Date(program.deadline) < new Date() && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/30 px-2.5 py-0.5 text-[11px] font-bold text-red-600 dark:text-red-400">
+                        Expired
+                    </span>
+                )}
             </div>
 
             {/* Matched attributes */}
@@ -1151,6 +1227,16 @@ function DetailPanel({
                             style={{ opacity: 0.85 }}
                         >
                             Already Applied
+                        </AntButton>
+                    ) : program.deadline && new Date(program.deadline) < new Date() ? (
+                        <AntButton
+                            disabled
+                            size="large"
+                            shape="round"
+                            className="font-bold text-sm"
+                            style={{ opacity: 0.7 }}
+                        >
+                            Deadline Expired
                         </AntButton>
                     ) : (
                         <AntButton

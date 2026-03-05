@@ -144,6 +144,12 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (!res.ok) {
+                // If user hasn't verified email, redirect to verify-otp page
+                if (res.status === 403 && data.requiresVerification) {
+                    message.warning("You haven't verified your email yet. Please verify to login.");
+                    router.push(`/verify-otp?userId=${data.userId}&email=${encodeURIComponent(data.email || '')}&reason=login_unverified`);
+                    return;
+                }
                 message.error(data.error || "Login failed");
                 return;
             }
@@ -204,7 +210,7 @@ export default function LoginPage() {
                         />
                     </div>
                     <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
-                    <p className="text-muted-foreground">Sign in to your dazla. account</p>
+                    <p className="text-muted-foreground">Sign in to your dakhla. account</p>
                 </div>
 
                 <Card className="border border-border shadow-sm">

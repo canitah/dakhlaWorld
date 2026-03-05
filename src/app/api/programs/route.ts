@@ -72,6 +72,7 @@ export async function GET(request: Request) {
                             },
                         },
                     },
+                    _count: { select: { applications: true } },
                 },
             }),
             prisma.program.count({ where }),
@@ -104,6 +105,7 @@ export async function GET(request: Request) {
             fee: p.fee,
             schedule_type: p.schedule_type,
             study_field: p.study_field,
+            applicants: p._count.applications,
             institution: {
                 id: p.institution.id,
                 name: p.institution.name,

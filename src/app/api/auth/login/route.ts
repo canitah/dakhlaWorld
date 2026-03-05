@@ -7,7 +7,7 @@ import {
     setRefreshCookie,
 } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
-import { sendInstitutionWelcomeEmail } from "@/lib/mail";
+import { sendInstitutionWelcomeEmail, sendOtpEmail, generateOtp } from "@/lib/mail";
 
 export async function POST(request: Request) {
     try {
@@ -51,8 +51,28 @@ export async function POST(request: Request) {
 
         // Check if email is verified (pending = OTP not yet confirmed)
         if (user.status === "pending") {
+            // Send a fresh OTP so the user can verify from the redirect
+            try {
+                const code = generateOtp();
+                const expires_at = new Date(Date.now() + 10 * 60 * 1000);
+                // Invalidate previous OTPs
+                await prisma.otpToken.updateMany({
+                    where: { user_id: user.id, used: false },
+                    data: { used: true },
+                });
+                await prisma.otpToken.create({
+                    data: { user_id: user.id, code, type: "signup", expires_at },
+                });
+                if (user.email) await sendOtpEmail(user.email, code);
+            } catch { /* best effort */ }
+
             return NextResponse.json(
-                { error: "Please verify your email before logging in. Check your inbox for the verification code." },
+                {
+                    error: "Please verify your email before logging in.",
+                    requiresVerification: true,
+                    userId: user.id,
+                    email: user.email,
+                },
                 { status: 403 }
             );
         }

@@ -681,7 +681,7 @@ function SignupForm() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email: formData.email, type: "signup" }),
                 });
-                router.push(`/verify-otp?userId=${data.user.id}`);
+                router.push(`/verify-otp?userId=${data.user.id}&email=${encodeURIComponent(formData.email)}`);
             } else {
                 router.push(`/${data.user.role}`);
             }

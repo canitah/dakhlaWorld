@@ -8,6 +8,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { ProfilePictureCropper } from "@/components/profile-picture-cropper";
 import { Button } from "@/components/ui/button";
 import { Input as ShadInput } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Alert,
@@ -94,7 +95,7 @@ export default function InstitutionProfilePage() {
     const [profileComplete, setProfileComplete] = useState(false);
     const [viewMode, setViewMode] = useState<"view" | "edit">("edit");
 
-    // Wizard state
+    // Wizard state (first-time setup only)
     const [step, setStep] = useState(0);
     const [direction, setDirection] = useState<"forward" | "backward">("forward");
     const [wizardData, setWizardData] = useState<Record<string, string>>({
@@ -102,8 +103,6 @@ export default function InstitutionProfilePage() {
         linkedin_url: "", facebook_url: "", instagram_url: "",
     });
     const [wizardError, setWizardError] = useState("");
-
-    // Profile picture is always visible for completed profiles
 
     useEffect(() => { loadProfile(); }, []);
 
@@ -132,7 +131,7 @@ export default function InstitutionProfilePage() {
         setIsLoading(false);
     }
 
-    /* ═══════════ Wizard Handlers ═══════════ */
+    /* ═══════════ Wizard Handlers (first-time setup) ═══════════ */
 
     const currentStep = STEPS[step];
     const isLastStep = step === STEPS.length - 1;
@@ -155,7 +154,7 @@ export default function InstitutionProfilePage() {
             return;
         }
         setWizardError("");
-        if (isLastStep) { handleWizardSave(); return; }
+        if (isLastStep) { handleSaveProfile(); return; }
         setDirection("forward");
         setStep((s) => s + 1);
     };
@@ -166,7 +165,7 @@ export default function InstitutionProfilePage() {
         setStep((s) => Math.max(0, s - 1));
     };
 
-    const handleWizardSave = async () => {
+    const handleSaveProfile = async () => {
         setIsSaving(true);
         try {
             const res = await fetchWithAuth("/institutions/profile", {
@@ -222,13 +221,13 @@ export default function InstitutionProfilePage() {
 
         return (
             <DashboardLayout role="institution">
-                <div className="w-full max-w-2xl mx-auto">
+                <div className="w-full">
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Institution Profile</h1>
                         <Button
                             variant="outline"
                             className="gap-2 h-10"
-                            onClick={() => { setStep(0); setViewMode("edit"); }}
+                            onClick={() => setViewMode("edit")}
                         >
                             <Pencil className="w-4 h-4" /> Edit Profile
                         </Button>
@@ -302,7 +301,130 @@ export default function InstitutionProfilePage() {
         );
     }
 
-    // ─── Wizard (edit mode or first-time setup) ───
+    // ─── Single-page edit mode (for completed profiles) ───
+    if (profileComplete && viewMode === "edit") {
+        return (
+            <DashboardLayout role="institution">
+                <div className="w-full">
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Edit Profile</h1>
+                        <Button variant="ghost" size="sm" onClick={() => setViewMode("view")} className="text-muted-foreground">
+                            ← Back to Profile
+                        </Button>
+                    </div>
+
+                    <Card className="shadow-sm">
+                        <CardContent className="p-6 space-y-6">
+                            {/* Institution Name */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Institution Name <span className="text-red-500">*</span></Label>
+                                <ShadInput
+                                    placeholder="e.g., Lahore School of Economics"
+                                    value={wizardData.name}
+                                    onChange={(e) => setWizardData({ ...wizardData, name: e.target.value })}
+                                    className="h-11"
+                                />
+                            </div>
+
+                            {/* Category */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Category <span className="text-red-500">*</span></Label>
+                                <select
+                                    value={wizardData.category}
+                                    onChange={(e) => setWizardData({ ...wizardData, category: e.target.value })}
+                                    className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground"
+                                >
+                                    <option value="">Select...</option>
+                                    {CATEGORY_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* City */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">City <span className="text-red-500">*</span></Label>
+                                <ShadInput
+                                    placeholder="e.g., Lahore"
+                                    value={wizardData.city}
+                                    onChange={(e) => setWizardData({ ...wizardData, city: e.target.value })}
+                                    className="h-11"
+                                />
+                            </div>
+
+                            {/* Contact Email */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Contact Email <span className="text-red-500">*</span></Label>
+                                <ShadInput
+                                    type="email"
+                                    placeholder="admissions@example.com"
+                                    value={wizardData.contact_email}
+                                    onChange={(e) => setWizardData({ ...wizardData, contact_email: e.target.value })}
+                                    className="h-11"
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Description <span className="text-red-500">*</span></Label>
+                                <textarea
+                                    placeholder="Tell students what makes your institution special..."
+                                    value={wizardData.description}
+                                    onChange={(e) => setWizardData({ ...wizardData, description: e.target.value })}
+                                    className="w-full h-32 px-4 py-3 text-sm rounded-xl border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* Social Links */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">LinkedIn URL</Label>
+                                    <ShadInput
+                                        placeholder="https://linkedin.com/..."
+                                        value={wizardData.linkedin_url}
+                                        onChange={(e) => setWizardData({ ...wizardData, linkedin_url: e.target.value })}
+                                        className="h-11"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Facebook URL</Label>
+                                    <ShadInput
+                                        placeholder="https://facebook.com/..."
+                                        value={wizardData.facebook_url}
+                                        onChange={(e) => setWizardData({ ...wizardData, facebook_url: e.target.value })}
+                                        className="h-11"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Instagram URL</Label>
+                                    <ShadInput
+                                        placeholder="https://instagram.com/..."
+                                        value={wizardData.instagram_url}
+                                        onChange={(e) => setWizardData({ ...wizardData, instagram_url: e.target.value })}
+                                        className="h-11"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                                <Button variant="outline" onClick={() => setViewMode("view")}>Cancel</Button>
+                                <Button
+                                    onClick={handleSaveProfile}
+                                    disabled={isSaving}
+                                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 h-11 rounded-full shadow-md shadow-blue-600/20"
+                                >
+                                    {isSaving ? "Saving..." : <><Save className="w-4 h-4" /> Save Profile</>}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // ─── Wizard (first-time setup only) ───
     const StepIcon = currentStep.icon;
 
     return (
@@ -311,18 +433,11 @@ export default function InstitutionProfilePage() {
                 {/* Title and Step Counter */}
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                        {profileComplete ? "Edit Profile" : "Institution Profile Wizard"}
+                        Institution Profile Wizard
                     </h1>
-                    <div className="flex items-center gap-3">
-                        {profileComplete && (
-                            <Button variant="ghost" size="sm" onClick={() => setViewMode("view")} className="text-muted-foreground">
-                                ← Back to Profile
-                            </Button>
-                        )}
-                        <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                            Step {step + 1} of {STEPS.length}
-                        </span>
-                    </div>
+                    <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                        Step {step + 1} of {STEPS.length}
+                    </span>
                 </div>
 
                 {/* Progress Bar */}
@@ -437,11 +552,7 @@ export default function InstitutionProfilePage() {
                             className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 h-11 rounded-full shadow-md shadow-blue-600/20"
                         >
                             {isSaving ? "Saving..." : isLastStep ? (
-                                profileComplete ? (
-                                    <><Save className="w-4 h-4" /> Save Profile</>
-                                ) : (
-                                    <><Sparkles className="w-4 h-4" /> Complete Setup</>
-                                )
+                                <><Sparkles className="w-4 h-4" /> Complete Setup</>
                             ) : (
                                 <>Next <ChevronRight className="w-4 h-4" /></>
                             )}
