@@ -257,6 +257,7 @@ import { StatsCard, StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PlanBadge } from "@/components/plan-badge";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { message } from "antd";
@@ -288,6 +289,7 @@ interface Program {
     title: string;
     category: string | null;
     is_active: boolean;
+    program_code: string;
     _count: { applications: number };
 }
 
@@ -447,14 +449,21 @@ export default function InstitutionDashboard() {
         message.success("CSV exported successfully");
     };
 
+    const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+
     const handleStatusUpdate = async (appId: number, status: string) => {
-        const res = await fetchWithAuth(`/institutions/applications/${appId}`, {
-            method: "PUT",
-            body: JSON.stringify({ status }),
-        });
-        if (res.ok) {
-            message.success(`Application ${status}`);
-            loadData();
+        setUpdatingStatus(`${appId}_${status}`);
+        try {
+            const res = await fetchWithAuth(`/institutions/applications/${appId}`, {
+                method: "PUT",
+                body: JSON.stringify({ status }),
+            });
+            if (res.ok) {
+                message.success(`Application ${status}`);
+                loadData();
+            }
+        } finally {
+            setUpdatingStatus(null);
         }
     };
 
@@ -596,9 +605,12 @@ export default function InstitutionDashboard() {
             <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold">
-                            Welcome, {profile?.name}!
-                        </h1>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <h1 className="text-2xl md:text-3xl font-bold">
+                                Welcome, {profile?.name}!
+                            </h1>
+                            <PlanBadge planName={currentPlan !== "Free" ? currentPlan : null} size="md" />
+                        </div>
                         <p className="text-muted-foreground mt-1">Manage your programs and applications</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -760,23 +772,39 @@ export default function InstitutionDashboard() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-8 px-3 flex items-center gap-1.5 text-xs"
-                                                        onClick={() => handleStatusUpdate(app.id, "viewed")}
-                                                    >
-                                                        <EyeIcon />
-                                                        View
-                                                    </Button>
-                                                    {app.status !== "accepted" && (
+                                                    {app.status === "submitted" && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-8 px-3 flex items-center gap-1.5 text-xs"
+                                                            onClick={() => handleStatusUpdate(app.id, "viewed")}
+                                                            disabled={updatingStatus === `${app.id}_viewed`}
+                                                        >
+                                                            {updatingStatus === `${app.id}_viewed` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" /> : <EyeIcon />}
+                                                            {updatingStatus === `${app.id}_viewed` ? "Updating..." : "View"}
+                                                        </Button>
+                                                    )}
+                                                    {(app.status === "viewed" || app.status === "rejected") && (
                                                         <Button
                                                             size="sm"
                                                             className="h-8 px-3 flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
                                                             onClick={() => handleStatusUpdate(app.id, "accepted")}
+                                                            disabled={updatingStatus === `${app.id}_accepted`}
                                                         >
-                                                            <CheckIcon />
-                                                            Accept
+                                                            {updatingStatus === `${app.id}_accepted` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <CheckIcon />}
+                                                            {updatingStatus === `${app.id}_accepted` ? "Accepting..." : "Accept"}
+                                                        </Button>
+                                                    )}
+                                                    {(app.status === "viewed" || app.status === "accepted") && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            className="h-8 px-3 flex items-center gap-1.5 text-xs"
+                                                            onClick={() => handleStatusUpdate(app.id, "rejected")}
+                                                            disabled={updatingStatus === `${app.id}_rejected`}
+                                                        >
+                                                            {updatingStatus === `${app.id}_rejected` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : null}
+                                                            {updatingStatus === `${app.id}_rejected` ? "Rejecting..." : "Reject"}
                                                         </Button>
                                                     )}
                                                 </div>
@@ -825,7 +853,7 @@ export default function InstitutionDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {programs.slice(0, 6).map((program) => (
-                        <Link key={program.id} href={`/institution/programs?edit=${program.id}`} className="block">
+                        <Link key={program.id} href={`/institution/programs?open=${program.program_code}`} className="block">
                             <div
                                 className="
                 bg-card rounded-2xl

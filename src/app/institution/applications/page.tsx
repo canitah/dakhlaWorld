@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -128,6 +128,7 @@ export default function InstitutionApplicationsPage() {
     const router = useRouter();
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -139,6 +140,13 @@ export default function InstitutionApplicationsPage() {
     const [advFilters, setAdvFilters] = useState<AdvancedFilter[]>([]);
     const [nextFilterId, setNextFilterId] = useState(1);
 
+    // Highlight support from notification click
+    const searchParams = useSearchParams();
+    const highlightId = searchParams.get("highlight") ? parseInt(searchParams.get("highlight")!) : null;
+    const highlightProgram = searchParams.get("highlightProgram");
+    const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
+    const highlightRef = useRef<HTMLTableRowElement | null>(null);
+
     // ── Dropdown open state ──
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const [programDropdownOpen, setProgramDropdownOpen] = useState(false);
@@ -146,6 +154,30 @@ export default function InstitutionApplicationsPage() {
     useEffect(() => {
         loadApplications();
     }, []);
+
+    // Handle highlight from notification
+    useEffect(() => {
+        if (applications.length === 0) return;
+        let targetId: number | null = null;
+
+        if (highlightId) {
+            targetId = highlightId;
+        } else if (highlightProgram) {
+            const match = applications.find(
+                (a) => a.program.title.toLowerCase() === highlightProgram.toLowerCase()
+            );
+            if (match) targetId = match.id;
+        }
+
+        if (targetId) {
+            setActiveHighlight(targetId);
+            setTimeout(() => {
+                highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 300);
+            const timer = setTimeout(() => setActiveHighlight(null), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [highlightId, highlightProgram, applications]);
 
     async function loadApplications() {
         const res = await fetchWithAuth("/institutions/applications");
@@ -157,13 +189,18 @@ export default function InstitutionApplicationsPage() {
     }
 
     const handleStatusUpdate = async (appId: number, status: string) => {
-        const res = await fetchWithAuth(`/institutions/applications/${appId}`, {
-            method: "PUT",
-            body: JSON.stringify({ status }),
-        });
-        if (res.ok) {
-            message.success(`Application ${status}`);
-            loadApplications();
+        setUpdatingStatus(`${appId}_${status}`);
+        try {
+            const res = await fetchWithAuth(`/institutions/applications/${appId}`, {
+                method: "PUT",
+                body: JSON.stringify({ status }),
+            });
+            if (res.ok) {
+                message.success(`Application ${status}`);
+                loadApplications();
+            }
+        } finally {
+            setUpdatingStatus(null);
         }
     };
 
@@ -447,6 +484,28 @@ export default function InstitutionApplicationsPage() {
                 )}
             </div>
 
+            {/* ── Status Tabs ──────────────────────────────────────────── */}
+            <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
+                {["all", ...STATUS_OPTIONS].map((s) => (
+                    <button
+                        key={s}
+                        onClick={() => setStatusFilter(s)}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${statusFilter === s
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-card border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                            }`}
+                    >
+                        <span className="capitalize">{s === "all" ? "All" : s}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === s
+                            ? "bg-white/20 text-white"
+                            : "bg-muted text-muted-foreground"
+                            }`}>
+                            {statusCounts[s] || 0}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
             {/* ── Results Count ──────────────────────────────────────────── */}
             <div className="flex items-center justify-between mb-3">
                 <p className="text-sm text-muted-foreground">
@@ -481,7 +540,14 @@ export default function InstitutionApplicationsPage() {
                                 </thead>
                                 <tbody>
                                     {filteredApplications.map((app) => (
-                                        <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
+                                        <tr
+                                            key={app.id}
+                                            ref={app.id === activeHighlight ? highlightRef : undefined}
+                                            className={`border-b last:border-0 hover:bg-accent/50 transition-all duration-500 ${app.id === activeHighlight
+                                                ? "bg-blue-500/10 ring-1 ring-blue-500/30 animate-pulse"
+                                                : ""
+                                                }`}
+                                        >
                                             <td className="py-3">
                                                 <div>
                                                     <p className="text-sm font-medium">{app.student.full_name || "—"}</p>
@@ -499,18 +565,21 @@ export default function InstitutionApplicationsPage() {
                                                         Profile
                                                     </Button>
                                                     {app.status === "submitted" && (
-                                                        <Button size="sm" className="text-xs h-7 bg-blue-600 hover:bg-blue-700" onClick={() => handleStatusUpdate(app.id, "viewed")}>
-                                                            Mark Viewed
+                                                        <Button size="sm" className="text-xs h-7 bg-blue-600 hover:bg-blue-700" onClick={() => handleStatusUpdate(app.id, "viewed")} disabled={updatingStatus === `${app.id}_viewed`}>
+                                                            {updatingStatus === `${app.id}_viewed` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" /> : null}
+                                                            {updatingStatus === `${app.id}_viewed` ? "Updating..." : "Mark Viewed"}
                                                         </Button>
                                                     )}
-                                                    {app.status !== "accepted" && (
-                                                        <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusUpdate(app.id, "accepted")}>
-                                                            Accept
+                                                    {(app.status === "viewed" || app.status === "rejected") && (
+                                                        <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusUpdate(app.id, "accepted")} disabled={updatingStatus === `${app.id}_accepted`}>
+                                                            {updatingStatus === `${app.id}_accepted` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" /> : null}
+                                                            {updatingStatus === `${app.id}_accepted` ? "Accepting..." : "Accept"}
                                                         </Button>
                                                     )}
-                                                    {app.status !== "rejected" && (
-                                                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => handleStatusUpdate(app.id, "rejected")}>
-                                                            Reject
+                                                    {(app.status === "viewed" || app.status === "accepted") && (
+                                                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => handleStatusUpdate(app.id, "rejected")} disabled={updatingStatus === `${app.id}_rejected`}>
+                                                            {updatingStatus === `${app.id}_rejected` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" /> : null}
+                                                            {updatingStatus === `${app.id}_rejected` ? "Rejecting..." : "Reject"}
                                                         </Button>
                                                     )}
                                                 </div>

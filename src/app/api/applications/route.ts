@@ -163,7 +163,7 @@ export async function POST(request: Request) {
                 title: "New Application Received",
                 message: `A student has applied to your program "${program.title}".`,
                 type: "application_submitted",
-                link: "/institution/applications",
+                link: `/institution/applications?highlight=${application.id}`,
             },
         });
 

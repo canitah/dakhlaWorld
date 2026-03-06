@@ -32,6 +32,7 @@ export async function GET(
                 profile_picture_url: true,
                 status: true,
                 created_at: true,
+                current_plan: { select: { name: true } },
                 programs: {
                     where: { is_active: true },
                     select: {

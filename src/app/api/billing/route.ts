@@ -13,6 +13,7 @@ export async function GET(request: Request) {
 
         const profile = await prisma.institutionProfile.findUnique({
             where: { user_id: authResult.user.userId },
+            include: { current_plan: true },
         });
 
         if (!profile) {
@@ -43,7 +44,13 @@ export async function GET(request: Request) {
             plans = await prisma.paymentPlan.findMany({ orderBy: { price_pkr: "asc" } });
         }
 
-        return NextResponse.json({ requests, plans });
+        return NextResponse.json({
+            requests,
+            plans,
+            current_plan: profile.current_plan,
+            auto_renew: profile.auto_renew,
+            plan_expires_at: profile.plan_expires_at,
+        });
     } catch (error) {
         console.error("Get billing error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

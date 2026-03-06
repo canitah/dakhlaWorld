@@ -21,7 +21,7 @@ export const PLAN_TIERS: Record<string, PlanTierConfig> = {
     },
     Growth: {
         rank: 1,
-        maxAdmissions: 10,
+        maxAdmissions: 12,  // 2 free + 10 growth
         highlighted: true,
         homeFeatured: "none",
         label: "Growth",
@@ -29,7 +29,7 @@ export const PLAN_TIERS: Record<string, PlanTierConfig> = {
     },
     Pro: {
         rank: 2,
-        maxAdmissions: 20,
+        maxAdmissions: 22,  // 2 free + 20 pro
         highlighted: true,
         homeFeatured: "rotational",
         label: "Pro",

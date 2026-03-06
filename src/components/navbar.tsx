@@ -14,6 +14,7 @@ import { Avatar as AntAvatar, Badge, Breadcrumb, Dropdown, message } from "antd"
 import { BellOutlined, UserOutlined, LogoutOutlined, HomeOutlined, SearchOutlined, EllipsisOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, MailOutlined, EyeOutlined, CrownOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { studentLinks, institutionLinks, adminLinks } from "@/components/dashboard-layout";
+import { PlanBadge } from "@/components/plan-badge";
 
 const POLL_INTERVAL = 15000; // 15 seconds
 
@@ -116,6 +117,7 @@ export function Navbar() {
     const [isSearching, setIsSearching] = useState(false);
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [planName, setPlanName] = useState<string | null>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -144,6 +146,17 @@ export function Navbar() {
         const interval = setInterval(fetchNotifications, POLL_INTERVAL);
         return () => clearInterval(interval);
     }, [isAuthenticated, accessToken, fetchNotifications]);
+
+    // Fetch current plan for institution profile badge
+    useEffect(() => {
+        if (!isAuthenticated || !accessToken || role !== "institution") return;
+        fetch("/api/billing", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data?.current_plan?.name) setPlanName(data.current_plan.name); })
+            .catch(() => { });
+    }, [isAuthenticated, accessToken, role]);
 
     // Close notification dropdown on outside click
     useEffect(() => {
@@ -267,7 +280,23 @@ export function Navbar() {
         }
         setNotifOpen(false);
         if (notif.link) {
-            router.push(notif.link);
+            let targetLink = notif.link;
+            // For application-related notifications, ensure we pass a highlight param
+            // so the target page can scroll to and highlight the relevant item
+            const appTypes = [
+                "application_submitted", "application_viewed",
+                "application_accepted", "application_rejected",
+                "profile_viewed",
+            ];
+            if (appTypes.includes(notif.type) && !targetLink.includes("highlight")) {
+                // Extract program title from the message (always in double quotes like "Computer Science")
+                const titleMatch = notif.message.match(/\u201c([^\u201d]+)\u201d/) || notif.message.match(/"([^"]+)"/);
+                if (titleMatch) {
+                    const separator = targetLink.includes("?") ? "&" : "?";
+                    targetLink += `${separator}highlightProgram=${encodeURIComponent(titleMatch[1])}`;
+                }
+            }
+            router.push(targetLink);
         }
     };
 
@@ -479,10 +508,13 @@ export function Navbar() {
                             <p className="text-sm font-semibold truncate" style={{ color: "inherit" }}>
                                 {user.email || user.phone}
                             </p>
-                            <p className="text-xs capitalize flex items-center gap-1" style={{ color: "rgba(128,128,128,0.85)" }}>
-                                <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-                                {user.role} account
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-xs capitalize flex items-center gap-1" style={{ color: "rgba(128,128,128,0.85)" }}>
+                                    <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                                    {user.role} account
+                                </p>
+                                <PlanBadge planName={planName} size="sm" />
+                            </div>
                         </div>
                     </div>
                 ),

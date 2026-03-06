@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth";
 import { approvalSchema } from "@/lib/validations";
+import { sendPlanActivatedEmail } from "@/lib/mail";
 
 // PUT /api/admin/billing/[id] — Approve or reject a payment request
 export async function PUT(
@@ -24,17 +25,48 @@ export async function PUT(
 
         const paymentRequest = await prisma.paymentRequest.findUnique({
             where: { id: parseInt(id) },
+            include: { plan: true, institution: { include: { user: true } } },
         });
 
         if (!paymentRequest) {
             return NextResponse.json({ error: "Payment request not found" }, { status: 404 });
         }
 
+        const isApproving = parsed.data.status === "approved";
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+        // Update the payment request status
         const updated = await prisma.paymentRequest.update({
             where: { id: parseInt(id) },
-            data: { status: parsed.data.status },
+            data: {
+                status: parsed.data.status,
+                ...(isApproving ? { approved_at: now } : {}),
+            },
             include: { plan: true, institution: true },
         });
+
+        // If approved, set as the institution's current plan
+        if (isApproving) {
+            await prisma.institutionProfile.update({
+                where: { id: paymentRequest.institution_id },
+                data: {
+                    current_plan_id: paymentRequest.plan_id,
+                    plan_expires_at: expiresAt,
+                },
+            });
+
+            // Send activation email
+            const email = paymentRequest.institution.user.email;
+            if (email) {
+                sendPlanActivatedEmail(
+                    email,
+                    paymentRequest.institution.name,
+                    paymentRequest.plan.name,
+                    expiresAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+                ).catch(() => { });
+            }
+        }
 
         return NextResponse.json({
             request: updated,

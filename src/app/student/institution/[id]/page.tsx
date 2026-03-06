@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/use-api";
+import { PlanBadge } from "@/components/plan-badge";
 import {
     ArrowLeft,
     MapPin,
@@ -31,6 +32,7 @@ interface InstitutionDetail {
     contact_email: string | null;
     profile_picture_url: string | null;
     created_at: string;
+    current_plan?: { name: string } | null;
     programs: ProgramItem[];
     _count: { programs: number };
 }
@@ -134,11 +136,13 @@ export default function InstitutionDetailPage() {
                             )}
                         </div>
 
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
-                                {institution.name}
-                            </h1>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+                                    {institution.name}
+                                </h1>
+                                <PlanBadge planName={institution.current_plan?.name} size="md" />
+                            </div>
 
                             {/* Labeled fields */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mt-4">

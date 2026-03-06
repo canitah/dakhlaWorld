@@ -82,7 +82,7 @@ export async function PUT(
                         ? `Congratulations! Your application for "${application.program.title}" has been accepted by ${instName}!`
                         : `Your application for "${application.program.title}" has been rejected by ${instName}.`,
                     type: `application_${newStatus}`,
-                    link: "/student/applications",
+                    link: `/student/applications?highlight=${parseInt(id)}`,
                 },
             });
         } else if (newStatus === "viewed") {
@@ -93,7 +93,7 @@ export async function PUT(
                     title: "Application Viewed",
                     message: `${instName} has viewed your application for "${application.program.title}".`,
                     type: "application_viewed",
-                    link: "/student/applications",
+                    link: `/student/applications?highlight=${parseInt(id)}`,
                 },
             });
         }

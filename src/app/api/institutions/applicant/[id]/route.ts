@@ -54,7 +54,7 @@ export async function GET(
                 user_id: student.user_id,
                 type: "profile_viewed",
                 message: { contains: profile!.name },
-                link: "/student/applications",
+                link: { startsWith: "/student/applications" },
             },
         });
 
@@ -65,7 +65,7 @@ export async function GET(
                     title: "Profile Viewed",
                     message: `${profile!.name} has viewed your profile for "${hasApplication.program.title}".`,
                     type: "profile_viewed",
-                    link: "/student/applications",
+                    link: `/student/applications?highlight=${hasApplication.id}`,
                 },
             });
         }

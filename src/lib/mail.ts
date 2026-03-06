@@ -260,3 +260,70 @@ export async function sendInstitutionCancellationEmail(to: string, institutionNa
     }
 }
 
+export async function sendPlanActivatedEmail(to: string, institutionName: string, planName: string, expiryDate: string) {
+    try {
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM || "noreply@gap.pk",
+            to,
+            subject: `GAP - Your ${planName} Plan is Now Active!`,
+            html: emailWrapper(
+                "🎉 Plan Activated!",
+                `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Dear <strong>${institutionName}</strong>,
+                </p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Great news! Your <strong style="color: #2563eb;">${planName} Plan</strong> has been <strong style="color: #059669;">activated</strong> by our admin team.
+                </p>
+                <div style="background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #065f46; font-size: 14px; margin: 0 0 8px 0;">
+                        ✅ <strong>Plan:</strong> ${planName}
+                    </p>
+                    <p style="color: #065f46; font-size: 14px; margin: 0;">
+                        📅 <strong>Valid Until:</strong> ${expiryDate}
+                    </p>
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">
+                    Your plan will auto-renew at the end of the billing period. You can manage auto-renewal from your Billing page.
+                </p>`
+            ),
+        });
+        return true;
+    } catch (error) {
+        console.error("Plan activated email error:", error);
+        return false;
+    }
+}
+
+export async function sendPlanRenewalReminderEmail(to: string, institutionName: string, planName: string, expiryDate: string) {
+    try {
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM || "noreply@gap.pk",
+            to,
+            subject: `GAP - Your ${planName} Plan Expires Soon`,
+            html: emailWrapper(
+                "⏰ Plan Renewal Reminder",
+                `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Dear <strong>${institutionName}</strong>,
+                </p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Your <strong style="color: #2563eb;">${planName} Plan</strong> is expiring soon.
+                </p>
+                <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #92400e; font-size: 14px; margin: 0;">
+                        ⚠️ <strong>Expires on:</strong> ${expiryDate}
+                    </p>
+                </div>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    If auto-renewal is enabled, your plan will automatically renew on the expiry date. You can manage your auto-renewal settings from your <strong>Billing</strong> page.
+                </p>
+                <p style="color: #6b7280; font-size: 14px;">
+                    If you wish to cancel auto-renewal, please do so before the expiry date to avoid being charged.
+                </p>`
+            ),
+        });
+        return true;
+    } catch (error) {
+        console.error("Plan renewal reminder email error:", error);
+        return false;
+    }
+}

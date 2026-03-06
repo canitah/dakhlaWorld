@@ -246,6 +246,10 @@ export default function InstitutionBillingPage() {
     const [dbPlans, setDbPlans] = useState<DbPlan[]>([]);
     const [requests, setRequests] = useState<PaymentReq[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPlan, setCurrentPlan] = useState<{ id: number; name: string; price_pkr: number } | null>(null);
+    const [autoRenew, setAutoRenew] = useState(true);
+    const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
+    const [togglingAutoRenew, setTogglingAutoRenew] = useState(false);
 
     // Payment dialog state
     const [selectedPlan, setSelectedPlan] = useState<PlanDef | null>(null);
@@ -266,6 +270,9 @@ export default function InstitutionBillingPage() {
                 const data = await res.json();
                 setDbPlans(data.plans || []);
                 setRequests(data.requests || []);
+                setCurrentPlan(data.current_plan || null);
+                setAutoRenew(data.auto_renew ?? true);
+                setPlanExpiresAt(data.plan_expires_at || null);
             }
         } catch {
             // Billing API may fail if no plans seeded — page still renders
@@ -299,25 +306,27 @@ export default function InstitutionBillingPage() {
 
         let screenshotUrl: string | undefined;
 
-        // Upload screenshot to Cloudinary if provided
+        // Upload screenshot via server-side API if provided
         if (screenshotFile) {
             try {
                 const formData = new FormData();
                 formData.append("file", screenshotFile);
-                formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "gap_unsigned");
                 formData.append("folder", "gap/payment-screenshots");
 
-                const uploadRes = await fetch(
-                    `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-                    { method: "POST", body: formData }
-                );
+                const uploadRes = await fetchWithAuth("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
                 if (uploadRes.ok) {
                     const uploadData = await uploadRes.json();
-                    screenshotUrl = uploadData.secure_url;
+                    screenshotUrl = uploadData.url;
                 } else {
-                    message.warning("Could not upload screenshot, but continuing with payment submission.");
+                    const errData = await uploadRes.json().catch(() => ({}));
+                    console.error("Screenshot upload failed:", uploadRes.status, errData);
+                    message.warning(errData.error || "Could not upload screenshot, but continuing with payment submission.");
                 }
-            } catch {
+            } catch (err) {
+                console.error("Screenshot upload exception:", err);
                 message.warning("Screenshot upload failed, but continuing.");
             }
         }
@@ -454,25 +463,104 @@ export default function InstitutionBillingPage() {
 
                             {/* CTA Button — pushed to bottom */}
                             <div className="mt-auto">
-                                {plan.price === 0 ? (
-                                    <Button variant="outline" disabled className="w-full text-sm">
-                                        Current Plan
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        className={`w-full text-sm text-white shadow-lg transition-all duration-200 ${plan.btnClass}`}
-                                        onClick={() => handleSelectPlan(plan)}
-                                    >
-                                        Get {plan.name}
-                                        <ArrowRight className="size-4 ml-1" />
-                                    </Button>
-                                )}
+                                {(() => {
+                                    const isCurrentPlan = currentPlan?.name === plan.dbName;
+                                    const isFreePlan = plan.price === 0;
+                                    const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
+                                    const canResubscribe = isCurrentPlan && isExpired && !autoRenew;
+
+                                    if (isCurrentPlan && !canResubscribe) {
+                                        return (
+                                            <Button variant="outline" disabled className="w-full text-sm">
+                                                ✓ Current Plan
+                                            </Button>
+                                        );
+                                    }
+                                    if (isCurrentPlan && canResubscribe) {
+                                        return (
+                                            <Button
+                                                className={`w-full text-sm text-white shadow-lg transition-all duration-200 ${plan.btnClass}`}
+                                                onClick={() => handleSelectPlan(plan)}
+                                            >
+                                                Renew {plan.name}
+                                                <ArrowRight className="size-4 ml-1" />
+                                            </Button>
+                                        );
+                                    }
+                                    if (isFreePlan) {
+                                        return (
+                                            <Button variant="outline" disabled className="w-full text-sm">
+                                                Free Plan
+                                            </Button>
+                                        );
+                                    }
+                                    return (
+                                        <Button
+                                            className={`w-full text-sm text-white shadow-lg transition-all duration-200 ${plan.btnClass}`}
+                                            onClick={() => handleSelectPlan(plan)}
+                                        >
+                                            {currentPlan ? `Upgrade to ${plan.name}` : `Get ${plan.name}`}
+                                            <ArrowRight className="size-4 ml-1" />
+                                        </Button>
+                                    );
+                                })()}
                             </div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
 
+            {/* ─── Current Plan Info & Auto-Renewal ─── */}
+            {currentPlan && (
+                <Card className="mb-10 border-blue-200 dark:border-blue-800/50">
+                    <CardContent className="py-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                                    <Shield className="size-5 text-blue-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Active Plan</p>
+                                    <p className="text-lg font-bold text-foreground">{currentPlan.name}</p>
+                                </div>
+                            </div>
+                            {planExpiresAt && (
+                                <div className="text-sm text-muted-foreground">
+                                    <span className="font-medium">{autoRenew ? "Auto-renews" : "Expires"} on: </span>
+                                    {new Date(planExpiresAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                                </div>
+                            )}
+                            <div className="flex items-center gap-3">
+                                <label className="text-sm font-medium text-foreground">Auto-Renewal</label>
+                                <button
+                                    onClick={async () => {
+                                        setTogglingAutoRenew(true);
+                                        try {
+                                            const res = await fetchWithAuth("/billing/auto-renew", {
+                                                method: "PUT",
+                                                body: JSON.stringify({ auto_renew: !autoRenew }),
+                                            });
+                                            if (res.ok) {
+                                                setAutoRenew(!autoRenew);
+                                                message.success(autoRenew ? "Auto-renewal disabled" : "Auto-renewal enabled");
+                                            }
+                                        } catch { /* ignore */ }
+                                        setTogglingAutoRenew(false);
+                                    }}
+                                    disabled={togglingAutoRenew}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 ${autoRenew ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                                        } ${togglingAutoRenew ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${autoRenew ? "translate-x-6" : "translate-x-1"
+                                            }`}
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* ─── Payment History ─── */}
             <Card>

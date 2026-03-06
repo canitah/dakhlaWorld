@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,6 +88,7 @@ const emptyProgram = {
 export default function InstitutionProgramsPage() {
     const { fetchWithAuth } = useApi();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [programs, setPrograms] = useState<Program[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -132,9 +133,10 @@ export default function InstitutionProgramsPage() {
             if (data.planInfo) setPlanInfo(data.planInfo);
 
             // Auto-select program from URL on initial load
+            const openCode = new URLSearchParams(window.location.search).get("open");
             const match = window.location.pathname.match(/\/institution\/programs\/(PRG-\d+)/);
-            if (match) {
-                const code = match[1];
+            const code = openCode || (match ? match[1] : null);
+            if (code) {
                 const found = (data.programs as Program[]).find((p: Program) => p.program_code === code);
                 if (found) setSelectedProgram(found);
             }

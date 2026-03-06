@@ -399,6 +399,7 @@ export default function StudentDashboard() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [search, setSearch] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    const [profileName, setProfileName] = useState<string | null>(null);
 
     useEffect(() => { loadData(); }, []);
 
@@ -412,6 +413,7 @@ export default function StudentDashboard() {
                     router.replace("/student/profile");
                     return;
                 }
+                setProfileName(profileData.profile.full_name);
             }
 
             const [progRes, appRes] = await Promise.all([
@@ -481,7 +483,7 @@ export default function StudentDashboard() {
             <div className="mb-8">
                 <div className="mb-6">
                     <h1 className="text-2xl md:text-3xl font-bold">
-                        Welcome{user?.email ? `, ${user.email.split("@")[0]}` : ""}! 👋
+                        Welcome{profileName ? `, ${profileName}` : user?.email ? `, ${user.email.split("@")[0]}` : ""}! 👋
                     </h1>
                     <p className="text-muted-foreground mt-1">Discover programs and start your admissions journey</p>
                 </div>

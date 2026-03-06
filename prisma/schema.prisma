@@ -67,7 +67,11 @@ model InstitutionProfile {
   facebook_url        String?
   instagram_url       String?
   welcome_sent        Boolean          @default(false)
+  current_plan_id     Int?
+  auto_renew          Boolean          @default(true)
+  plan_expires_at     DateTime?
   user                User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  current_plan        PaymentPlan?     @relation("CurrentPlan", fields: [current_plan_id], references: [id])
   payment_requests    PaymentRequest[]
   programs            Program[]
 
@@ -159,11 +163,12 @@ model SavedAdmission {
 }
 
 model PaymentPlan {
-  id               Int              @id @default(autoincrement())
-  name             String           @unique
-  price_pkr        Int
-  features_json    String?
-  payment_requests PaymentRequest[]
+  id                    Int                  @id @default(autoincrement())
+  name                  String               @unique
+  price_pkr             Int
+  features_json         String?
+  payment_requests      PaymentRequest[]
+  current_institutions  InstitutionProfile[] @relation("CurrentPlan")
 
   @@map("payment_plans")
 }
@@ -177,6 +182,7 @@ model PaymentRequest {
   status          String             @default("pending")
   created_at      DateTime           @default(now())
   updated_at      DateTime           @updatedAt
+  approved_at     DateTime?
   institution     InstitutionProfile @relation(fields: [institution_id], references: [id], onDelete: Cascade)
   plan            PaymentPlan        @relation(fields: [plan_id], references: [id])
 

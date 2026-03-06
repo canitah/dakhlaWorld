@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -32,6 +32,13 @@ export default function StudentApplicationsPage() {
     const [trackingError, setTrackingError] = useState<string | null>(null);
     const [isTracking, setIsTracking] = useState(false);
 
+    // Highlight support from notification click
+    const searchParams = useSearchParams();
+    const highlightId = searchParams.get("highlight") ? parseInt(searchParams.get("highlight")!) : null;
+    const highlightProgram = searchParams.get("highlightProgram");
+    const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
+    const highlightRef = useRef<HTMLTableRowElement | null>(null);
+
     // Filter states
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterInstitution, setFilterInstitution] = useState("all");
@@ -50,6 +57,31 @@ export default function StudentApplicationsPage() {
         }
         load();
     }, []);
+
+    // Handle highlight from notification
+    useEffect(() => {
+        if (applications.length === 0) return;
+        let targetId: number | null = null;
+
+        if (highlightId) {
+            targetId = highlightId;
+        } else if (highlightProgram) {
+            // Find first application matching the program title
+            const match = applications.find(
+                (a) => a.program.title.toLowerCase() === highlightProgram.toLowerCase()
+            );
+            if (match) targetId = match.id;
+        }
+
+        if (targetId) {
+            setActiveHighlight(targetId);
+            setTimeout(() => {
+                highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 300);
+            const timer = setTimeout(() => setActiveHighlight(null), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [highlightId, highlightProgram, applications]);
 
     const handleTrack = async () => {
         if (!trackingCode.trim()) return;
@@ -314,7 +346,14 @@ export default function StudentApplicationsPage() {
                                         </tr>
                                     ) : (
                                         filtered.map((app) => (
-                                            <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50">
+                                            <tr
+                                                key={app.id}
+                                                ref={app.id === activeHighlight ? highlightRef : undefined}
+                                                className={`border-b last:border-0 hover:bg-accent/50 transition-all duration-500 ${app.id === activeHighlight
+                                                    ? "bg-blue-500/10 ring-1 ring-blue-500/30 animate-pulse"
+                                                    : ""
+                                                    }`}
+                                            >
                                                 <td className="py-3">
                                                     <Badge variant="outline" className="text-xs font-mono">
                                                         {app.application_code}

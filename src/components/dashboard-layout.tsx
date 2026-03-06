@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useSidebar } from "@/store/sidebar-store";
 import { Tooltip } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { PlanBadgeCompact } from "@/components/plan-badge";
 
 interface SidebarLink {
     label: string;
@@ -188,6 +189,7 @@ export function Sidebar({
 }) {
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [planName, setPlanName] = useState<string | null>(null);
 
     // Listen for navbar hamburger button toggle
     useEffect(() => {
@@ -195,6 +197,25 @@ export function Sidebar({
         window.addEventListener("toggle-mobile-sidebar", handler);
         return () => window.removeEventListener("toggle-mobile-sidebar", handler);
     }, []);
+
+    // Fetch current plan for institution sidebar badge
+    useEffect(() => {
+        if (role !== "institution") return;
+        const fetchPlan = async () => {
+            try {
+                const stored = localStorage.getItem("auth-storage");
+                const token = stored ? JSON.parse(stored)?.state?.accessToken || "" : "";
+                const res = await fetch("/api/billing", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setPlanName(data.current_plan?.name || null);
+                }
+            } catch { /* ignore */ }
+        };
+        fetchPlan();
+    }, [role]);
 
     const links =
         role === "student"
@@ -240,6 +261,13 @@ export function Sidebar({
                         </svg>
                     </button>
                 </div>
+
+                {/* Plan Badge (mobile) */}
+                {planName && planName !== "Starter" && (
+                    <div className="px-5 py-2 border-b border-border">
+                        <PlanBadgeCompact planName={planName} />
+                    </div>
+                )}
 
                 {/* Mobile Nav */}
                 <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -288,6 +316,16 @@ export function Sidebar({
                         />
                     </Link>
                 </div>
+
+                {/* Plan Badge (desktop) */}
+                {planName && planName !== "Starter" && (
+                    <div className={cn(
+                        "border-b border-border flex-shrink-0",
+                        isCollapsed ? "flex justify-center py-2" : "px-4 py-2"
+                    )}>
+                        <PlanBadgeCompact planName={planName} collapsed={isCollapsed} />
+                    </div>
+                )}
 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
