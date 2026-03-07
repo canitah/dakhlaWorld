@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -22,12 +21,17 @@ interface PaymentRequest {
 export default function AdminPaymentsPage() {
     const { fetchWithAuth } = useApi();
     const [requests, setRequests] = useState<PaymentRequest[]>([]);
-    const searchParams = useSearchParams();
-    const [filter, setFilter] = useState(() => {
-        const urlStatus = searchParams.get("status");
-        return urlStatus && ["pending", "approved", "rejected"].includes(urlStatus) ? urlStatus : "pending";
-    });
+    const [filter, setFilter] = useState("pending");
     const [isLoading, setIsLoading] = useState(true);
+
+    // Read URL param on mount for deep linking
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlStatus = params.get("status");
+        if (urlStatus && ["pending", "approved", "rejected"].includes(urlStatus)) {
+            setFilter(urlStatus);
+        }
+    }, []);
 
     useEffect(() => {
         loadRequests();

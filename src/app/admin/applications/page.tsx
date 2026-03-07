@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -25,14 +24,19 @@ interface Application {
 export default function AdminApplicationsPage() {
     const { fetchWithAuth } = useApi();
     const [applications, setApplications] = useState<Application[]>([]);
-    const searchParams = useSearchParams();
-    const [filter, setFilter] = useState(() => {
-        const urlStatus = searchParams.get("status");
-        return urlStatus && ["submitted", "viewed", "accepted", "rejected"].includes(urlStatus) ? urlStatus : "";
-    });
+    const [filter, setFilter] = useState("");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Read URL param on mount for deep linking
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlStatus = params.get("status");
+        if (urlStatus && ["submitted", "viewed", "accepted", "rejected"].includes(urlStatus)) {
+            setFilter(urlStatus);
+        }
+    }, []);
 
     useEffect(() => {
         loadApplications();
