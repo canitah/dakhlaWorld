@@ -677,13 +677,15 @@ export default function InstitutionDashboard() {
                     sparklineData={buildDailySparkline(filteredApplications.filter(a => a.status === "submitted").map(a => a.created_at))}
                     icon={<InboxIcon />}
                 />
-                <StatsCardWithSparkline
-                    title="Current Plan"
-                    value={currentPlan}
-                    subtitle={currentPlan === "Featured" ? "Manage plan →" : "Upgrade plan →"}
-                    color={currentPlan === "Featured" ? "#f59e0b" : "#8b5cf6"}
-                    icon={<StarIcon />}
-                />
+                <Link href="/institution/billing" className="block">
+                    <StatsCardWithSparkline
+                        title="Current Plan"
+                        value={currentPlan}
+                        subtitle={currentPlan === "Featured" ? "Manage plan →" : "Upgrade plan →"}
+                        color={currentPlan === "Featured" ? "#f59e0b" : "#8b5cf6"}
+                        icon={<StarIcon />}
+                    />
+                </Link>
                 <StatsCardWithSparkline
                     title="Total Leads"
                     value={totalLeads}

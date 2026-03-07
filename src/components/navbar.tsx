@@ -38,7 +38,7 @@ export function Navbar() {
         removeNotification,
     } = useNotificationStore();
     const { theme, setTheme } = useTheme();
-    const { isCollapsed } = useSidebar();
+    const { isCollapsed, setIsCollapsed } = useSidebar();
     const router = useRouter();
     const pathname = usePathname();
     const notifRef = useRef<HTMLDivElement>(null);
@@ -446,7 +446,7 @@ export function Navbar() {
     };
 
     // Hide navbar on login, signup, verify-otp, and home pages
-    const isAuthPage = ["login", "signup", "verify-otp"].includes(pathname.split("/").filter(Boolean)[0] || "");
+    const isAuthPage = ["login", "signup", "verify-otp", "forgot-password"].includes(pathname.split("/").filter(Boolean)[0] || "");
     if (isAuthPage || pathname === "/" || pathname.startsWith("/institution-detail")) return null;
 
     // Determine if we're on a dashboard page (where the sidebar is visible)
@@ -483,7 +483,7 @@ export function Navbar() {
             );
         }
         return (
-            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
+            <header className="sticky top-0 z-30 bg-background/60 backdrop-blur-xl border-b border-border/50">
                 <div className="flex h-16 items-center px-4 md:px-6">
                     <div className="h-8" />
                 </div>
@@ -709,19 +709,30 @@ export function Navbar() {
     return (
         <header
             className={cn(
-                "sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border transition-all duration-300",
+                "sticky top-0 z-30 bg-background/60 backdrop-blur-xl border-b border-border/40 transition-all duration-300 shadow-sm",
                 isCollapsed
                     ? "md:ml-[72px]"
                     : "md:ml-[260px]"
             )}
         >
             <div className="flex h-16 items-center gap-3 px-4 md:px-6">
-                {/* Mobile hamburger — top left */}
+                {/* Mobile hamburger — modern design */}
                 <button
                     onClick={() => {
                         window.dispatchEvent(new CustomEvent("toggle-mobile-sidebar"));
                     }}
-                    className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer flex-shrink-0"
+                    className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-accent/60 transition-all duration-200 text-muted-foreground hover:text-foreground cursor-pointer flex-shrink-0 active:scale-95"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
+                {/* Desktop sidebar toggle — hamburger icon */}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="hidden md:flex w-9 h-9 rounded-xl items-center justify-center hover:bg-accent/60 transition-all duration-200 text-muted-foreground hover:text-foreground cursor-pointer flex-shrink-0 active:scale-95"
+                    title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -735,20 +746,20 @@ export function Navbar() {
                     </div>
                 )}
 
-                {/* Search Bar */}
+                {/* Search Bar — modern pill design */}
                 <div className="flex-1 flex justify-center" ref={searchRef}>
-                    <div className="relative w-full max-w-lg">
-                        <SearchOutlined className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" style={{ fontSize: 16 }} />
+                    <div className="relative w-full max-w-lg group">
+                        <SearchOutlined className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none transition-colors group-focus-within:text-blue-500" style={{ fontSize: 15 }} />
                         <input
                             type="text"
-                            placeholder="Search"
+                            placeholder="Search programs, institutions..."
                             value={searchQuery}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             onFocus={() => {
                                 if (searchResults.length > 0) setShowSearchResults(true);
                             }}
                             onKeyDown={handleSearchKeyDown}
-                            className="w-full h-10 pl-11 pr-4 rounded-full bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
+                            className="w-full h-10 pl-11 pr-4 rounded-xl bg-muted/40 text-sm text-foreground placeholder:text-muted-foreground/60 border border-transparent focus:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-all duration-200"
                         />
 
                         {/* Search Results Dropdown */}
@@ -796,10 +807,10 @@ export function Navbar() {
 
 
                 {/* Right Section */}
-                <div className="flex items-center gap-1.5 md:gap-2.5">
-                    {/* Theme Toggle */}
+                <div className="flex items-center gap-1.5 md:gap-2">
+                    {/* Theme Toggle — modern */}
                     <button
-                        className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground relative cursor-pointer"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-accent/60 transition-all duration-200 text-muted-foreground hover:text-foreground relative cursor-pointer active:scale-95"
                         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                         title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                     >
@@ -820,7 +831,7 @@ export function Navbar() {
                                 <Badge count={unreadCount} size="small" offset={[-2, 2]}>
                                     <button
                                         onClick={() => setNotifOpen(!notifOpen)}
-                                        className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-accent/60 transition-all duration-200 text-muted-foreground hover:text-foreground cursor-pointer active:scale-95"
                                     >
                                         <BellOutlined style={{ fontSize: 18 }} />
                                     </button>

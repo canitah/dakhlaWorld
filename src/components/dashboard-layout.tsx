@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useSidebar } from "@/store/sidebar-store";
 import { Tooltip } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { PlanBadgeCompact } from "@/components/plan-badge";
 
 interface SidebarLink {
@@ -157,31 +156,15 @@ export const adminLinks: SidebarLink[] = [
             </svg>
         ),
     },
-    // {
-    //     label: "Categories",
-    //     href: "/admin/categories",
-    //     icon: (
-    //         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-    //         </svg>
-    //     ),
-    // },
-    // {
-    //     label: "Cities",
-    //     href: "/admin/cities",
-    //     icon: (
-    //         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-    //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    //         </svg>
-    //     ),
-    // },
 ];
 
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR — Modern glassmorphism with gradient accents
+   ═══════════════════════════════════════════════════════════════════ */
 export function Sidebar({
     role,
     isCollapsed,
-    setIsCollapsed
+    setIsCollapsed,
 }: {
     role: string;
     isCollapsed: boolean;
@@ -224,39 +207,95 @@ export function Sidebar({
                 ? institutionLinks
                 : adminLinks;
 
+    // Role-specific accent colors
+    const accentConfig = role === "admin"
+        ? { gradient: "from-violet-600 to-indigo-600", bg: "bg-violet-500", text: "text-violet-600 dark:text-violet-400", activeBg: "bg-violet-500/10 dark:bg-violet-500/15", ring: "ring-violet-500/20" }
+        : role === "institution"
+            ? { gradient: "from-blue-600 to-cyan-600", bg: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", activeBg: "bg-blue-500/10 dark:bg-blue-500/15", ring: "ring-blue-500/20" }
+            : { gradient: "from-blue-600 to-indigo-600", bg: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", activeBg: "bg-blue-500/10 dark:bg-blue-500/15", ring: "ring-blue-500/20" };
+
+    const navContent = (isMobile: boolean) => (
+        <nav className={cn("flex-1 overflow-y-auto", isMobile ? "px-3 py-3" : "px-3 py-3")}>
+            {/* Section label */}
+            {!isCollapsed && !isMobile && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 px-3 mb-2">
+                    Navigation
+                </p>
+            )}
+            <div className="space-y-1">
+                {links.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                        <Tooltip key={link.href} title={isCollapsed && !isMobile ? link.label : ""} placement="right">
+                            <Link
+                                href={link.href}
+                                onClick={() => isMobile && setIsMobileOpen(false)}
+                                className={cn(
+                                    "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                                    isActive
+                                        ? `${accentConfig.activeBg} ${accentConfig.text} shadow-sm`
+                                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                                    isCollapsed && !isMobile && "justify-center px-2"
+                                )}
+                            >
+                                {/* Active indicator — gradient bar */}
+                                {isActive && (
+                                    <div className={cn(
+                                        "absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b",
+                                        accentConfig.gradient
+                                    )} />
+                                )}
+                                <span className={cn(
+                                    "flex-shrink-0 transition-transform duration-200",
+                                    isActive ? "scale-110" : "group-hover:scale-105"
+                                )}>
+                                    {link.icon}
+                                </span>
+                                {(isMobile || !isCollapsed) && (
+                                    <span className="truncate">{link.label}</span>
+                                )}
+                                {/* Hover glow effect */}
+                                {isActive && (
+                                    <div className={cn(
+                                        "absolute inset-0 rounded-xl ring-1 pointer-events-none",
+                                        accentConfig.ring
+                                    )} />
+                                )}
+                            </Link>
+                        </Tooltip>
+                    );
+                })}
+            </div>
+        </nav>
+    );
+
     return (
         <>
-            {/* Mobile Menu Button — in navbar, not floating */}
-
             {/* Mobile Overlay */}
             {isMobileOpen && (
                 <div
-                    className="md:hidden fixed inset-0 bg-black/50 z-40"
+                    className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
 
-            {/* Mobile Sidebar */}
+            {/* ── Mobile Sidebar ── */}
             <aside
                 className={cn(
-                    "md:hidden fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transform transition-transform duration-300 ease-in-out",
+                    "md:hidden fixed inset-y-0 left-0 z-50 w-72 bg-card/95 backdrop-blur-xl border-r border-border/50 shadow-2xl transform transition-transform duration-300 ease-out",
                     isMobileOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >
-                {/* Mobile Logo + Close */}
-                <div className="h-16 flex items-center justify-between px-5 border-b border-border">
+                {/* Mobile Header */}
+                <div className="h-16 flex items-center justify-between px-5 border-b border-border/50">
                     <Link href={`/${role}`} className="flex items-center gap-3">
-                        <img
-                            src="/logo.jpeg"
-                            alt="dazla."
-                            className="h-8 w-auto object-contain"
-                        />
+                        <img src="/logo.jpeg" alt="dazla." className="h-8 w-auto object-contain" />
                     </Link>
                     <button
                         onClick={() => setIsMobileOpen(false)}
-                        className="p-2 hover:bg-accent rounded-lg transition-colors cursor-pointer"
+                        className="p-2 hover:bg-accent/60 rounded-xl transition-all duration-200 cursor-pointer group"
                     >
-                        <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -264,55 +303,45 @@ export function Sidebar({
 
                 {/* Plan Badge (mobile) */}
                 {planName && planName !== "Starter" && (
-                    <div className="px-5 py-2 border-b border-border">
+                    <div className="px-5 py-2.5 border-b border-border/50">
                         <PlanBadgeCompact planName={planName} />
                     </div>
                 )}
 
-                {/* Mobile Nav */}
-                <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-                    {links.map((link) => {
-                        const isActive = pathname === link.href;
-                        return (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                onClick={() => setIsMobileOpen(false)}
-                                className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative",
-                                    isActive
-                                        ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                )}
-                            >
-                                {isActive && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
-                                )}
-                                <span className="flex-shrink-0">{link.icon}</span>
-                                <span>{link.label}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
+                {navContent(true)}
+
+                {/* Bottom decoration */}
+                <div className="px-4 py-4 border-t border-border/50">
+                    <div className={cn(
+                        "rounded-xl bg-gradient-to-r p-3 text-white text-center",
+                        accentConfig.gradient
+                    )}>
+                        <p className="text-xs font-semibold opacity-90 capitalize">{role} Portal</p>
+                        <p className="text-[10px] opacity-70 mt-0.5">Global Admissions Platform</p>
+                    </div>
+                </div>
             </aside>
 
-            {/* Desktop Sidebar — full height */}
+            {/* ── Desktop Sidebar ── */}
             <aside
                 className={cn(
-                    "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 bg-card border-r border-border transition-all duration-300 z-40",
+                    "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 bg-card/80 backdrop-blur-xl border-r border-border/50 transition-all duration-300 ease-out z-40",
                     isCollapsed ? "md:w-[72px]" : "md:w-[260px]"
                 )}
             >
-                {/* Logo Section — matches navbar height */}
+                {/* Logo Section */}
                 <div className={cn(
-                    "h-16 flex items-center border-b border-border flex-shrink-0",
+                    "h-16 flex items-center flex-shrink-0 transition-all duration-300",
                     isCollapsed ? "justify-center px-2" : "px-5"
                 )}>
-                    <Link href={`/${role}`} className="flex items-center gap-3">
+                    <Link href={`/${role}`} className="flex items-center gap-3 group">
                         <img
                             src="/logo.jpeg"
                             alt="dazla."
-                            className={isCollapsed ? "h-7 w-auto object-contain" : "h-8 w-auto object-contain"}
+                            className={cn(
+                                "object-contain transition-all duration-300 group-hover:scale-105",
+                                isCollapsed ? "h-7 w-auto" : "h-8 w-auto"
+                            )}
                         />
                     </Link>
                 </div>
@@ -320,57 +349,40 @@ export function Sidebar({
                 {/* Plan Badge (desktop) */}
                 {planName && planName !== "Starter" && (
                     <div className={cn(
-                        "border-b border-border flex-shrink-0",
-                        isCollapsed ? "flex justify-center py-2" : "px-4 py-2"
+                        "border-b border-border/50 flex-shrink-0 transition-all duration-300",
+                        isCollapsed ? "flex justify-center py-2" : "px-4 py-2.5"
                     )}>
                         <PlanBadgeCompact planName={planName} collapsed={isCollapsed} />
                     </div>
                 )}
 
                 {/* Navigation */}
-                <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-                    {links.map((link) => {
-                        const isActive = pathname === link.href;
-                        return (
-                            <Tooltip key={link.href} title={isCollapsed ? link.label : ""} placement="right">
-                                <Link
-                                    href={link.href}
-                                    className={cn(
-                                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative",
-                                        isActive
-                                            ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                                        isCollapsed && "justify-center px-2"
-                                    )}
-                                >
-                                    {isActive && (
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
-                                    )}
-                                    <span className="flex-shrink-0">{link.icon}</span>
-                                    {!isCollapsed && <span>{link.label}</span>}
-                                </Link>
-                            </Tooltip>
-                        );
-                    })}
-                </nav>
+                {navContent(false)}
 
-                {/* Collapse Button — positioned on sidebar edge */}
-                <Tooltip title={isCollapsed ? "Expand" : "Collapse"} placement="right">
-                    <button
-                        onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="absolute right-0 translate-x-1/2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:shadow-md hover:bg-accent transition-all z-50 cursor-pointer"
-                    >
-                        {isCollapsed
-                            ? <RightOutlined style={{ fontSize: 10 }} />
-                            : <LeftOutlined style={{ fontSize: 10 }} />
-                        }
-                    </button>
-                </Tooltip>
+                {/* Bottom info card — collapsed shows icon only */}
+                {!isCollapsed && (
+                    <div className="px-3 py-3 border-t border-border/50 flex-shrink-0">
+                        <div className={cn(
+                            "rounded-xl bg-gradient-to-br p-3.5 text-white relative overflow-hidden",
+                            accentConfig.gradient
+                        )}>
+                            {/* Background decoration */}
+                            <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 -translate-y-1/2 translate-x-1/2" />
+                            <div className="absolute bottom-0 left-0 w-10 h-10 rounded-full bg-white/10 translate-y-1/2 -translate-x-1/2" />
+                            <p className="text-xs font-bold capitalize relative z-10">{role} Portal</p>
+                            <p className="text-[10px] opacity-75 mt-0.5 relative z-10">Global Admissions Platform</p>
+                        </div>
+                    </div>
+                )}
+
             </aside>
         </>
     );
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD LAYOUT — wraps sidebar + content
+   ═══════════════════════════════════════════════════════════════════ */
 export function DashboardLayout({
     role,
     children,
