@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -45,7 +46,11 @@ function getMissingFields(inst: Institution): string[] {
 export default function AdminInstitutionsPage() {
     const { fetchWithAuth } = useApi();
     const [institutions, setInstitutions] = useState<Institution[]>([]);
-    const [filter, setFilter] = useState("all");
+    const searchParams = useSearchParams();
+    const [filter, setFilter] = useState(() => {
+        const urlStatus = searchParams.get("status");
+        return urlStatus && ["all", "pending", "approved", "rejected", "cancelled"].includes(urlStatus) ? urlStatus : "all";
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);

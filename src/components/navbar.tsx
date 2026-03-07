@@ -513,7 +513,7 @@ export function Navbar() {
                                     <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
                                     {user.role} account
                                 </p>
-                                <PlanBadge planName={planName} size="sm" />
+                                {role === "institution" && <PlanBadge planName={planName} size="sm" />}
                             </div>
                         </div>
                     </div>

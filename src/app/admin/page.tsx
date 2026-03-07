@@ -409,7 +409,7 @@ export default function AdminDashboard() {
                                         <span className="text-sm text-red-700 dark:text-red-300">
                                             <strong>{analytics.pendingPayments}</strong> payment{analytics.pendingPayments !== 1 ? "s" : ""} pending verification
                                         </span>
-                                        <Link href="/admin/payments">
+                                        <Link href="/admin/payments?status=pending">
                                             <button className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded-md transition-colors cursor-pointer">
                                                 Review Now →
                                             </button>
@@ -449,39 +449,44 @@ export default function AdminDashboard() {
             {/* ── ROW 2: Stat Cards Row 2 ────────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
-                    { title: "Total Applications", value: analytics.totalApplications, color: "#6366f1", badge: "+22%", positive: true },
+                    { title: "Total Applications", value: analytics.totalApplications, color: "#6366f1", badge: "+22%", positive: true, link: "/admin/applications" },
                     {
                         title: "Pending Approvals", value: analytics.pendingInstitutions, color: "#f59e0b", badge: "Action needed", positive: false,
-                        highlight: analytics.pendingInstitutions > 0 ? "border-amber-300 dark:border-amber-700 bg-amber-500/10" : ""
+                        highlight: analytics.pendingInstitutions > 0 ? "border-amber-300 dark:border-amber-700 bg-amber-500/10" : "",
+                        link: "/admin/institutions?status=pending"
                     },
                     {
                         title: "Pending Payments", value: analytics.pendingPayments, color: "#3b82f6", badge: "Review",
                         positive: false,
-                        highlight: analytics.pendingPayments > 0 ? "border-blue-300 dark:border-blue-700 bg-blue-500/10" : ""
+                        highlight: analytics.pendingPayments > 0 ? "border-blue-300 dark:border-blue-700 bg-blue-500/10" : "",
+                        link: "/admin/payments?status=pending"
                     },
                     {
                         title: "Total Revenue", value: analytics.totalRevenue, color: "#10b981", badge: "+15%", positive: true,
                         highlight: "border-emerald-300 dark:border-emerald-700 bg-emerald-500/10",
-                        prefix: "PKR "
+                        prefix: "PKR ",
+                        link: "/admin/payments"
                     },
                 ].map((item) => (
-                    <div key={item.title} className={`border rounded-xl p-5 hover:shadow-md transition-all ${item.highlight || "bg-card"}`}>
-                        <p className="text-sm font-medium text-muted-foreground mb-3">{item.title}</p>
-                        <div className="flex items-end justify-between">
-                            <div>
-                                <p className="text-2xl font-bold">
-                                    {item.prefix || ""}{typeof item.value === "number" ? item.value.toLocaleString() : item.value}
-                                </p>
-                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
-                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                    }`}>
-                                    {item.badge}
-                                </span>
+                    <Link key={item.title} href={item.link || "#"} className="block">
+                        <div className={`border rounded-xl p-5 hover:shadow-md transition-all cursor-pointer ${item.highlight || "bg-card"}`}>
+                            <p className="text-sm font-medium text-muted-foreground mb-3">{item.title}</p>
+                            <div className="flex items-end justify-between">
+                                <div>
+                                    <p className="text-2xl font-bold">
+                                        {item.prefix || ""}{typeof item.value === "number" ? item.value.toLocaleString() : item.value}
+                                    </p>
+                                    <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
+                                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                        : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                        }`}>
+                                        {item.badge}
+                                    </span>
+                                </div>
+                                <Sparkline color={item.color} />
                             </div>
-                            <Sparkline color={item.color} />
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
 
@@ -612,20 +617,22 @@ export default function AdminDashboard() {
                                 const cfg = STATUS_CONFIG[status] || { color: "text-muted-foreground", bg: "bg-muted border", label: status };
                                 const pct = Math.round((count / totalApps) * 100);
                                 return (
-                                    <div key={status} className="flex items-center justify-between py-2.5 border-b last:border-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-current opacity-60" style={{
-                                                color: status === "accepted" ? "#10b981" : status === "submitted" ? "#3b82f6" : status === "rejected" ? "#ef4444" : status === "viewed" ? "#8b5cf6" : "#6b7280"
-                                            }}></div>
-                                            <span className="text-sm font-medium capitalize">{cfg.label}</span>
+                                    <Link key={status} href={`/admin/applications?status=${status}`} className="block">
+                                        <div className="flex items-center justify-between py-2.5 border-b last:border-0 hover:bg-accent/30 px-2 -mx-2 rounded-md cursor-pointer transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-current opacity-60" style={{
+                                                    color: status === "accepted" ? "#10b981" : status === "submitted" ? "#3b82f6" : status === "rejected" ? "#ef4444" : status === "viewed" ? "#8b5cf6" : "#6b7280"
+                                                }}></div>
+                                                <span className="text-sm font-medium capitalize">{cfg.label}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold">{count}</span>
+                                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+                                                    {pct}%
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-bold">{count}</span>
-                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
-                                                {pct}%
-                                            </span>
-                                        </div>
-                                    </div>
+                                    </Link>
                                 );
                             })
                         )}
@@ -665,24 +672,28 @@ export default function AdminDashboard() {
                 <div className="bg-card border rounded-xl p-6">
                     <h2 className="text-base font-semibold mb-4">Platform Health</h2>
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span className="text-sm">Pending Approvals</span>
+                        <Link href="/admin/institutions?status=pending" className="block">
+                            <div className="flex items-center justify-between hover:bg-accent/30 px-2 -mx-2 py-1 rounded-md cursor-pointer transition-colors">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="text-sm">Pending Approvals</span>
+                                </div>
+                                <span className={`text-sm font-bold ${analytics.pendingInstitutions > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                    {analytics.pendingInstitutions}
+                                </span>
                             </div>
-                            <span className={`text-sm font-bold ${analytics.pendingInstitutions > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                                {analytics.pendingInstitutions}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                <span className="text-sm">Pending Payments</span>
+                        </Link>
+                        <Link href="/admin/payments?status=pending" className="block">
+                            <div className="flex items-center justify-between hover:bg-accent/30 px-2 -mx-2 py-1 rounded-md cursor-pointer transition-colors">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                    <span className="text-sm">Pending Payments</span>
+                                </div>
+                                <span className={`text-sm font-bold ${analytics.pendingPayments > 0 ? "text-blue-600 dark:text-blue-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                    {analytics.pendingPayments}
+                                </span>
                             </div>
-                            <span className={`text-sm font-bold ${analytics.pendingPayments > 0 ? "text-blue-600 dark:text-blue-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                                {analytics.pendingPayments}
-                            </span>
-                        </div>
+                        </Link>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>

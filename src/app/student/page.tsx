@@ -289,6 +289,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { message } from "antd";
 import { useAuthStore } from "@/store/auth-store";
+import {
+    StatsCardWithSparkline,
+    OverviewAreaChart,
+    StatusDonutChart,
+    MonthlyGoalsCard,
+    buildMonthlyData,
+    buildDailySparkline,
+} from "@/components/dashboard-charts";
 
 interface Program {
     id: number;
@@ -314,69 +322,27 @@ interface Application {
     };
 }
 
-// ── Sparkline Bar Chart ──────────────────────────────────────────────────────
-function Sparkline({ color }: { color: string }) {
-    const bars = [35, 60, 45, 75, 50, 85, 60, 80, 45, 90, 70, 100];
-    return (
-        <svg width="80" height="36" viewBox="0 0 80 36" fill="none">
-            {bars.map((h, i) => (
-                <rect
-                    key={i}
-                    x={i * 7}
-                    y={36 - h * 0.34}
-                    width="5"
-                    height={h * 0.34}
-                    rx="1.5"
-                    fill={color}
-                    opacity={0.3 + (i / bars.length) * 0.7}
-                />
-            ))}
-        </svg>
-    );
-}
-
-// ── Ring / Donut Chart ───────────────────────────────────────────────────────
-function RingChart({ percent, color, label }: { percent: number; color: string; label: string }) {
-    const r = 28, cx = 36, cy = 36, circ = 2 * Math.PI * r;
-    const dash = (Math.min(percent, 100) / 100) * circ;
-    return (
-        <div className="flex flex-col items-center gap-1.5">
-            <svg width="72" height="72" viewBox="0 0 72 72">
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke="currentColor" strokeOpacity="0.08" strokeWidth="6" />
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="6"
-                    strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-                    transform={`rotate(-90 ${cx} ${cy})`} />
-                <text x={cx} y={cy + 5} textAnchor="middle" fontSize="11" fontWeight="600" fill="currentColor">{percent}%</text>
-            </svg>
-            <span className="text-xs text-muted-foreground text-center leading-tight">{label}</span>
-        </div>
-    );
-}
-
-// ── Progress Row ─────────────────────────────────────────────────────────────
-function ProgressRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-    const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-    return (
-        <div className="mb-4 last:mb-0">
-            <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-semibold">{value}</span>
-                <span className="text-xs text-muted-foreground">{pct}%</span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-1.5">{label}</p>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
-            </div>
-        </div>
-    );
-}
-
-const STATUS_CONFIG: Record<string, { color: string; dot: string }> = {
-    submitted: { color: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800", dot: "bg-blue-500" },
-    viewed: { color: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800", dot: "bg-purple-500" },
-    accepted: { color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800", dot: "bg-emerald-500" },
-    rejected: { color: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800", dot: "bg-red-500" },
-    withdrawn: { color: "bg-muted text-muted-foreground border", dot: "bg-muted-foreground" },
-};
+// Status icons for stat cards
+const AppIcon = () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+);
+const CheckIcon = () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+const ClockIcon = () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+const TrendIcon = () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+);
 
 // SVG Icons
 const SearchIcon = () => (
@@ -508,111 +474,95 @@ export default function StudentDashboard() {
                 </div>
             </div>
 
-            {/* ── ROW 1: Stat Cards with Sparklines ──────────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {[
-                    { title: "Total Applications", value: totalApps, sub: "all submissions", color: "#3b82f6", badge: `${totalApps} total`, positive: true },
-                    { title: "Accepted", value: acceptedApps, sub: "successful applications", color: "#10b981", badge: `${acceptedPct}%`, positive: true },
-                    { title: "Pending Review", value: pendingApps, sub: "awaiting decision", color: "#f59e0b", badge: `${pendingPct}%`, positive: false },
-                    { title: "Programs Available", value: programs.length, sub: "discover more", color: "#6366f1", badge: "Explore", positive: true },
-                ].map((item) => (
-                    <div key={item.title} className="bg-card border rounded-xl p-5 hover:shadow-md transition-all">
-                        <p className="text-sm font-medium text-muted-foreground mb-3">{item.title}</p>
-                        <div className="flex items-end justify-between">
-                            <div>
-                                <p className="text-3xl font-bold">{item.value}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>
-                                <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${item.positive
-                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                    }`}>
-                                    {item.badge}
-                                </span>
-                            </div>
-                            <Sparkline color={item.color} />
-                        </div>
-                    </div>
-                ))}
+            {/* ── ROW 1: Stat Cards with Sparklines ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <StatsCardWithSparkline
+                    title="Total Applications"
+                    value={totalApps}
+                    subtitle="all submissions"
+                    color="#3b82f6"
+                    sparklineData={buildDailySparkline(applications.map(a => a.created_at))}
+                    icon={<AppIcon />}
+                />
+                <StatsCardWithSparkline
+                    title="Accepted"
+                    value={acceptedApps}
+                    subtitle="successful applications"
+                    color="#10b981"
+                    sparklineData={buildDailySparkline(applications.filter(a => a.status === "accepted").map(a => a.created_at))}
+                    icon={<CheckIcon />}
+                />
+                <StatsCardWithSparkline
+                    title="Pending Review"
+                    value={pendingApps}
+                    subtitle="awaiting decision"
+                    color="#f59e0b"
+                    sparklineData={buildDailySparkline(applications.filter(a => a.status === "submitted").map(a => a.created_at))}
+                    icon={<ClockIcon />}
+                />
+                <StatsCardWithSparkline
+                    title="Success Rate"
+                    value={`${acceptedPct}%`}
+                    subtitle={`${acceptedApps} of ${totalApps} applications`}
+                    color="#6366f1"
+                    icon={<TrendIcon />}
+                />
             </div>
 
-            {/* ── ROW 2: Application Status Breakdown + Ring Charts ──────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                {/* Left: Progress Bars */}
-                <div className="lg:col-span-2 bg-card border rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h2 className="text-base font-semibold">Application Progress</h2>
-                            <p className="text-xs text-muted-foreground mt-0.5">Track your application journey</p>
-                        </div>
-                        <Link href="/student/applications">
-                            <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
-                                View All
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </Button>
-                        </Link>
-                    </div>
-                    <div className="space-y-5">
-                        <ProgressRow label="Total Applications Submitted" value={totalApps} max={Math.max(totalApps, programs.length, 10)} color="#3b82f6" />
-                        <ProgressRow label="Applications Accepted" value={acceptedApps} max={totalApps || 1} color="#10b981" />
-                        <ProgressRow label="Under Review" value={viewedApps} max={totalApps || 1} color="#8b5cf6" />
-                        <ProgressRow label="Awaiting Response" value={pendingApps} max={totalApps || 1} color="#f59e0b" />
-                    </div>
-
-                    <div className="mt-6 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {[
-                            { label: "Submitted", val: totalApps, color: "#3b82f6" },
-                            { label: "Accepted", val: acceptedApps, color: "#10b981" },
-                            { label: "Pending", val: pendingApps, color: "#f59e0b" },
-                            { label: "Reviewed", val: reviewedPct + "%", color: "#8b5cf6" },
-                        ].map(s => (
-                            <div key={s.label} className="text-center">
-                                <p className="text-lg font-bold" style={{ color: s.color }}>{s.val}</p>
-                                <p className="text-xs text-muted-foreground">{s.label}</p>
-                            </div>
-                        ))}
-                    </div>
+            {/* ── ROW 2: Area Chart + Status Donut ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div className="lg:col-span-2">
+                    <OverviewAreaChart
+                        title="Application Activity"
+                        subtitle="Your applications per month"
+                        data={buildMonthlyData(applications.map(a => a.created_at))}
+                        color="#3b82f6"
+                    />
                 </div>
-
-                {/* Right: Status List + Ring Charts */}
-                <div className="bg-card border rounded-xl p-6 flex flex-col justify-between">
-                    <div>
-                        <h2 className="text-base font-semibold mb-5">Status Breakdown</h2>
-                        <div className="space-y-3">
-                            {Object.keys(STATUS_CONFIG).map((status) => {
-                                const count = statusCounts[status] || 0;
-                                const pct = totalApps > 0 ? Math.round((count / totalApps) * 100) : 0;
-                                const cfg = STATUS_CONFIG[status];
-                                return (
-                                    <div key={status} className="flex items-center justify-between py-2 border-b last:border-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full ${cfg.dot}`}></span>
-                                            <span className="text-sm capitalize">{status}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-bold">{count}</span>
-                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.color}`}>{pct}%</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Ring Charts */}
-                    <div className="mt-5 pt-4 border-t">
-                        <div className="flex items-center justify-around">
-                            <RingChart percent={acceptedPct} color="#10b981" label="Accepted" />
-                            <RingChart percent={pendingPct} color="#f59e0b" label="Pending" />
-                            <RingChart percent={reviewedPct} color="#6366f1" label="Reviewed" />
-                        </div>
-                    </div>
-                </div>
+                <StatusDonutChart
+                    title="Status Breakdown"
+                    subtitle="Where your applications stand"
+                    centerLabel="Apps"
+                    centerValue={totalApps}
+                    data={[
+                        { name: "Submitted", value: pendingApps, color: "#3b82f6" },
+                        { name: "Viewed", value: viewedApps, color: "#8b5cf6" },
+                        { name: "Accepted", value: acceptedApps, color: "#10b981" },
+                        { name: "Rejected", value: rejectedApps, color: "#ef4444" },
+                    ]}
+                />
             </div>
 
-            {/* ── ROW 3: Explore Programs Grid ───────────────────────────────────── */}
-            {/* <div className="flex items-center justify-between mb-5">
+            {/* ── ROW 3: Goals + Application Table ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <MonthlyGoalsCard
+                    title="Application Goals"
+                    subtitle="Track your progress"
+                    goals={[
+                        {
+                            label: "Applications Reviewed",
+                            current: totalApps - pendingApps,
+                            target: Math.max(totalApps, 1),
+                            color: "#8b5cf6",
+                        },
+                        {
+                            label: "Acceptance Rate",
+                            current: acceptedApps,
+                            target: Math.max(totalApps, 1),
+                            color: "#10b981",
+                        },
+                        {
+                            label: "Programs Explored",
+                            current: programs.length,
+                            target: Math.max(programs.length + 5, 20),
+                            color: "#3b82f6",
+                        },
+                    ]}
+                />
+
+
+                {/* ── ROW 3: Explore Programs Grid ───────────────────────────────────── */}
+                {/* <div className="flex items-center justify-between mb-5">
                 <div>
                     <h2 className="text-xl font-bold">Explore Programs</h2>
                     <p className="text-sm text-muted-foreground mt-0.5">Discover and apply to programs</p>
@@ -679,62 +629,63 @@ export default function StudentDashboard() {
                 ))}
             </div> */}
 
-            {/* ── ROW 4: Application Status Table ────────────────────────────────── */}
-            <Card>
-                <CardHeader className="border-b pb-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Application Status</CardTitle>
-                            <p className="text-sm text-muted-foreground mt-0.5">Track all your applications</p>
-                        </div>
-                        <Link href="/student/applications">
-                            <Button variant="outline" size="sm" className="text-blue-600 dark:text-blue-400">
-                                View All
-                            </Button>
-                        </Link>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    {applications.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                                <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
+                {/* ── ROW 4: Application Status Table ────────────────────────────────── */}
+                <Card>
+                    <CardHeader className="border-b pb-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Application Status</CardTitle>
+                                <p className="text-sm text-muted-foreground mt-0.5">Track all your applications</p>
                             </div>
-                            <p className="font-medium mb-1">No applications yet</p>
-                            <p className="text-sm text-muted-foreground">
-                                Browse programs above and submit your first application!
-                            </p>
+                            <Link href="/student/applications">
+                                <Button variant="outline" size="sm" className="text-blue-600 dark:text-blue-400">
+                                    View All
+                                </Button>
+                            </Link>
                         </div>
-                    ) : (
-                        <div className="overflow-x-auto -mx-6">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="bg-muted/50">
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Program</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Institution</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {applications.map((app) => (
-                                        <tr key={app.id} className="hover:bg-accent/50 transition-colors">
-                                            <td className="px-6 py-4 text-sm font-medium">{app.program.title}</td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">{app.program.institution.name}</td>
-                                            <td className="px-6 py-4"><StatusBadge status={app.status} /></td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
-                                                {new Date(app.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                                            </td>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        {applications.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                                    <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <p className="font-medium mb-1">No applications yet</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Browse programs above and submit your first application!
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto -mx-6">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="bg-muted/50">
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Program</th>
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Institution</th>
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {applications.map((app) => (
+                                            <tr key={app.id} className="hover:bg-accent/50 transition-colors">
+                                                <td className="px-6 py-4 text-sm font-medium">{app.program.title}</td>
+                                                <td className="px-6 py-4 text-sm text-muted-foreground">{app.program.institution.name}</td>
+                                                <td className="px-6 py-4"><StatusBadge status={app.status} /></td>
+                                                <td className="px-6 py-4 text-sm text-muted-foreground">
+                                                    {new Date(app.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </DashboardLayout>
     );
 }

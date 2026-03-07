@@ -258,6 +258,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlanBadge } from "@/components/plan-badge";
+import {
+    StatsCardWithSparkline,
+    OverviewAreaChart,
+    StatusDonutChart,
+    MonthlyGoalsCard,
+    buildMonthlyData,
+    buildDailySparkline,
+} from "@/components/dashboard-charts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { message } from "antd";
@@ -651,172 +659,197 @@ export default function InstitutionDashboard() {
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* ── Stats Cards with Sparklines ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-card rounded-xl border py-5 px-5 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-sm font-medium text-muted-foreground">Active Programs</p>
-                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                            <BookIcon />
-                        </div>
-                    </div>
-                    <p className="text-3xl font-bold">{programs.filter((p) => p.is_active).length}</p>
-                    <p className="text-xs text-muted-foreground mt-1">of {programs.length} total programs</p>
-                </div>
-
-                <div className="bg-card rounded-xl border py-5 px-5 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-sm font-medium text-muted-foreground">New Applications</p>
-                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                            <InboxIcon />
-                        </div>
-                    </div>
-                    <p className="text-3xl font-bold">{newApps}</p>
-                    <p className="text-xs text-muted-foreground mt-1">awaiting your review</p>
-                </div>
-
-                <div className={`rounded-xl border py-5 px-5 hover:shadow-md transition-all ${currentPlan === "Featured"
-                    ? "bg-amber-500/10 border-amber-300 dark:border-amber-700"
-                    : "bg-card"
-                    }`}>
-                    <div className="flex items-center justify-between mb-4">
-                        <p className={`text-sm font-medium ${currentPlan === "Featured" ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
-                            Current Plan
-                        </p>
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${currentPlan === "Featured"
-                            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                            : "bg-muted text-muted-foreground"
-                            }`}>
-                            <StarIcon />
-                        </div>
-                    </div>
-                    <p className={`text-3xl font-bold ${currentPlan === "Featured" ? "text-amber-700 dark:text-amber-300" : ""}`}>
-                        {currentPlan}
-                    </p>
-                    <Link href="/institution/billing">
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 hover:underline cursor-pointer">
-                            {currentPlan === "Featured" ? "Manage plan →" : "Upgrade plan →"}
-                        </p>
-                    </Link>
-                </div>
-
-                <div className="bg-card rounded-xl border py-5 px-5 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                            <UsersIcon />
-                        </div>
-                    </div>
-                    <p className="text-3xl font-bold">{totalLeads}</p>
-                    <p className="text-xs text-muted-foreground mt-1">total applicants</p>
-                </div>
+                <StatsCardWithSparkline
+                    title="Active Programs"
+                    value={programs.filter((p) => p.is_active).length}
+                    subtitle={`of ${programs.length} total programs`}
+                    color="#3b82f6"
+                    sparklineData={programs.map(p => p._count.applications)}
+                    icon={<BookIcon />}
+                />
+                <StatsCardWithSparkline
+                    title="New Applications"
+                    value={newApps}
+                    subtitle="awaiting your review"
+                    color="#6366f1"
+                    sparklineData={buildDailySparkline(filteredApplications.filter(a => a.status === "submitted").map(a => a.created_at))}
+                    icon={<InboxIcon />}
+                />
+                <StatsCardWithSparkline
+                    title="Current Plan"
+                    value={currentPlan}
+                    subtitle={currentPlan === "Featured" ? "Manage plan →" : "Upgrade plan →"}
+                    color={currentPlan === "Featured" ? "#f59e0b" : "#8b5cf6"}
+                    icon={<StarIcon />}
+                />
+                <StatsCardWithSparkline
+                    title="Total Leads"
+                    value={totalLeads}
+                    subtitle="total applicants"
+                    color="#10b981"
+                    sparklineData={buildDailySparkline(filteredApplications.map(a => a.created_at))}
+                    icon={<UsersIcon />}
+                />
             </div>
 
-            {/* Applications Overview */}
-            <Card className="mb-8">
-                <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-                    <div>
-                        <CardTitle>Applications Overview</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-0.5">Recent student applications</p>
-                    </div>
-                    <Link href="/institution/applications">
-                        <Button variant="outline" size="sm" className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                            View All
-                            <ArrowRightIcon />
-                        </Button>
-                    </Link>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    {filteredApplications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3 text-muted-foreground">
-                                <InboxIcon />
-                            </div>
-                            <p className="font-medium">No applications yet</p>
-                            <p className="text-muted-foreground text-sm mt-1">Applications will appear here once students apply</p>
+            {/* ── Charts Row: Area Chart + Donut ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div className="lg:col-span-2">
+                    <OverviewAreaChart
+                        title="Overview"
+                        subtitle="Applications received per month"
+                        data={buildMonthlyData(filteredApplications.map(a => a.created_at))}
+                        color="#3b82f6"
+                    />
+                </div>
+                <StatusDonutChart
+                    title="Application Status"
+                    subtitle="Breakdown by status"
+                    centerLabel="Total"
+                    centerValue={totalLeads}
+                    data={[
+                        { name: "Submitted", value: filteredApplications.filter(a => a.status === "submitted").length, color: "#3b82f6" },
+                        { name: "Viewed", value: filteredApplications.filter(a => a.status === "viewed").length, color: "#8b5cf6" },
+                        { name: "Accepted", value: filteredApplications.filter(a => a.status === "accepted").length, color: "#10b981" },
+                        { name: "Rejected", value: filteredApplications.filter(a => a.status === "rejected").length, color: "#ef4444" },
+                    ]}
+                />
+            </div>
+
+            {/* ── Goals + Recent Applications Row ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <MonthlyGoalsCard
+                    title="Goals & Utilization"
+                    subtitle="Track your progress"
+                    goals={[
+                        {
+                            label: "Program Slots Used",
+                            current: programs.filter(p => p.is_active).length,
+                            target: currentPlan === "Featured" ? Math.max(programs.filter(p => p.is_active).length + 5, 30) : currentPlan === "Pro" ? 22 : currentPlan === "Growth" ? 12 : 2,
+                            color: "#3b82f6",
+                        },
+                        {
+                            label: "Acceptance Rate",
+                            current: filteredApplications.filter(a => a.status === "accepted").length,
+                            target: Math.max(totalLeads, 1),
+                            color: "#10b981",
+                        },
+                        {
+                            label: "Applications Reviewed",
+                            current: filteredApplications.filter(a => a.status !== "submitted").length,
+                            target: Math.max(totalLeads, 1),
+                            color: "#8b5cf6",
+                        },
+                    ]}
+                />
+
+                <Card className="mb-8">
+                    <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                        <div>
+                            <CardTitle>Applications Overview</CardTitle>
+                            <p className="text-sm text-muted-foreground mt-0.5">Recent student applications</p>
                         </div>
-                    ) : (
-                        <div className="overflow-x-auto -mx-6">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="bg-muted/50">
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Applicant</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Program</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {filteredApplications.slice(0, 5).map((app) => (
-                                        <tr key={app.id} className="hover:bg-accent/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
-                                                        {(app.student.full_name || app.student.user.email || "?")[0].toUpperCase()}
+                        <Link href="/institution/applications">
+                            <Button variant="outline" size="sm" className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                                View All
+                                <ArrowRightIcon />
+                            </Button>
+                        </Link>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        {filteredApplications.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3 text-muted-foreground">
+                                    <InboxIcon />
+                                </div>
+                                <p className="font-medium">No applications yet</p>
+                                <p className="text-muted-foreground text-sm mt-1">Applications will appear here once students apply</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto -mx-6">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="bg-muted/50">
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Applicant</th>
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Program</th>
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                                            <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {filteredApplications.slice(0, 5).map((app) => (
+                                            <tr key={app.id} className="hover:bg-accent/50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
+                                                            {(app.student.full_name || app.student.user.email || "?")[0].toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium">
+                                                                {app.student.full_name || app.student.user.email || "Unknown"}
+                                                            </p>
+                                                            {app.student.full_name && (
+                                                                <p className="text-xs text-muted-foreground">{app.student.user.email}</p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium">
-                                                            {app.student.full_name || app.student.user.email || "Unknown"}
-                                                        </p>
-                                                        {app.student.full_name && (
-                                                            <p className="text-xs text-muted-foreground">{app.student.user.email}</p>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className="text-sm text-muted-foreground">{app.program.title}</p>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <StatusBadge status={app.status} />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        {app.status === "submitted" && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 px-3 flex items-center gap-1.5 text-xs"
+                                                                onClick={() => handleStatusUpdate(app.id, "viewed")}
+                                                                disabled={updatingStatus === `${app.id}_viewed`}
+                                                            >
+                                                                {updatingStatus === `${app.id}_viewed` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" /> : <EyeIcon />}
+                                                                {updatingStatus === `${app.id}_viewed` ? "Updating..." : "View"}
+                                                            </Button>
+                                                        )}
+                                                        {(app.status === "viewed" || app.status === "rejected") && (
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-8 px-3 flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
+                                                                onClick={() => handleStatusUpdate(app.id, "accepted")}
+                                                                disabled={updatingStatus === `${app.id}_accepted`}
+                                                            >
+                                                                {updatingStatus === `${app.id}_accepted` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <CheckIcon />}
+                                                                {updatingStatus === `${app.id}_accepted` ? "Accepting..." : "Accept"}
+                                                            </Button>
+                                                        )}
+                                                        {(app.status === "viewed" || app.status === "accepted") && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                className="h-8 px-3 flex items-center gap-1.5 text-xs"
+                                                                onClick={() => handleStatusUpdate(app.id, "rejected")}
+                                                                disabled={updatingStatus === `${app.id}_rejected`}
+                                                            >
+                                                                {updatingStatus === `${app.id}_rejected` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : null}
+                                                                {updatingStatus === `${app.id}_rejected` ? "Rejecting..." : "Reject"}
+                                                            </Button>
                                                         )}
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-sm text-muted-foreground">{app.program.title}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <StatusBadge status={app.status} />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    {app.status === "submitted" && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-8 px-3 flex items-center gap-1.5 text-xs"
-                                                            onClick={() => handleStatusUpdate(app.id, "viewed")}
-                                                            disabled={updatingStatus === `${app.id}_viewed`}
-                                                        >
-                                                            {updatingStatus === `${app.id}_viewed` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" /> : <EyeIcon />}
-                                                            {updatingStatus === `${app.id}_viewed` ? "Updating..." : "View"}
-                                                        </Button>
-                                                    )}
-                                                    {(app.status === "viewed" || app.status === "rejected") && (
-                                                        <Button
-                                                            size="sm"
-                                                            className="h-8 px-3 flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
-                                                            onClick={() => handleStatusUpdate(app.id, "accepted")}
-                                                            disabled={updatingStatus === `${app.id}_accepted`}
-                                                        >
-                                                            {updatingStatus === `${app.id}_accepted` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <CheckIcon />}
-                                                            {updatingStatus === `${app.id}_accepted` ? "Accepting..." : "Accept"}
-                                                        </Button>
-                                                    )}
-                                                    {(app.status === "viewed" || app.status === "accepted") && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            className="h-8 px-3 flex items-center gap-1.5 text-xs"
-                                                            onClick={() => handleStatusUpdate(app.id, "rejected")}
-                                                            disabled={updatingStatus === `${app.id}_rejected`}
-                                                        >
-                                                            {updatingStatus === `${app.id}_rejected` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : null}
-                                                            {updatingStatus === `${app.id}_rejected` ? "Rejecting..." : "Reject"}
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Manage Programs */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

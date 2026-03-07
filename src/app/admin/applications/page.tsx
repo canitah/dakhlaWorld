@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -24,7 +25,11 @@ interface Application {
 export default function AdminApplicationsPage() {
     const { fetchWithAuth } = useApi();
     const [applications, setApplications] = useState<Application[]>([]);
-    const [filter, setFilter] = useState("");
+    const searchParams = useSearchParams();
+    const [filter, setFilter] = useState(() => {
+        const urlStatus = searchParams.get("status");
+        return urlStatus && ["submitted", "viewed", "accepted", "rejected"].includes(urlStatus) ? urlStatus : "";
+    });
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(true);

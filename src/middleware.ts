@@ -11,12 +11,15 @@ const publicPaths = [
     "/login",
     "/signup",
     "/verify-otp",
+    "/forgot-password",
     "/institution-detail",
     "/api/auth/signup",
     "/api/auth/login",
     "/api/auth/send-otp",
     "/api/auth/verify-otp",
     "/api/auth/refresh",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
     "/api/institutions/public",
 ];
 

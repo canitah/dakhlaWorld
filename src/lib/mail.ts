@@ -327,3 +327,31 @@ export async function sendPlanRenewalReminderEmail(to: string, institutionName: 
         return false;
     }
 }
+
+export async function sendPasswordResetEmail(to: string, otp: string) {
+    try {
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM || "noreply@gap.pk",
+            to,
+            subject: "GAP - Password Reset Code",
+            html: emailWrapper(
+                "Password Reset",
+                `
+                <p style="color: #374151; font-size: 15px; margin-bottom: 16px;">
+                    We received a request to reset your password. Enter this verification code to set a new password:
+                </p>
+                <div style="background: #eff6ff; border: 2px solid #2563eb; border-radius: 12px; padding: 24px; text-align: center; margin: 20px 0;">
+                    <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #1e40af;">${otp}</span>
+                </div>
+                <p style="color: #6b7280; font-size: 13px; margin-top: 16px;">
+                    This code expires in <strong>10 minutes</strong>. If you didn't request this, you can safely ignore this email.
+                </p>
+                `
+            ),
+        });
+        return true;
+    } catch (error) {
+        console.error("Password reset email error:", error);
+        return false;
+    }
+}
