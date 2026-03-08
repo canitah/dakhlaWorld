@@ -188,7 +188,11 @@ export default function LoginPage() {
             // Redirect institutions with incomplete profiles to profile page
             if (data.user.role === "institution" && data.profileComplete === false) {
                 router.push("/institution/profile");
-            } else {
+            }
+            else if (data.user.role === "student") {
+    router.push("/student/explore");
+} 
+             else {
                 router.push(`/${data.user.role}`);
             }
         } catch {
