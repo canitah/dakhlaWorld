@@ -281,7 +281,7 @@ export default function HomePage() {
                 href="/signup?role=institution"
                 className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                Employers / Post Program
+                Institution / Post Program
               </Link>
               <div className="h-5 w-px bg-border hidden sm:block" />
               <Link

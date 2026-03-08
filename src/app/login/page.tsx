@@ -349,7 +349,7 @@ export default function LoginPage() {
                             </p>
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-border">
+                        {/* <div className="mt-6 pt-6 border-t border-border">
                             <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
                                 <Link href="/terms" className="hover:text-foreground hover:underline">
                                     Terms of Service
@@ -363,7 +363,7 @@ export default function LoginPage() {
                                     Help Center
                                 </Link>
                             </div>
-                        </div>
+                        </div> */}
                     </CardContent>
                 </Card>
 
