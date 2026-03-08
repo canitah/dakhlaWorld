@@ -8,6 +8,7 @@ import { useSidebar } from "@/store/sidebar-store";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useTheme } from "next-themes";
+import { ThemeLogo } from "@/components/theme-logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Avatar as AntAvatar, Badge, Breadcrumb, Dropdown, message } from "antd";
@@ -461,7 +462,7 @@ export function Navbar() {
                 <header className="sticky top-0 z-30 py-3 px-4 md:px-8 bg-background/60 backdrop-blur-md">
                     <div className="max-w-7xl mx-auto bg-card/90 backdrop-blur-xl border border-border rounded-full px-4 md:px-6 py-2.5 flex items-center justify-between shadow-sm">
                         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-                            <img src="/logo.jpeg" alt="dazla." className="h-8 w-auto object-contain" />
+                            <ThemeLogo className="h-12 w-auto object-contain" />
                         </Link>
                         <nav className="hidden md:flex items-center gap-1">
                             <span className="relative px-4 py-2 text-sm font-semibold tracking-wide uppercase text-blue-600 dark:text-blue-400">
@@ -555,14 +556,7 @@ export function Navbar() {
                     <div className="max-w-7xl mx-auto bg-card/90 backdrop-blur-xl border border-border rounded-full px-4 md:px-6 py-2.5 flex items-center justify-between shadow-sm">
                         {/* Logo — left */}
                         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-                            <Image
-                                src="/logo.jpeg"
-                                alt="dazla."
-                                width={120}
-                                height={40}
-                                className="h-8 w-auto object-contain"
-                                priority
-                            />
+                            <ThemeLogo className="h-12 w-auto object-contain" />
                         </Link>
 
                         {/* Nav links — centered (desktop only) */}
@@ -650,7 +644,7 @@ export function Navbar() {
                     {/* Drawer header — logo + close */}
                     <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                         <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
-                            <Image src="/logo.jpeg" alt="dazla." width={100} height={32} className="h-7 w-auto object-contain" />
+                            <ThemeLogo className="h-10 w-auto object-contain" />
                         </Link>
                         <button
                             onClick={() => setMobileMenuOpen(false)}

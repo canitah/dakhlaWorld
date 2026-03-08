@@ -21,14 +21,14 @@ interface PaymentRequest {
 export default function AdminPaymentsPage() {
     const { fetchWithAuth } = useApi();
     const [requests, setRequests] = useState<PaymentRequest[]>([]);
-    const [filter, setFilter] = useState("pending");
+    const [filter, setFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(true);
 
     // Read URL param on mount for deep linking
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const urlStatus = params.get("status");
-        if (urlStatus && ["pending", "approved", "rejected"].includes(urlStatus)) {
+        if (urlStatus && ["all", "pending", "approved", "rejected"].includes(urlStatus)) {
             setFilter(urlStatus);
         }
     }, []);
@@ -39,7 +39,7 @@ export default function AdminPaymentsPage() {
 
     async function loadRequests() {
         setIsLoading(true);
-        const res = await fetchWithAuth(`/admin/billing?status=${filter}`);
+        const res = await fetchWithAuth(`/admin/billing${filter !== "all" ? `?status=${filter}` : ""}`);
         if (res.ok) {
             const data = await res.json();
             setRequests(data.requests);
@@ -63,7 +63,7 @@ export default function AdminPaymentsPage() {
             <h1 className="text-2xl font-bold mb-6">Manage Payments</h1>
 
             <div className="flex gap-2 mb-6">
-                {["pending", "approved", "rejected"].map((s) => (
+                {["all", "pending", "approved", "rejected"].map((s) => (
                     <Button
                         key={s}
                         variant={filter === s ? "default" : "outline"}
@@ -99,9 +99,7 @@ export default function AdminPaymentsPage() {
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Screenshot</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
-                                        {filter === "pending" && (
-                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
-                                        )}
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -122,18 +120,20 @@ export default function AdminPaymentsPage() {
                                             <td className="py-3 text-sm text-muted-foreground">
                                                 {new Date(req.created_at).toLocaleDateString()}
                                             </td>
-                                            {filter === "pending" && (
-                                                <td className="py-3">
-                                                    <div className="flex gap-1">
+                                            <td className="py-3">
+                                                <div className="flex gap-1">
+                                                    {req.status !== "approved" && (
                                                         <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleVerify(req.id, "approved")}>
                                                             Approve
                                                         </Button>
+                                                    )}
+                                                    {req.status !== "rejected" && (
                                                         <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => handleVerify(req.id, "rejected")}>
                                                             Reject
                                                         </Button>
-                                                    </div>
-                                                </td>
-                                            )}
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

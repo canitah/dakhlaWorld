@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { ThemeLogo } from "@/components/theme-logo";
 import {
   Search,
   MapPin,
@@ -262,7 +263,7 @@ export default function HomePage() {
             {/* Left: Logo + nav */}
             <div className="flex items-center gap-4 sm:gap-6">
               <Link href="/" className="flex items-center gap-2 shrink-0">
-                <img src="/logo.jpeg" alt="dazla." className="h-7 sm:h-8 w-auto object-contain" />
+                <ThemeLogo className="h-10 sm:h-12 w-auto object-contain" />
               </Link>
               <nav className="hidden sm:flex items-center gap-1">
                 <Link
@@ -322,7 +323,7 @@ export default function HomePage() {
             {/* Sidebar header */}
             <div className="flex items-center justify-between h-14 px-4 border-b border-border">
               <Link href="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                <img src="/logo.jpeg" alt="dazla." className="h-7 w-auto object-contain" />
+                <ThemeLogo className="h-10 w-auto object-contain" />
               </Link>
               <button
                 className="p-1.5 rounded-md hover:bg-accent"
@@ -806,7 +807,7 @@ export default function HomePage() {
       <footer className="bg-card border-t border-border py-6 mt-auto">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="flex items-center gap-3">
-            <img src="/logo.jpeg" alt="dazla." className="h-6 w-auto object-contain" />
+            <ThemeLogo className="h-10 w-auto object-contain" />
             <span className="text-xs text-muted-foreground">© 2026 dakhla. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">

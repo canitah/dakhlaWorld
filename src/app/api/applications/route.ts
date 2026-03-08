@@ -30,6 +30,11 @@ export async function GET(request: Request) {
                         },
                     },
                 },
+                answers: {
+                    include: {
+                        question: { select: { question: true } },
+                    },
+                },
             },
             orderBy: { created_at: "desc" },
         });

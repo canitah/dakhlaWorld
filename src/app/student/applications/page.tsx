@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileText, Filter, X, CalendarDays } from "lucide-react";
+import { Search, FileText, Filter, X, CalendarDays, Eye } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Application {
     id: number;
@@ -20,6 +26,11 @@ interface Application {
         category: string | null;
         institution: { name: string; city: string | null };
     };
+    answers?: {
+        id: number;
+        answer: string;
+        question: { question: string };
+    }[];
 }
 
 export default function StudentApplicationsPage() {
@@ -31,13 +42,22 @@ export default function StudentApplicationsPage() {
     const [trackingResult, setTrackingResult] = useState<Application | null>(null);
     const [trackingError, setTrackingError] = useState<string | null>(null);
     const [isTracking, setIsTracking] = useState(false);
+    const [reviewApp, setReviewApp] = useState<Application | null>(null);
 
     // Highlight support from notification click
-    const searchParams = useSearchParams();
-    const highlightId = searchParams.get("highlight") ? parseInt(searchParams.get("highlight")!) : null;
-    const highlightProgram = searchParams.get("highlightProgram");
+    const [highlightId, setHighlightId] = useState<number | null>(null);
+    const [highlightProgram, setHighlightProgram] = useState<string | null>(null);
     const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
     const highlightRef = useRef<HTMLTableRowElement | null>(null);
+
+    // Read URL params on mount (avoids useSearchParams prerender error)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const h = params.get("highlight");
+        const hp = params.get("highlightProgram");
+        if (h) setHighlightId(parseInt(h));
+        if (hp) setHighlightProgram(hp);
+    }, []);
 
     // Filter states
     const [filterStatus, setFilterStatus] = useState("all");
@@ -175,7 +195,7 @@ export default function StudentApplicationsPage() {
                 <CardContent>
                     <div className="flex gap-3 items-center">
                         <Input
-                            placeholder="Enter application code (e.g., APP-12345678)"
+                            placeholder="Enter code (APP-XXXXXXXX) or program name"
                             value={trackingCode}
                             onChange={(e) => setTrackingCode(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleTrack()}
@@ -335,12 +355,13 @@ export default function StudentApplicationsPage() {
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Category</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Applied</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filtered.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                                            <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                                                 No applications match the selected filters.
                                             </td>
                                         </tr>
@@ -372,6 +393,15 @@ export default function StudentApplicationsPage() {
                                                 <td className="py-3 text-sm text-muted-foreground">
                                                     {new Date(app.created_at).toLocaleDateString()}
                                                 </td>
+                                                <td className="py-3">
+                                                    <button
+                                                        onClick={() => setReviewApp(app)}
+                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                                                    >
+                                                        <Eye className="size-3.5" />
+                                                        Review
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -381,6 +411,66 @@ export default function StudentApplicationsPage() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Review Dialog */}
+            <Dialog open={!!reviewApp} onOpenChange={(open) => !open && setReviewApp(null)}>
+                <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg">Application Review</DialogTitle>
+                    </DialogHeader>
+                    {reviewApp && (
+                        <div className="space-y-5">
+                            {/* Application Code & Status */}
+                            <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="text-xs font-mono">
+                                    {reviewApp.application_code}
+                                </Badge>
+                                <StatusBadge status={reviewApp.status} />
+                            </div>
+
+                            {/* Program Details */}
+                            <div className="p-4 rounded-lg border border-border bg-accent/30 space-y-2">
+                                <h4 className="text-sm font-semibold text-foreground">Program Details</h4>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground text-xs font-medium">Program</span>
+                                        <p className="text-foreground font-medium">{reviewApp.program.title}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground text-xs font-medium">Institution</span>
+                                        <p className="text-foreground">{reviewApp.program.institution.name}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground text-xs font-medium">Category</span>
+                                        <p className="text-foreground">{reviewApp.program.category || "—"}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground text-xs font-medium">Applied On</span>
+                                        <p className="text-foreground">{new Date(reviewApp.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Submitted Answers */}
+                            {reviewApp.answers && reviewApp.answers.length > 0 ? (
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-semibold text-foreground">Submitted Answers</h4>
+                                    {reviewApp.answers.map((a, idx) => (
+                                        <div key={a.id} className="p-3 rounded-lg border border-border bg-background">
+                                            <p className="text-xs font-semibold text-muted-foreground mb-1">Q{idx + 1}: {a.question.question}</p>
+                                            <p className="text-sm text-foreground whitespace-pre-wrap">{a.answer}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-4 rounded-lg border border-border bg-accent/30 text-center">
+                                    <p className="text-sm text-muted-foreground">No additional questions were required for this application.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

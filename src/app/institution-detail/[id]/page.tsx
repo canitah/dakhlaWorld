@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { ThemeLogo } from "@/components/theme-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -98,7 +99,7 @@ export default function PublicInstitutionDetailPage() {
                     <div className="flex items-center justify-between h-14">
                         <div className="flex items-center gap-4 sm:gap-6">
                             <Link href="/" className="flex items-center gap-2 shrink-0">
-                                <img src="/logo.jpeg" alt="dazla." className="h-7 sm:h-8 w-auto object-contain" />
+                                <ThemeLogo className="h-10 sm:h-12 w-auto object-contain" />
                             </Link>
                             <nav className="hidden sm:flex items-center gap-1">
                                 <Link href="/" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -135,7 +136,7 @@ export default function PublicInstitutionDetailPage() {
                     <div className="absolute top-0 left-0 h-full w-64 bg-card border-r border-border shadow-xl flex flex-col animate-in slide-in-from-left duration-200">
                         <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                             <Link href="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                                <img src="/logo.jpeg" alt="dazla." className="h-7 w-auto object-contain" />
+                                <ThemeLogo className="h-10 w-auto object-contain" />
                             </Link>
                             <button className="p-1.5 rounded-md hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                                 <X className="w-5 h-5" />
@@ -348,7 +349,7 @@ export default function PublicInstitutionDetailPage() {
             <footer className="bg-card border-t border-border py-6 mt-auto">
                 <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.jpeg" alt="dakhla." className="h-6 w-auto object-contain" />
+                        <ThemeLogo className="h-10 w-auto object-contain" />
                         <span className="text-xs text-muted-foreground">© 2026 dakhla. All rights reserved.</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">

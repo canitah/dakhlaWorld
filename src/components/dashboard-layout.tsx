@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useSidebar } from "@/store/sidebar-store";
+import { useTheme } from "next-themes";
 import { Tooltip } from "antd";
 import { PlanBadgeCompact } from "@/components/plan-badge";
+import { ThemeLogo } from "@/components/theme-logo";
 
 interface SidebarLink {
     label: string;
@@ -289,7 +291,7 @@ export function Sidebar({
                 {/* Mobile Header */}
                 <div className="h-16 flex items-center justify-between px-5 border-b border-border/50">
                     <Link href={`/${role}`} className="flex items-center gap-3">
-                        <img src="/logo.jpeg" alt="dazla." className="h-8 w-auto object-contain" />
+                        <ThemeLogo className="h-12 w-auto object-contain" />
                     </Link>
                     <button
                         onClick={() => setIsMobileOpen(false)}
@@ -335,12 +337,10 @@ export function Sidebar({
                     isCollapsed ? "justify-center px-2" : "px-5"
                 )}>
                     <Link href={`/${role}`} className="flex items-center gap-3 group">
-                        <img
-                            src="/logo.jpeg"
-                            alt="dazla."
+                        <ThemeLogo
                             className={cn(
                                 "object-contain transition-all duration-300 group-hover:scale-105",
-                                isCollapsed ? "h-7 w-auto" : "h-8 w-auto"
+                                isCollapsed ? "h-10 w-auto" : "h-12 w-auto"
                             )}
                         />
                     </Link>

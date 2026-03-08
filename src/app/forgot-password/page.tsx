@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { message } from "antd";
+import { ThemeLogo } from "@/components/theme-logo";
 
 /* ═══════════════════════════════════════════════════
    SVG Icons
@@ -187,7 +188,7 @@ export default function ForgotPasswordPage() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center mb-4">
-                        <img src="/logo.jpeg" alt="dazla." className="h-12 w-auto object-contain" />
+                        <ThemeLogo className="h-16 w-auto object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-foreground mb-2">
                         {step === "email" && "Forgot Password?"}
@@ -209,10 +210,10 @@ export default function ForgotPasswordPage() {
                         {steps.map((s, i) => (
                             <div key={s.label} className="flex items-center gap-2">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${i === stepIndex
-                                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 scale-110"
-                                        : s.done
-                                            ? "bg-emerald-500 text-white"
-                                            : "bg-muted text-muted-foreground"
+                                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 scale-110"
+                                    : s.done
+                                        ? "bg-emerald-500 text-white"
+                                        : "bg-muted text-muted-foreground"
                                     }`}>
                                     {s.done ? (
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -390,11 +391,11 @@ export default function ForgotPasswordPage() {
                                                     <div
                                                         key={level}
                                                         className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${level <= strength
-                                                                ? strength <= 1 ? "bg-red-500"
-                                                                    : strength === 2 ? "bg-amber-500"
-                                                                        : strength === 3 ? "bg-blue-500"
-                                                                            : "bg-emerald-500"
-                                                                : "bg-muted"
+                                                            ? strength <= 1 ? "bg-red-500"
+                                                                : strength === 2 ? "bg-amber-500"
+                                                                    : strength === 3 ? "bg-blue-500"
+                                                                        : "bg-emerald-500"
+                                                            : "bg-muted"
                                                             }`}
                                                     />
                                                 );

@@ -22,7 +22,11 @@ export async function GET(request: Request) {
             where: {
                 program: { institution_id: profile.id },
             },
-            include: {
+            select: {
+                id: true,
+                application_code: true,
+                status: true,
+                created_at: true,
                 program: { select: { id: true, title: true, category: true } },
                 student: {
                     select: {

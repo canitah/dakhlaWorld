@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert } from "antd";
 import { message } from "antd";
+import { ThemeLogo } from "@/components/theme-logo";
 import {
     Mail,
     ShieldCheck,
@@ -145,11 +146,7 @@ function VerifyOtpContent() {
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center mb-4">
-                        <img
-                            src="/logo.jpeg"
-                            alt="dazla."
-                            className="h-12 w-auto object-contain"
-                        />
+                        <ThemeLogo className="h-16 w-auto object-contain" />
                     </div>
 
                     {/* Gradient Icon */}

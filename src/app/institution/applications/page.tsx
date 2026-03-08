@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
@@ -42,6 +42,7 @@ import {
 
 interface Application {
     id: number;
+    application_code: string;
     status: string;
     created_at: string;
     student: {
@@ -141,11 +142,19 @@ export default function InstitutionApplicationsPage() {
     const [nextFilterId, setNextFilterId] = useState(1);
 
     // Highlight support from notification click
-    const searchParams = useSearchParams();
-    const highlightId = searchParams.get("highlight") ? parseInt(searchParams.get("highlight")!) : null;
-    const highlightProgram = searchParams.get("highlightProgram");
+    const [highlightId, setHighlightId] = useState<number | null>(null);
+    const [highlightProgram, setHighlightProgram] = useState<string | null>(null);
     const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
     const highlightRef = useRef<HTMLTableRowElement | null>(null);
+
+    // Read URL params on mount (avoids useSearchParams prerender error)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const h = params.get("highlight");
+        const hp = params.get("highlightProgram");
+        if (h) setHighlightId(parseInt(h));
+        if (hp) setHighlightProgram(hp);
+    }, []);
 
     // ── Dropdown open state ──
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -532,6 +541,7 @@ export default function InstitutionApplicationsPage() {
                                 <thead>
                                     <tr className="border-b text-left">
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Applicant</th>
+                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">App ID</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Program</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
                                         <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
@@ -553,6 +563,11 @@ export default function InstitutionApplicationsPage() {
                                                     <p className="text-sm font-medium">{app.student.full_name || "—"}</p>
                                                     <p className="text-xs text-muted-foreground">{app.student.user.email}</p>
                                                 </div>
+                                            </td>
+                                            <td className="py-3">
+                                                <Badge variant="outline" className="text-xs font-mono">
+                                                    {app.application_code}
+                                                </Badge>
                                             </td>
                                             <td className="py-3 text-sm">{app.program.title}</td>
                                             <td className="py-3"><StatusBadge status={app.status} /></td>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -186,7 +186,7 @@ function isNewProgram(createdAt: string): boolean {
 function ExplorePage() {
     const { fetchWithAuth } = useApi();
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const [urlProgramId, setUrlProgramId] = useState<number | null>(null);
     const [programs, setPrograms] = useState<Program[]>([]);
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
@@ -281,16 +281,22 @@ function ExplorePage() {
         loadPrograms();
     }, [page, category, perPage]);
 
+    // Read URL param on mount (avoids useSearchParams prerender error)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const programParam = params.get("program");
+        if (programParam) {
+            const programId = parseInt(programParam, 10);
+            if (!isNaN(programId)) setUrlProgramId(programId);
+        }
+    }, []);
+
     // Auto-select program from URL ?program=ID
     useEffect(() => {
-        const programParam = searchParams.get("program");
-        if (programParam && !isLoading && programs.length > 0 && !selectedId) {
-            const programId = parseInt(programParam, 10);
-            if (!isNaN(programId)) {
-                viewProgramDetail(programId);
-            }
+        if (urlProgramId && !isLoading && programs.length > 0 && !selectedId) {
+            viewProgramDetail(urlProgramId);
         }
-    }, [searchParams, isLoading, programs]);
+    }, [urlProgramId, isLoading, programs]);
 
     async function loadSavedIds() {
         const res = await fetchWithAuth("/saved");
