@@ -455,7 +455,7 @@ export default function StudentDashboard() {
                 </div>
 
                 {/* Search Bar */}
-                <div className="flex gap-2 max-w-2xl">
+                {/* <div className="flex gap-2 max-w-2xl">
                     <div className="relative flex-1">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <SearchIcon />
@@ -471,7 +471,7 @@ export default function StudentDashboard() {
                     <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 h-11 px-6">
                         Search
                     </Button>
-                </div>
+                </div> */}
             </div>
 
             {/* ── ROW 1: Stat Cards with Sparklines ── */}
