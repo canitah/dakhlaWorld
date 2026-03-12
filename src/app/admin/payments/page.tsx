@@ -7,6 +7,8 @@ import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { message } from "antd";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export-csv";
 
 interface PaymentRequest {
     id: number;
@@ -58,22 +60,48 @@ export default function AdminPaymentsPage() {
         }
     };
 
+    const exportPayments = () => {
+        const data = requests.map((r) => ({
+            Institution: r.institution.name,
+            Plan: r.plan.name,
+            "Amount (PKR)": r.plan.price_pkr,
+            "Transaction Ref": r.transaction_ref || "—",
+            Status: r.status,
+            "Screenshot URL": r.screenshot_url || "—",
+            Date: new Date(r.created_at).toLocaleDateString(),
+        }));
+        exportToCSV(data, "payments_export");
+        message.success(`Exported ${data.length} payment records`);
+    };
+
     return (
         <DashboardLayout role="admin">
             <h1 className="text-2xl font-bold mb-6">Manage Payments</h1>
 
-            <div className="flex gap-2 mb-6">
-                {["all", "pending", "approved", "rejected"].map((s) => (
-                    <Button
-                        key={s}
-                        variant={filter === s ? "default" : "outline"}
-                        size="sm"
-                        className={filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}
-                        onClick={() => setFilter(s)}
-                    >
-                        <span className="capitalize">{s}</span>
-                    </Button>
-                ))}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex gap-2">
+                    {["all", "pending", "approved", "rejected"].map((s) => (
+                        <Button
+                            key={s}
+                            variant={filter === s ? "default" : "outline"}
+                            size="sm"
+                            className={filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}
+                            onClick={() => setFilter(s)}
+                        >
+                            <span className="capitalize">{s}</span>
+                        </Button>
+                    ))}
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={exportPayments}
+                    disabled={requests.length === 0}
+                >
+                    <Download className="size-4" />
+                    Export CSV
+                </Button>
             </div>
 
             <Card>

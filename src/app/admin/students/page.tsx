@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { message } from "antd";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export-csv";
 
 /* ─── Types ─── */
 
@@ -20,7 +22,7 @@ interface StudentApp {
     application_code: string;
     program: {
         title: string;
-        institution: { name: string };
+        institution: { name: string } | null;
     };
 }
 
@@ -89,6 +91,23 @@ export default function AdminStudentsPage() {
     const totalApps = students.reduce((sum, s) => sum + s.applications.length, 0);
     const studentsWithApps = students.filter((s) => s.applications.length > 0).length;
 
+    const exportStudents = () => {
+        const data = filtered.map((s) => ({
+            Name: s.full_name || "—",
+            Email: s.user.email || "—",
+            Phone: s.user.phone || "—",
+            City: s.city || "—",
+            "Student Type": s.student_type || "—",
+            "Education Level": s.education_level || "—",
+            "Intended Field": s.intended_field || "—",
+            Applications: s.applications.length,
+            "CV URL": s.cv_url || "—",
+            Registered: new Date(s.user.created_at).toLocaleDateString(),
+        }));
+        exportToCSV(data, "students_export");
+        message.success(`Exported ${data.length} students`);
+    };
+
     return (
         <DashboardLayout role="admin">
             <h1 className="text-2xl font-bold mb-6">Manage Students</h1>
@@ -121,14 +140,24 @@ export default function AdminStudentsPage() {
                 </Card>
             </div>
 
-            {/* Search */}
-            <div className="mb-4">
+            {/* Search + Export */}
+            <div className="mb-4 flex items-center gap-3">
                 <Input
                     placeholder="Search by name, email, city, or phone..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="max-w-md h-10"
                 />
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 gap-2"
+                    onClick={exportStudents}
+                    disabled={filtered.length === 0}
+                >
+                    <Download className="size-4" />
+                    Export CSV
+                </Button>
             </div>
 
             {/* Students Table */}
@@ -265,7 +294,7 @@ export default function AdminStudentsPage() {
                                                     <div className="min-w-0 flex-1">
                                                         <p className="text-sm font-medium text-foreground truncate">{app.program.title}</p>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                                            {app.program.institution.name}
+                                                            {app.program.institution?.name || "DAKHLA Platform"}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground mt-0.5 font-mono">
                                                             {app.application_code}

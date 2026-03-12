@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { message } from "antd";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export-csv";
 
 interface Institution {
     id: number;
@@ -124,23 +126,52 @@ export default function AdminInstitutionsPage() {
         setIsDetailOpen(true);
     };
 
+    const exportInstitutions = () => {
+        const data = institutions.map((i) => ({
+            Name: i.name,
+            "Account Email": i.user.email || "—",
+            "Contact Email": i.contact_email || "—",
+            Phone: i.user.phone || "—",
+            Category: i.category || "—",
+            City: i.city || "—",
+            Programs: i._count.programs,
+            "Profile Status": isProfileComplete(i) ? "Complete" : "Incomplete",
+            Status: i.status,
+            Registered: new Date(i.created_at).toLocaleDateString(),
+        }));
+        exportToCSV(data, "institutions_export");
+        message.success(`Exported ${data.length} institutions`);
+    };
+
     return (
         <DashboardLayout role="admin">
             <h1 className="text-2xl font-bold mb-6">Manage Institutions</h1>
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 mb-6">
-                {["all", "pending", "approved", "rejected", "cancelled"].map((s) => (
-                    <Button
-                        key={s}
-                        variant={filter === s ? "default" : "outline"}
-                        size="sm"
-                        className={filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}
-                        onClick={() => setFilter(s)}
-                    >
-                        <span className="capitalize">{s}</span>
-                    </Button>
-                ))}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex gap-2">
+                    {["all", "pending", "approved", "rejected", "cancelled"].map((s) => (
+                        <Button
+                            key={s}
+                            variant={filter === s ? "default" : "outline"}
+                            size="sm"
+                            className={filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}
+                            onClick={() => setFilter(s)}
+                        >
+                            <span className="capitalize">{s}</span>
+                        </Button>
+                    ))}
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={exportInstitutions}
+                    disabled={institutions.length === 0}
+                >
+                    <Download className="size-4" />
+                    Export CSV
+                </Button>
             </div>
 
             <Card>
