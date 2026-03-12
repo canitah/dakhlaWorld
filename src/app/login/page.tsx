@@ -185,14 +185,14 @@ export default function LoginPage() {
             document.cookie = `access_token=${data.accessToken}; path=/; max-age=900; samesite=strict`;
 
             message.success("Welcome back!");
-            // Redirect institutions with incomplete profiles to profile page
+            // Redirect institutions with incomplete profiles to dashboard (shows pending banner)
             if (data.user.role === "institution" && data.profileComplete === false) {
-                router.push("/institution/profile");
+                router.push("/institution");
             }
             else if (data.user.role === "student") {
-    router.push("/student/explore");
-} 
-             else {
+                router.push("/student/explore");
+            }
+            else {
                 router.push(`/${data.user.role}`);
             }
         } catch {

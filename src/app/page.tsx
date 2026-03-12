@@ -55,6 +55,7 @@ interface Program {
     city: string | null;
     category: string | null;
     profilePicture: string | null;
+    uniqueId: string;
     planTier: string;
   };
   applicants: number;
@@ -133,7 +134,7 @@ function FilterDropdown({
         onClick={() => setOpen(!open)}
         className={`inline-flex items-center gap-1.5 h-8 px-3 text-xs sm:text-sm font-medium rounded-full border transition-colors whitespace-nowrap ${isActive
           ? "bg-blue-600 text-white border-blue-600"
-          : "bg-background text-foreground border-border hover:border-blue-400"
+          : "bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm"
           }`}
       >
         {icon}
@@ -141,7 +142,7 @@ function FilterDropdown({
         <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-lg shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
+        <div className="absolute bottom-full left-0 mb-1 w-56 bg-card border border-border rounded-lg shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
           <div onClick={() => setOpen(false)}>
             {children}
           </div>
@@ -348,44 +349,76 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ═══════════ SEARCH BAR ═══════════ */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div className="flex items-center gap-2 flex-1 bg-background border border-border rounded-lg px-3 h-11 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
-              <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-              <input
-                type="text"
-                placeholder="Program title, keyword, or institution"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
-              />
-            </div>
-            <div className="flex items-center gap-2 sm:flex-initial sm:w-48 bg-background border border-border rounded-lg px-3 h-11 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
-              <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-              <input
-                type="text"
-                placeholder="City"
-                value={locationQuery}
-                onChange={(e) => setLocationQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm shrink-0"
-            >
-              Find Programs
-            </Button>
-          </form>
-        </div>
-      </div>
+      {/* ═══════════ HERO BANNER ═══════════ */}
+      <section className="relative w-full overflow-visible bg-black">
+        <div className="relative min-h-[420px] sm:min-h-[480px] md:min-h-[560px] lg:min-h-[640px] xl:min-h-[700px]">
+          <img
+            src="/banner.jpeg"
+            alt="dakhla – Global Admissions Platform"
+            className="absolute inset-0 w-full h-full object-cover object-top"
+          />
+          {/* Dark cinematic overlay */}
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
-      {/* ═══════════ FILTER CHIPS ═══════════ */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Content over banner */}
+          <div className="relative h-full max-w-[1400px] mx-auto px-4 sm:px-6 flex flex-col justify-center pt-36 sm:pt-24 pb-12 sm:pb-16">
+            {/* Heading */}
+            <h1 className="text-3xl sm:text-4xl md:text-[3.2rem] lg:text-[3.6rem] font-bold text-white leading-[1.15] tracking-tight max-w-2xl">
+              Find the right program{" "}
+              <br className="hidden sm:block" />
+              for your future
+            </h1>
+
+            {/* Search bar */}
+            <div className="mt-6 sm:mt-8 max-w-[720px]">
+              <form onSubmit={handleSearch} className="flex items-center bg-white rounded-lg overflow-hidden shadow-lg">
+                <div className="flex items-center gap-2 flex-1 px-4 h-12 sm:h-[52px]">
+                  <Search className="w-4 h-4 text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search programs, institutions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
+                  />
+                </div>
+                <div className="hidden sm:flex items-center gap-2 border-l border-gray-200 px-4 h-12 sm:h-[52px] w-44">
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="h-12 sm:h-[52px] px-5 sm:px-7 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-none rounded-r-lg shrink-0"
+                >
+                  <Search className="w-4 h-4 sm:hidden" />
+                  <span className="hidden sm:inline">Find Programs</span>
+                </Button>
+              </form>
+            </div>
+
+            {/* Popular category pills */}
+            <div className="mt-5 sm:mt-6 flex items-center gap-2 flex-wrap max-w-[720px]">
+              <span className="text-sm text-white/70 font-medium mr-1">Popular:</span>
+              {["Computer Science", "Engineering", "Pre-Primary", "Culinary"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => { setSearchQuery(cat); handleSearch(new Event("submit") as unknown as React.FormEvent); }}
+                  className="px-3.5 py-1.5 rounded-full text-[13px] font-medium text-white border border-white/30 hover:bg-white/15 transition-colors cursor-pointer"
+                >
+                  {cat} →
+                </button>
+              ))}
+            </div>
+
+            {/* ── Filter chips inside banner ── */}
+            <div className="mt-4 sm:mt-5 flex items-center gap-2 flex-wrap">
 
             {/* Pay / Fee Range */}
             <FilterDropdown
@@ -529,15 +562,16 @@ export default function HomePage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="inline-flex items-center gap-1 text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium ml-1 whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1 text-xs sm:text-sm text-red-300 hover:text-red-200 font-medium ml-1 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 Clear all
               </button>
             )}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ═══════════ MAIN CONTENT ═══════════ */}
       <div className="flex-1">
@@ -684,7 +718,7 @@ export default function HomePage() {
                       </h2>
                       <p
                         className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
-                        onClick={() => router.push(`/institution-detail/${selectedProgram.institution.id}`)}
+                        onClick={() => router.push(`/institution-detail/${selectedProgram.institution.uniqueId}`)}
                       >
                         {selectedProgram.institution.name}
                         <ExternalLink className="w-3 h-3" />

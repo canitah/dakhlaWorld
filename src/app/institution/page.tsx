@@ -275,6 +275,8 @@ interface InstitutionProfile {
     id: number;
     name: string;
     status: string;
+    category: string | null;
+    description: string | null;
     rejection_reason: string | null;
     payment_requests: Array<{ plan: { name: string } }>;
     _count: { programs: number };
@@ -392,11 +394,6 @@ export default function InstitutionDashboard() {
 
             if (profRes.ok) {
                 const data = await profRes.json();
-                // Redirect to setup if profile is incomplete (missing category or description)
-                if (!data.profile?.category && !data.profile?.description) {
-                    router.replace("/institution/profile");
-                    return;
-                }
                 setProfile(data.profile);
             }
             if (appRes.ok) {
@@ -488,27 +485,9 @@ export default function InstitutionDashboard() {
         );
     }
 
-    // Pending approval gate
-    if (profile && profile.status === "pending") {
-        return (
-            <DashboardLayout role="institution">
-                <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
-                    <div className="w-24 h-24 rounded-full bg-amber-500/10 border border-amber-300 dark:border-amber-700 flex items-center justify-center mb-6">
-                        <ClockIcon />
-                    </div>
-                    <h1 className="text-2xl font-bold mb-3">Pending Approval</h1>
-                    <p className="text-muted-foreground max-w-md mb-6 leading-relaxed">
-                        Your institution is currently under review by our admin team.
-                        You&apos;ll get access to the full dashboard once approved.
-                    </p>
-                    <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-500/10 px-4 py-1 gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        Status: Awaiting Approval
-                    </Badge>
-                </div>
-            </DashboardLayout>
-        );
-    }
+    // Profile completeness check
+    const isProfileIncomplete = profile && (!profile.category || !profile.description);
+    const isPending = profile && profile.status === "pending";
 
     if (profile && profile.status === "rejected") {
         const handleAppeal = async () => {
@@ -609,7 +588,44 @@ export default function InstitutionDashboard() {
 
     return (
         <DashboardLayout role="institution">
-            {/* Page Header */}
+            {/* Pending Approval Banner */}
+            {isPending && (
+                <div className="mb-6 p-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-500/10 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Pending Approval</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400">Your institution is under review. Full access will be available once approved.</p>
+                    </div>
+                    <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-500/10 px-3 py-0.5 gap-1.5 flex-shrink-0 hidden sm:flex">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        Awaiting
+                    </Badge>
+                </div>
+            )}
+
+            {/* Incomplete Profile Banner */}
+            {isProfileIncomplete && (
+                <div className="mb-6 p-4 rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-500/10 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <PencilIcon />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Complete Your Profile</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-400">Add your category and description to help students find your institution.</p>
+                    </div>
+                    <Link href="/institution/profile">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 flex-shrink-0">
+                            <PencilIcon />
+                            Complete Profile
+                        </Button>
+                    </Link>
+                </div>
+            )}
+
             <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>

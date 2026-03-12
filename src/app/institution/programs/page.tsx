@@ -602,28 +602,47 @@ export default function InstitutionProgramsPage() {
 
             ) : selectedProgram ? (
                 /* ── Selected Mode: List on left + Detail on right ──── */
-                <div className="flex gap-5 items-start">
-                    {/* Left: Vertical card list — same full cards, stacked */}
-                    <div className="w-[420px] shrink-0 space-y-4">
-                        {programs.map((program) => (
-                            <ProgramCard
-                                key={program.id}
-                                program={program}
-                                onClick={() => selectProgram(program)}
-                                isSelected={selectedProgram.id === program.id}
-                            />
-                        ))}
+                <>
+                    {/* Mobile: show detail panel full-width with back button */}
+                    <div className="md:hidden">
+                        <button
+                            onClick={() => selectProgram(null)}
+                            className="flex items-center gap-2 text-sm font-medium text-primary mb-4 cursor-pointer hover:underline"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                            Back to programs
+                        </button>
+                        <ProgramDetailPanel
+                            program={selectedProgram}
+                            onClose={() => selectProgram(null)}
+                            onEdit={handleEdit}
+                            onDelete={handleDeleteRequest}
+                            onToggleActive={handleToggleActive}
+                        />
                     </div>
-
-                    {/* Right: Detail panel */}
-                    <ProgramDetailPanel
-                        program={selectedProgram}
-                        onClose={() => selectProgram(null)}
-                        onEdit={handleEdit}
-                        onDelete={handleDeleteRequest}
-                        onToggleActive={handleToggleActive}
-                    />
-                </div>
+                    {/* Desktop: side-by-side layout */}
+                    <div className="hidden md:flex gap-5 items-start">
+                        <div className="w-[420px] shrink-0 space-y-4">
+                            {programs.map((program) => (
+                                <ProgramCard
+                                    key={program.id}
+                                    program={program}
+                                    onClick={() => selectProgram(program)}
+                                    isSelected={selectedProgram.id === program.id}
+                                />
+                            ))}
+                        </div>
+                        <ProgramDetailPanel
+                            program={selectedProgram}
+                            onClose={() => selectProgram(null)}
+                            onEdit={handleEdit}
+                            onDelete={handleDeleteRequest}
+                            onToggleActive={handleToggleActive}
+                        />
+                    </div>
+                </>
             ) : (
                 /* ── Default Mode: Horizontal card grid ───────────────── */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -680,8 +699,8 @@ function ProgramCard({
                 </div>
                 <p className="text-[11px] font-mono text-muted-foreground mb-3">{program.program_code}</p>
 
-                {/* Info fields — 4 column grid */}
-                <div className="grid grid-cols-4 gap-3 mb-3">
+                {/* Info fields — responsive grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                     <div className="flex items-center gap-1.5">
                         <Tag className="size-3.5 text-blue-500 shrink-0" />
                         <div className="min-w-0">
@@ -717,7 +736,7 @@ function ProgramCard({
                 </div>
 
                 {/* Fee, Schedule, Study Field row */}
-                <div className="grid grid-cols-3 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                     {program.fee != null && (
                         <div className="flex items-center gap-1.5">
                             <DollarSign className="size-3.5 text-green-500 shrink-0" />

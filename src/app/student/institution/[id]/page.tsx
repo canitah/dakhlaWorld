@@ -46,6 +46,7 @@ interface ProgramItem {
     deadline: string | null;
     application_method: string | null;
     external_url: string | null;
+    program_code?: string;
     created_at: string;
 }
 
@@ -224,7 +225,7 @@ export default function InstitutionDetailPage() {
                         <Card
                             key={program.id}
                             className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer group"
-                            onClick={() => router.push(`/student/explore?program=${program.id}`)}
+                            onClick={() => router.push(`/student/explore?program=${program.program_code || program.id}`)}
                         >
                             <CardContent className="p-4 sm:p-5">
                                 {/* Title */}

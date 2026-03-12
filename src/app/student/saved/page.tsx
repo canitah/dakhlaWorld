@@ -12,6 +12,7 @@ interface SavedItem {
         id: number;
         title: string;
         category: string | null;
+        program_code: string;
         institution: { name: string; city: string | null };
     };
 }
@@ -155,7 +156,7 @@ export default function SavedProgramsPage() {
                                 isApplied={isApplied}
                                 onApply={handleApply}
                                 onUnsave={handleUnsave}
-                                onCardClick={() => router.push(`/student/explore?program=${item.program.id}`)}
+                                onCardClick={() => router.push(`/student/explore?program=${item.program.program_code}`)}
                             />
                         );
                     })}

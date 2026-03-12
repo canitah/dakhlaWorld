@@ -64,6 +64,8 @@ export async function GET(request: Request) {
                             city: true,
                             category: true,
                             status: true,
+                            profile_picture_url: true,
+                            user: { select: { unique_id: true } },
                             payment_requests: {
                                 where: { status: "approved" },
                                 include: { plan: true },
@@ -112,6 +114,8 @@ export async function GET(request: Request) {
                 city: p.institution.city,
                 category: p.institution.category,
                 status: p.institution.status,
+                profilePicture: p.institution.profile_picture_url,
+                uniqueId: p.institution.user?.unique_id || String(p.institution.id),
                 planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
             },
         }));

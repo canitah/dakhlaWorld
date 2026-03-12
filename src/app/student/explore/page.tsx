@@ -32,7 +32,8 @@ interface Program {
     study_field: string | null;
     deadline: string | null;
     applicants?: number;
-    institution: { name: string; city: string | null; planTier?: string };
+    program_code?: string;
+    institution: { name: string; city: string | null; uniqueId?: string; planTier?: string };
 }
 
 interface ProgramDetail {
@@ -50,6 +51,7 @@ interface ProgramDetail {
     fee: number | null;
     schedule_type: string | null;
     study_field: string | null;
+    program_code?: string;
     institution: {
         id: number;
         name: string;
@@ -57,6 +59,7 @@ interface ProgramDetail {
         category: string | null;
         description: string | null;
         contact_email: string | null;
+        uniqueId?: string;
     };
     _count: { applications: number };
     questions?: { id: number; question: string; is_required: boolean }[];
@@ -186,7 +189,7 @@ function isNewProgram(createdAt: string): boolean {
 function ExplorePage() {
     const { fetchWithAuth } = useApi();
     const router = useRouter();
-    const [urlProgramId, setUrlProgramId] = useState<number | null>(null);
+    const [urlProgramCode, setUrlProgramCode] = useState<string | null>(null);
     const [programs, setPrograms] = useState<Program[]>([]);
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
@@ -281,22 +284,20 @@ function ExplorePage() {
         loadPrograms();
     }, [page, category, perPage]);
 
-    // Read URL param on mount (avoids useSearchParams prerender error)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const programParam = params.get("program");
         if (programParam) {
-            const programId = parseInt(programParam, 10);
-            if (!isNaN(programId)) setUrlProgramId(programId);
+            setUrlProgramCode(programParam);
         }
     }, []);
 
-    // Auto-select program from URL ?program=ID
+    // Auto-select program from URL ?program=CODE
     useEffect(() => {
-        if (urlProgramId && !isLoading && programs.length > 0 && !selectedId) {
-            viewProgramDetail(urlProgramId);
+        if (urlProgramCode && !isLoading && programs.length > 0 && !selectedId) {
+            viewProgramDetail(urlProgramCode);
         }
-    }, [urlProgramId, isLoading, programs]);
+    }, [urlProgramCode, isLoading, programs]);
 
     async function loadSavedIds() {
         const res = await fetchWithAuth("/saved");
@@ -374,15 +375,20 @@ function ExplorePage() {
         loadPrograms(value);
     }
 
-    const viewProgramDetail = async (programId: number) => {
-        if (selectedId === programId) return;
-        setSelectedId(programId);
+    const viewProgramDetail = async (programCodeOrId: string | number) => {
+        const code = String(programCodeOrId);
+        if (selectedId !== null && selectedProgram?.program_code === code) return;
         setIsDetailLoading(true);
         setMobileView("detail");
-        const res = await fetchWithAuth(`/programs/${programId}`);
+        // Update URL with program code
+        const url = new URL(window.location.href);
+        url.searchParams.set("program", code);
+        window.history.replaceState({}, "", url.toString());
+        const res = await fetchWithAuth(`/programs/${code}`);
         if (res.ok) {
             const data = await res.json();
             setSelectedProgram(data.program);
+            setSelectedId(data.program.id);
         } else {
             message.error("Could not load program details");
             setSelectedId(null);
@@ -511,8 +517,8 @@ function ExplorePage() {
         <DashboardLayout role="student">
 
             {/* ── Page title + search bar ── */}
-            <div className="mb-5">
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">Explore Programs</h1>
+            <div className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-5">Explore Programs</h1>
 
                 {/* Search row */}
                 <div className="flex gap-2">
@@ -554,7 +560,7 @@ function ExplorePage() {
                 </div>
 
                 {/* Category chips */}
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-4">
                     {categories.map((cat) => {
                         const active = category === cat || (cat === "All" && !category);
                         return (
@@ -573,20 +579,30 @@ function ExplorePage() {
                 </div>
             </div>
 
-            {/* ── Filters Panel (always visible) ── */}
-            <div className="mt-3">
-                <div className="p-4 border border-border rounded-xl bg-card space-y-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                            <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
-                            <line x1="17" y1="16" x2="23" y2="16" />
-                        </svg>
-                        Filters
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* ── Collapsible Filters Panel ── */}
+            <div className="mb-5">
+                <button
+                    onClick={() => {
+                        const el = document.getElementById('explore-filters');
+                        if (el) el.classList.toggle('hidden');
+                    }}
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-3"
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                        <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
+                        <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
+                    Advanced Filters
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div id="explore-filters" className="hidden">
+                    <div className="p-4 border border-border rounded-xl bg-card space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                         {/* Schedule Type */}
                         <div>
                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">Schedule</label>
@@ -647,19 +663,20 @@ function ExplorePage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button
-                            onClick={() => { setPage(1); loadPrograms(); }}
-                            className="h-9 px-6 bg-primary hover:bg-primary/90 text-sm font-medium rounded-lg"
-                        >
-                            Apply Filters
-                        </Button>
-                        <button
-                            onClick={clearFilters}
-                            className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                            Clear All
-                        </button>
+                        <div className="flex items-center gap-3 pt-1">
+                            <Button
+                                onClick={() => { setPage(1); loadPrograms(); }}
+                                className="h-9 px-6 bg-primary hover:bg-primary/90 text-sm font-medium rounded-lg"
+                            >
+                                Apply Filters
+                            </Button>
+                            <button
+                                onClick={clearFilters}
+                                className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                                Clear All
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -695,7 +712,7 @@ function ExplorePage() {
                                         isSelected={selectedId === program.id}
                                         isSaved={savedIds.has(program.id)}
                                         studentPrefs={studentPrefs}
-                                        onClick={() => viewProgramDetail(program.id)}
+                                        onClick={() => viewProgramDetail(program.program_code || String(program.id))}
                                         onSave={(e) => { e.stopPropagation(); handleSave(program.id); }}
                                     />
                                 ))}
@@ -779,7 +796,7 @@ function ExplorePage() {
                             studentPrefs={studentPrefs}
                             onApply={handleApply}
                             onSave={handleSave}
-                            onInstitutionClick={(id: number) => { router.push(`/student/institution/${id}`); }}
+                            onInstitutionClick={(uid: string) => { router.push(`/student/institution/${uid}`); }}
                         />
                     )}
                 </div>
@@ -1184,7 +1201,7 @@ function DetailPanel({
     studentPrefs: StudentPrefs | null;
     onApply: (id: number) => void;
     onSave: (id: number) => void;
-    onInstitutionClick: (id: number) => void;
+    onInstitutionClick: (uniqueId: string) => void;
 }) {
     const matches = getMatches(program, studentPrefs);
     return (
@@ -1201,7 +1218,7 @@ function DetailPanel({
                 {/* Institution with external link */}
                 <div className="flex items-center gap-1.5 mb-1">
                     <button
-                        onClick={() => onInstitutionClick(program.institution.id)}
+                        onClick={() => onInstitutionClick(program.institution.uniqueId || String(program.institution.id))}
                         className="text-[14px] text-foreground font-medium underline decoration-dotted underline-offset-2 hover:text-primary flex items-center gap-1 cursor-pointer"
                     >
                         {program.institution.name}
