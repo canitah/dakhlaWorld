@@ -41,7 +41,7 @@ export async function GET() {
         const pro: typeof programs = [];
 
         for (const p of programs) {
-            const planName = p.institution.payment_requests[0]?.plan?.name || "";
+            const planName = p.institution?.payment_requests[0]?.plan?.name || "";
             if (planName.toLowerCase().includes("featured")) {
                 featured.push(p);
             } else if (planName.toLowerCase().includes("pro")) {
@@ -62,12 +62,12 @@ export async function GET() {
             deadline: p.deadline,
             created_at: p.created_at,
             institution: {
-                id: p.institution.id,
-                name: p.institution.name,
-                city: p.institution.city,
-                category: p.institution.category,
-                profilePicture: p.institution.profile_picture_url,
-                planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
+                id: p.institution?.id,
+                name: p.institution?.name,
+                city: p.institution?.city,
+                category: p.institution?.category,
+                profilePicture: p.institution?.profile_picture_url,
+                planTier: p.institution?.payment_requests[0]?.plan?.name || "Starter",
             },
             applicants: p._count.applications,
         });
