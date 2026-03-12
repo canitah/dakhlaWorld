@@ -24,7 +24,7 @@ interface Application {
     program: {
         title: string;
         category: string | null;
-        institution: { name: string; city: string | null };
+        institution: { name: string; city: string | null } | null;
     };
     answers?: {
         id: number;
@@ -132,7 +132,7 @@ export default function StudentApplicationsPage() {
     }, [applications]);
 
     const institutions = useMemo(() => {
-        const set = new Set(applications.map((a) => a.program.institution.name));
+        const set = new Set(applications.map((a) => a.program.institution?.name || "DAKHLA Platform"));
         return Array.from(set).sort();
     }, [applications]);
 
@@ -145,7 +145,7 @@ export default function StudentApplicationsPage() {
     const filtered = useMemo(() => {
         return applications.filter((app) => {
             if (filterStatus !== "all" && app.status !== filterStatus) return false;
-            if (filterInstitution !== "all" && app.program.institution.name !== filterInstitution) return false;
+            if (filterInstitution !== "all" && (app.program.institution?.name || "DAKHLA Platform") !== filterInstitution) return false;
             if (filterCategory !== "all" && app.program.category !== filterCategory) return false;
             if (filterDateFrom) {
                 const from = new Date(filterDateFrom);
@@ -223,7 +223,7 @@ export default function StudentApplicationsPage() {
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground font-medium">Institution:</span>
-                                    <p className="text-foreground">{trackingResult.program.institution.name}</p>
+                                    <p className="text-foreground">{trackingResult.program.institution?.name || "DAKHLA Platform"}</p>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground font-medium">Status:</span>
@@ -382,7 +382,7 @@ export default function StudentApplicationsPage() {
                                                 </td>
                                                 <td className="py-3 text-sm font-medium">{app.program.title}</td>
                                                 <td className="py-3 text-sm text-muted-foreground">
-                                                    {app.program.institution.name}
+                                                    {app.program.institution?.name || "DAKHLA Platform"}
                                                 </td>
                                                 <td className="py-3 text-sm text-muted-foreground">
                                                     {app.program.category || "—"}
@@ -438,7 +438,7 @@ export default function StudentApplicationsPage() {
                                     </div>
                                     <div>
                                         <span className="text-muted-foreground text-xs font-medium">Institution</span>
-                                        <p className="text-foreground">{reviewApp.program.institution.name}</p>
+                                        <p className="text-foreground">{reviewApp.program.institution?.name || "DAKHLA Platform"}</p>
                                     </div>
                                     <div>
                                         <span className="text-muted-foreground text-xs font-medium">Category</span>

@@ -81,7 +81,7 @@ model InstitutionProfile {
 
 model Program {
   id                 Int                @id @default(autoincrement())
-  institution_id     Int
+  institution_id     Int?
   title              String
   description        String?
   category           String?
@@ -97,8 +97,9 @@ model Program {
   fee                Int?
   schedule_type      String?
   study_field        String?
+  posted_by_admin    Boolean            @default(false)
   applications       Application[]
-  institution        InstitutionProfile @relation(fields: [institution_id], references: [id], onDelete: Cascade)
+  institution        InstitutionProfile? @relation(fields: [institution_id], references: [id], onDelete: Cascade)
   saved_admissions   SavedAdmission[]
   questions          ProgramQuestion[]
 

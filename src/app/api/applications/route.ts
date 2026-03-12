@@ -83,11 +83,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Program not found or inactive" }, { status: 404 });
         }
 
-        if (program.institution.status !== "approved") {
-            return NextResponse.json(
-                { error: "This institution is not yet approved. Applications are not accepted." },
-                { status: 403 }
-            );
+        // For institution-posted programs, check institution is approved
+        // Admin-posted programs (posted_by_admin = true) skip this check
+        const isAdminProgram = (program as any).posted_by_admin === true;
+
+        if (!isAdminProgram) {
+            if (!program.institution || program.institution.status !== "approved") {
+                return NextResponse.json(
+                    { error: "This institution is not yet approved. Applications are not accepted." },
+                    { status: 403 }
+                );
+            }
         }
 
         // Check duplicate application
@@ -153,24 +159,46 @@ export async function POST(request: Request) {
             select: { email: true },
         });
 
+        const institutionName = isAdminProgram ? "DAKHLA Platform" : (program.institution?.name || "Unknown");
+
         if (studentUser?.email) {
             sendApplicationSubmittedEmail(
                 studentUser.email,
                 program.title,
-                program.institution.name
+                institutionName
             ).catch(() => { });
         }
 
-        // Create in-app notification for the institution
-        await prisma.notification.create({
-            data: {
-                user_id: program.institution.user_id,
-                title: "New Application Received",
-                message: `A student has applied to your program "${program.title}".`,
-                type: "application_submitted",
-                link: `/institution/applications?highlight=${application.id}`,
-            },
-        });
+        // Create in-app notification
+        if (isAdminProgram) {
+            // Notify all admin users about the application
+            const adminUsers = await prisma.user.findMany({
+                where: { role: "admin" },
+                select: { id: true },
+            });
+            for (const admin of adminUsers) {
+                await prisma.notification.create({
+                    data: {
+                        user_id: admin.id,
+                        title: "New Application Received",
+                        message: `A student has applied to the platform program "${program.title}".`,
+                        type: "application_submitted",
+                        link: `/admin/applications?highlight=${application.id}`,
+                    },
+                });
+            }
+        } else if (program.institution) {
+            // Notify the institution
+            await prisma.notification.create({
+                data: {
+                    user_id: program.institution.user_id,
+                    title: "New Application Received",
+                    message: `A student has applied to your program "${program.title}".`,
+                    type: "application_submitted",
+                    link: `/institution/applications?highlight=${application.id}`,
+                },
+            });
+        }
 
         return NextResponse.json(
             { application, message: "Application submitted successfully" },

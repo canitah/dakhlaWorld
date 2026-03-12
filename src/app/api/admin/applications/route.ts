@@ -30,7 +30,13 @@ export async function GET(request: Request) {
                         select: {
                             full_name: true,
                             city: true,
+                            cv_url: true,
                             user: { select: { email: true } },
+                        },
+                    },
+                    answers: {
+                        include: {
+                            question: { select: { question: true } },
                         },
                     },
                 },

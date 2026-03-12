@@ -4,6 +4,7 @@ import { getPlanRank } from "@/lib/plan-utils";
 
 // GET /api/programs — List programs with filters (public for authenticated users)
 // Programs are sorted by institution plan tier (Featured > Pro > Growth > Starter), then by created_at desc
+// Admin-posted programs (posted_by_admin = true) are also included and ranked highest
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -17,45 +18,52 @@ export async function GET(request: Request) {
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "12");
 
-        const where: Record<string, unknown> = {
+        // Build base filter for shared fields
+        const baseFilter: Record<string, unknown> = {
             is_active: true,
-            institution: { status: "approved" },
         };
 
+        if (category) baseFilter.category = category;
+        if (scheduleType) baseFilter.schedule_type = scheduleType;
+        if (studyField) baseFilter.study_field = { contains: studyField, mode: "insensitive" };
+        if (feeMin !== null || feeMax !== null) {
+            const feeFilter: Record<string, number> = {};
+            if (feeMin !== null) feeFilter.gte = feeMin;
+            if (feeMax !== null) feeFilter.lte = feeMax;
+            baseFilter.fee = feeFilter;
+        }
+
+        // Institution programs filter
+        const instFilter: Record<string, unknown> = {
+            ...baseFilter,
+            posted_by_admin: false,
+            institution: { status: "approved" },
+        };
+        if (city) {
+            instFilter.institution = { ...(instFilter.institution as object || {}), city };
+        }
         if (search) {
-            where.OR = [
+            instFilter.OR = [
                 { title: { contains: search, mode: "insensitive" } },
                 { institution: { name: { contains: search, mode: "insensitive" } } },
             ];
         }
 
-        if (category) {
-            where.category = category;
+        // Admin programs filter
+        const adminFilter: Record<string, unknown> = {
+            ...baseFilter,
+            posted_by_admin: true,
+        };
+        if (search) {
+            adminFilter.title = { contains: search, mode: "insensitive" };
         }
 
-        if (city) {
-            where.institution = { ...(where.institution as object || {}), city };
-        }
+        const where = { OR: [instFilter, adminFilter] };
 
-        if (scheduleType) {
-            where.schedule_type = scheduleType;
-        }
-
-        if (studyField) {
-            where.study_field = { contains: studyField, mode: "insensitive" };
-        }
-
-        if (feeMin !== null || feeMax !== null) {
-            const feeFilter: Record<string, number> = {};
-            if (feeMin !== null) feeFilter.gte = feeMin;
-            if (feeMax !== null) feeFilter.lte = feeMax;
-            where.fee = feeFilter;
-        }
-
-        // Fetch all matching programs with institution payment info for ranking
+        // Fetch all matching programs
         const [allPrograms, total] = await Promise.all([
             prisma.program.findMany({
-                where,
+                where: where as any,
                 include: {
                     institution: {
                         select: {
@@ -77,13 +85,14 @@ export async function GET(request: Request) {
                     _count: { select: { applications: true } },
                 },
             }),
-            prisma.program.count({ where }),
+            prisma.program.count({ where: where as any }),
         ]);
 
         // Sort by plan rank (descending) then by created_at (descending)
+        // Admin programs get max rank (100) so they appear at the top
         const sorted = allPrograms.sort((a: any, b: any) => {
-            const rankA = getPlanRank(a.institution.payment_requests[0]?.plan?.name);
-            const rankB = getPlanRank(b.institution.payment_requests[0]?.plan?.name);
+            const rankA = a.posted_by_admin ? 100 : getPlanRank(a.institution?.payment_requests?.[0]?.plan?.name);
+            const rankB = b.posted_by_admin ? 100 : getPlanRank(b.institution?.payment_requests?.[0]?.plan?.name);
             if (rankB !== rankA) return rankB - rankA;
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
@@ -91,7 +100,7 @@ export async function GET(request: Request) {
         // Paginate after sorting
         const paginated = sorted.slice((page - 1) * limit, page * limit);
 
-        // Map to response format — include plan tier for frontend card styling
+        // Map to response format
         const programs = paginated.map((p: any) => ({
             id: p.id,
             title: p.title,
@@ -108,16 +117,28 @@ export async function GET(request: Request) {
             schedule_type: p.schedule_type,
             study_field: p.study_field,
             applicants: p._count.applications,
-            institution: {
-                id: p.institution.id,
-                name: p.institution.name,
-                city: p.institution.city,
-                category: p.institution.category,
-                status: p.institution.status,
-                profilePicture: p.institution.profile_picture_url,
-                uniqueId: p.institution.user?.unique_id || String(p.institution.id),
-                planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
-            },
+            postedByPlatform: p.posted_by_admin || false,
+            institution: p.posted_by_admin
+                ? {
+                    id: 0,
+                    name: "DAKHLA Platform",
+                    city: null,
+                    category: null,
+                    status: "approved",
+                    profilePicture: null,
+                    uniqueId: "platform",
+                    planTier: "Featured",
+                }
+                : {
+                    id: p.institution.id,
+                    name: p.institution.name,
+                    city: p.institution.city,
+                    category: p.institution.category,
+                    status: p.institution.status,
+                    profilePicture: p.institution.profile_picture_url,
+                    uniqueId: p.institution.user?.unique_id || String(p.institution.id),
+                    planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
+                },
         }));
 
         return NextResponse.json({

@@ -34,6 +34,7 @@ interface Program {
     applicants?: number;
     program_code?: string;
     institution: { name: string; city: string | null; uniqueId?: string; planTier?: string };
+    postedByPlatform?: boolean;
 }
 
 interface ProgramDetail {
@@ -63,6 +64,7 @@ interface ProgramDetail {
     };
     _count: { applications: number };
     questions?: { id: number; question: string; is_required: boolean }[];
+    postedByPlatform?: boolean;
 }
 
 interface StudentPrefs {
@@ -1045,16 +1047,19 @@ function ProgramCard({
     const isGrowth = tier.toLowerCase().includes("growth");
     const isPro = tier.toLowerCase().includes("pro");
     const isFeatured = tier.toLowerCase().includes("featured");
-    const isPremium = isGrowth || isPro || isFeatured;
+    const isPlatform = program.postedByPlatform || false;
+    const isPremium = isGrowth || isPro || isFeatured || isPlatform;
 
     // Tier-specific styles
-    const tierBorder = isFeatured
-        ? "border-l-amber-500"
-        : isPro
-            ? "border-l-purple-500"
-            : isGrowth
-                ? "border-l-blue-500"
-                : "border-l-transparent";
+    const tierBorder = isPlatform
+        ? "border-l-blue-600"
+        : isFeatured
+            ? "border-l-amber-500"
+            : isPro
+                ? "border-l-purple-500"
+                : isGrowth
+                    ? "border-l-blue-500"
+                    : "border-l-transparent";
 
     const tierGlow = isFeatured
         ? "shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)] hover:shadow-[0_0_20px_-3px_rgba(245,158,11,0.3)]"
@@ -1085,19 +1090,24 @@ function ProgramCard({
                             New
                         </span>
                     )}
-                    {isFeatured && (
+                    {isPlatform && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/15 border border-blue-600/30 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                            ✦ DAKHLA
+                        </span>
+                    )}
+                    {isFeatured && !isPlatform && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 animate-pulse">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
                             Featured
                         </span>
                     )}
-                    {isPro && !isFeatured && (
+                    {isPro && !isFeatured && !isPlatform && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 border border-purple-500/30 px-2.5 py-0.5 text-[11px] font-bold text-purple-600 dark:text-purple-400">
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                             Pro
                         </span>
                     )}
-                    {isGrowth && (
+                    {isGrowth && !isPlatform && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/25 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400">
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /></svg>
                             Growth
@@ -1123,8 +1133,8 @@ function ProgramCard({
 
             {/* Row 3: Institution + city */}
             <div className="text-[13px] text-muted-foreground leading-snug mb-3">
-                <p>{program.institution.name}</p>
-                {program.institution.city && <p>{program.institution.city}</p>}
+                <p>{program.postedByPlatform ? "DAKHLA Platform" : program.institution.name}</p>
+                {!program.postedByPlatform && program.institution.city && <p>{program.institution.city}</p>}
             </div>
 
             {/* Row 4: Pills */}
@@ -1216,19 +1226,29 @@ function DetailPanel({
                 </h2>
 
                 {/* Institution with external link */}
-                <div className="flex items-center gap-1.5 mb-1">
-                    <button
-                        onClick={() => onInstitutionClick(program.institution.uniqueId || String(program.institution.id))}
-                        className="text-[14px] text-foreground font-medium underline decoration-dotted underline-offset-2 hover:text-primary flex items-center gap-1 cursor-pointer"
-                    >
-                        {program.institution.name}
-                        <ExternalLinkIcon />
-                    </button>
-                </div>
+                {program.postedByPlatform ? (
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+                            ✦ Posted by DAKHLA Platform
+                        </span>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <button
+                                onClick={() => onInstitutionClick(program.institution.uniqueId || String(program.institution.id))}
+                                className="text-[14px] text-foreground font-medium underline decoration-dotted underline-offset-2 hover:text-primary flex items-center gap-1 cursor-pointer"
+                            >
+                                {program.institution.name}
+                                <ExternalLinkIcon />
+                            </button>
+                        </div>
 
-                {/* City */}
-                {program.institution.city && (
-                    <p className="text-[14px] text-muted-foreground mb-1">{program.institution.city}</p>
+                        {/* City */}
+                        {program.institution.city && (
+                            <p className="text-[14px] text-muted-foreground mb-1">{program.institution.city}</p>
+                        )}
+                    </>
                 )}
 
                 {/* Duration / category row */}
@@ -1482,32 +1502,40 @@ function DetailPanel({
                 )}
 
                 {/* Institution info */}
-                <div className="border-t pt-5">
-                    <h3 className="text-[15px] font-bold text-foreground mb-3">About the institution</h3>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                        <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Name</p>
-                            <p className="text-[13px] text-foreground font-medium">{program.institution.name}</p>
-                        </div>
-                        <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Type</p>
-                            <p className="text-[13px] text-foreground capitalize">{program.institution.category || "—"}</p>
-                        </div>
-                        <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">City</p>
-                            <p className="text-[13px] text-foreground">{program.institution.city || "—"}</p>
-                        </div>
-                        <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Contact</p>
-                            <p className="text-[13px] text-foreground truncate">{program.institution.contact_email || "—"}</p>
-                        </div>
+                {program.postedByPlatform ? (
+                    <div className="border-t pt-5">
+                        <h3 className="text-[15px] font-bold text-foreground mb-3">Posted by</h3>
+                        <p className="text-[13px] text-foreground font-medium">DAKHLA Platform</p>
+                        <p className="text-[13px] text-muted-foreground mt-1">This program is posted directly by the DAKHLA platform.</p>
                     </div>
-                    {program.institution.description && (
-                        <p className="text-[13px] text-muted-foreground mt-3 leading-relaxed">
-                            {program.institution.description}
-                        </p>
-                    )}
-                </div>
+                ) : (
+                    <div className="border-t pt-5">
+                        <h3 className="text-[15px] font-bold text-foreground mb-3">About the institution</h3>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Name</p>
+                                <p className="text-[13px] text-foreground font-medium">{program.institution.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Type</p>
+                                <p className="text-[13px] text-foreground capitalize">{program.institution.category || "—"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">City</p>
+                                <p className="text-[13px] text-foreground">{program.institution.city || "—"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Contact</p>
+                                <p className="text-[13px] text-foreground truncate">{program.institution.contact_email || "—"}</p>
+                            </div>
+                        </div>
+                        {program.institution.description && (
+                            <p className="text-[13px] text-muted-foreground mt-3 leading-relaxed">
+                                {program.institution.description}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* Bottom padding */}
                 <div className="h-4" />

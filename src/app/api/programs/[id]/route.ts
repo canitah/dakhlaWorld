@@ -50,10 +50,29 @@ export async function GET(
             return NextResponse.json({ error: "Program not found" }, { status: 404 });
         }
 
+        // Handle admin-posted programs (no institution)
+        if ((program as any).posted_by_admin || !program.institution) {
+            const mapped = {
+                ...program,
+                postedByPlatform: true,
+                institution: {
+                    id: 0,
+                    name: "DAKHLA Platform",
+                    city: null,
+                    category: null,
+                    description: null,
+                    contact_email: null,
+                    uniqueId: "platform",
+                },
+            };
+            return NextResponse.json({ program: mapped });
+        }
+
         // Flatten user.unique_id into institution.uniqueId
         const { user, ...institutionRest } = program.institution as any;
         const mapped = {
             ...program,
+            postedByPlatform: false,
             institution: {
                 ...institutionRest,
                 uniqueId: user?.unique_id || String(institutionRest.id),

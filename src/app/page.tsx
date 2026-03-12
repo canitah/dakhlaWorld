@@ -49,6 +49,7 @@ interface Program {
   external_url: string | null;
   program_code: string | null;
   created_at: string;
+  postedByPlatform?: boolean;
   institution: {
     id: number;
     name: string;
@@ -643,8 +644,14 @@ export default function HomePage() {
                       : "border-border hover:border-blue-300"
                       }`}
                   >
-                    {/* Badge for featured */}
-                    {program.institution.planTier.toLowerCase().includes("featured") && (
+                    {/* Badge for featured or platform */}
+                    {program.postedByPlatform ? (
+                      <div className="absolute top-3 right-3">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+                          ✦ Posted by DAKHLA
+                        </span>
+                      </div>
+                    ) : program.institution.planTier.toLowerCase().includes("featured") && (
                       <div className="absolute top-3 right-3">
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-500/30">
                           ★ Featured
@@ -657,10 +664,10 @@ export default function HomePage() {
                     </h3>
 
                     <p className="text-xs sm:text-[13px] text-muted-foreground mb-0.5">
-                      {program.institution.name}
+                      {program.postedByPlatform ? "DAKHLA Platform" : program.institution.name}
                     </p>
 
-                    {program.institution.city && (
+                    {!program.postedByPlatform && program.institution.city && (
                       <p className="text-xs sm:text-[13px] text-muted-foreground mb-2">
                         {program.institution.city}
                       </p>
@@ -716,17 +723,27 @@ export default function HomePage() {
                       <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1">
                         {selectedProgram.title}
                       </h2>
-                      <p
-                        className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
-                        onClick={() => router.push(`/institution-detail/${selectedProgram.institution.uniqueId}`)}
-                      >
-                        {selectedProgram.institution.name}
-                        <ExternalLink className="w-3 h-3" />
-                      </p>
-                      {selectedProgram.institution.city && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {selectedProgram.institution.city}
+                      {selectedProgram.postedByPlatform ? (
+                        <p className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+                            ✦ Posted by DAKHLA Platform
+                          </span>
                         </p>
+                      ) : (
+                        <>
+                          <p
+                            className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
+                            onClick={() => router.push(`/institution-detail/${selectedProgram.institution.uniqueId}`)}
+                          >
+                            {selectedProgram.institution.name}
+                            <ExternalLink className="w-3 h-3" />
+                          </p>
+                          {selectedProgram.institution.city && (
+                            <p className="text-sm text-muted-foreground mb-1">
+                              {selectedProgram.institution.city}
+                            </p>
+                          )}
+                        </>
                       )}
                       {selectedProgram.fee !== null && (
                         <p className="text-sm text-foreground font-medium mb-4">
@@ -814,7 +831,7 @@ export default function HomePage() {
                           </div>
                         )}
                         <DetailRow icon={<Calendar />} label="Posted Date" value={formatDate(selectedProgram.created_at)} />
-                        <DetailRow icon={<Building2 />} label="Institution" value={`${selectedProgram.institution.name}${selectedProgram.institution.category ? ` · ${selectedProgram.institution.category}` : ""}`} />
+                        <DetailRow icon={<Building2 />} label={selectedProgram.postedByPlatform ? "Posted by" : "Institution"} value={selectedProgram.postedByPlatform ? "DAKHLA Platform" : `${selectedProgram.institution.name}${selectedProgram.institution.category ? ` · ${selectedProgram.institution.category}` : ""}`} />
                       </div>
                     </div>
                   </div>
