@@ -36,8 +36,9 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
+        
+        // Validation check
         const parsed = programSchema.safeParse(body);
-
         if (!parsed.success) {
             return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
         }
@@ -52,9 +53,12 @@ export async function POST(request: Request) {
             isUnique = !existing;
         } while (!isUnique);
 
+        // Database Create Logic
         const program = await prisma.program.create({
             data: {
                 ...parsed.data,
+                // Agar parsed.data mein institute_name nahi aa raha toh body se lein
+                institute_name: body.institute_name || null, 
                 institution_id: null,
                 posted_by_admin: true,
                 program_code: programCode,

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // Input component assume kiya gaya hai
 import { message } from "antd";
-import { Download, ExternalLink, Calendar, CreditCard, Banknote, Building2 } from "lucide-react";
+import { Download, ExternalLink, Calendar, CreditCard, Banknote, Building2, Search, X } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 
 interface PaymentRequest {
@@ -24,6 +25,7 @@ export default function AdminPaymentsPage() {
     const { fetchWithAuth } = useApi();
     const [requests, setRequests] = useState<PaymentRequest[]>([]);
     const [filter, setFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -48,6 +50,13 @@ export default function AdminPaymentsPage() {
         setIsLoading(false);
     }
 
+    // Client-side search filtering based on Institution Name
+    const filteredRequests = useMemo(() => {
+        return requests.filter((req) =>
+            req.institution.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [requests, searchQuery]);
+
     const handleVerify = async (id: number, status: "approved" | "rejected") => {
         const res = await fetchWithAuth(`/admin/billing/${id}`, {
             method: "PUT",
@@ -60,7 +69,7 @@ export default function AdminPaymentsPage() {
     };
 
     const exportPayments = () => {
-        const data = requests.map((r) => ({
+        const data = filteredRequests.map((r) => ({
             Institution: r.institution.name,
             Plan: r.plan.name,
             "Amount (PKR)": r.plan.price_pkr,
@@ -77,9 +86,26 @@ export default function AdminPaymentsPage() {
         <DashboardLayout role="admin">
             <div className="flex flex-col gap-4 mb-6">
                 <h1 className="text-xl md:text-2xl font-bold">Manage Payments</h1>
+{/* Search Bar Section - Chota size aur Left alignment */}
+                <div className="relative w-full max-w-sm mr-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by institution name..."
+                        className="pl-10 pr-10 w-full h-9 text-sm" // h-9 se height thodi kam ho jayegi
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                        <button 
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="size-4" />
+                        </button>
+                    )}
+                </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    {/* Mobile: Horizontal scroll for filters */}
                     <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 no-scrollbar">
                         {["all", "pending", "approved", "rejected"].map((s) => (
                             <Button
@@ -93,13 +119,13 @@ export default function AdminPaymentsPage() {
                             </Button>
                         ))}
                     </div>
-                    
+
                     <Button
                         variant="outline"
                         size="sm"
                         className="gap-2 w-full sm:w-auto justify-center"
                         onClick={exportPayments}
-                        disabled={requests.length === 0}
+                        disabled={filteredRequests.length === 0}
                     >
                         <Download className="size-4" />
                         Export CSV
@@ -110,7 +136,7 @@ export default function AdminPaymentsPage() {
             <Card className="border-none shadow-none md:border md:shadow-sm">
                 <CardHeader className="px-4 md:px-6">
                     <CardTitle className="text-lg">
-                        Payment Requests ({requests.length})
+                        Payment Requests ({filteredRequests.length})
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="px-2 md:px-6">
@@ -118,8 +144,10 @@ export default function AdminPaymentsPage() {
                         <div className="flex justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
-                    ) : requests.length === 0 ? (
-                        <p className="text-center py-12 text-muted-foreground">No {filter} payment requests</p>
+                    ) : filteredRequests.length === 0 ? (
+                        <p className="text-center py-12 text-muted-foreground">
+                            {searchQuery ? `No results found for "${searchQuery}"` : `No ${filter} payment requests`}
+                        </p>
                     ) : (
                         <>
                             {/* --- Desktop View (Table) --- */}
@@ -138,7 +166,7 @@ export default function AdminPaymentsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {requests.map((req) => (
+                                        {filteredRequests.map((req) => (
                                             <tr key={req.id} className="border-b last:border-0 hover:bg-accent/50">
                                                 <td className="py-4 text-sm font-medium">{req.institution.name}</td>
                                                 <td className="py-4 text-sm">{req.plan.name}</td>
@@ -177,7 +205,7 @@ export default function AdminPaymentsPage() {
 
                             {/* --- Mobile View (Cards) --- */}
                             <div className="grid grid-cols-1 gap-4 md:hidden">
-                                {requests.map((req) => (
+                                {filteredRequests.map((req) => (
                                     <div key={req.id} className="border rounded-xl p-4 space-y-4 bg-white shadow-sm">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">

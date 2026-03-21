@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input"; // Input component for search
 import { message } from "antd";
-import { Download, Eye, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Download, Eye, CheckCircle, XCircle, AlertCircle, Search } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 
 interface Institution {
@@ -48,16 +49,8 @@ export default function AdminInstitutionsPage() {
     const { fetchWithAuth } = useApi();
     const [institutions, setInstitutions] = useState<Institution[]>([]);
     const [filter, setFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState(""); // New state for search
     const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const urlStatus = params.get("status");
-        if (urlStatus && ["all", "pending", "approved", "rejected", "cancelled"].includes(urlStatus)) {
-            setFilter(urlStatus);
-        }
-    }, []);
-
     const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [rejectTarget, setRejectTarget] = useState<Institution | null>(null);
@@ -67,6 +60,14 @@ export default function AdminInstitutionsPage() {
     const [cancelReason, setCancelReason] = useState("");
     const [isCancelOpen, setIsCancelOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlStatus = params.get("status");
+        if (urlStatus && ["all", "pending", "approved", "rejected", "cancelled"].includes(urlStatus)) {
+            setFilter(urlStatus);
+        }
+    }, []);
 
     useEffect(() => {
         loadInstitutions();
@@ -82,6 +83,23 @@ export default function AdminInstitutionsPage() {
         }
         setIsLoading(false);
     }
+
+    // Client-side search logic: Name, Email, City, aur Category sab cover hain
+    const filteredInstitutions = useMemo(() => {
+        if (!searchQuery.trim()) return institutions;
+
+        const lowerQuery = searchQuery.toLowerCase();
+        return institutions.filter((inst) => {
+            return (
+                inst.name.toLowerCase().includes(lowerQuery) ||
+                (inst.contact_email && inst.contact_email.toLowerCase().includes(lowerQuery)) ||
+                (inst.user.email && inst.user.email.toLowerCase().includes(lowerQuery)) ||
+                (inst.city && inst.city.toLowerCase().includes(lowerQuery)) ||
+                (inst.category && inst.category.toLowerCase().includes(lowerQuery)) ||
+                (inst.user.phone && inst.user.phone.includes(lowerQuery))
+            );
+        });
+    }, [institutions, searchQuery]);
 
     const handleAction = async (id: number, status: "approved" | "rejected" | "cancelled", reason?: string) => {
         setIsSubmitting(true);
@@ -127,7 +145,7 @@ export default function AdminInstitutionsPage() {
     };
 
     const exportInstitutions = () => {
-        const data = institutions.map((i) => ({
+        const data = filteredInstitutions.map((i) => ({
             Name: i.name,
             "Account Email": i.user.email || "—",
             "Contact Email": i.contact_email || "—",
@@ -148,15 +166,25 @@ export default function AdminInstitutionsPage() {
             <div className="flex flex-col gap-4 mb-6">
                 <h1 className="text-xl md:text-2xl font-bold">Manage Institutions</h1>
                 
+               {/* Search Bar Integration */}
+                        <div className="relative w-full lg:max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search by name, email, or city..." 
+                                className="pl-10 h-10"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    {/* Horizontal Scrollable Filters on Mobile */}
                     <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 no-scrollbar">
                         {["all", "pending", "approved", "rejected", "cancelled"].map((s) => (
                             <Button
                                 key={s}
                                 variant={filter === s ? "default" : "outline"}
                                 size="sm"
-                                className={`capitalize whitespace-nowrap ${filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                                className={`capitalize whitespace-nowrap ${filter === s ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
                                 onClick={() => setFilter(s)}
                             >
                                 {s}
@@ -169,7 +197,7 @@ export default function AdminInstitutionsPage() {
                         size="sm"
                         className="gap-2 w-full sm:w-auto justify-center"
                         onClick={exportInstitutions}
-                        disabled={institutions.length === 0}
+                        disabled={filteredInstitutions.length === 0}
                     >
                         <Download className="size-4" />
                         Export CSV
@@ -180,7 +208,7 @@ export default function AdminInstitutionsPage() {
             <Card className="border-none shadow-none md:border md:shadow-sm">
                 <CardHeader className="px-4 md:px-6">
                     <CardTitle className="text-lg">
-                        {filter.charAt(0).toUpperCase() + filter.slice(1)} Institutions ({institutions.length})
+                        {filter.charAt(0).toUpperCase() + filter.slice(1)} Institutions ({filteredInstitutions.length})
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="px-2 md:px-6">
@@ -188,8 +216,13 @@ export default function AdminInstitutionsPage() {
                         <div className="flex justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
-                    ) : institutions.length === 0 ? (
-                        <p className="text-center py-12 text-muted-foreground">No {filter} institutions found.</p>
+                    ) : filteredInstitutions.length === 0 ? (
+                        <div className="text-center py-12 space-y-2">
+                            <p className="text-muted-foreground">No results found for your search or filter.</p>
+                            {searchQuery && (
+                                <Button variant="link" onClick={() => setSearchQuery("")}>Clear search</Button>
+                            )}
+                        </div>
                     ) : (
                         <>
                             {/* Desktop Table View */}
@@ -205,14 +238,15 @@ export default function AdminInstitutionsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {institutions.map((inst) => (
+                                        {filteredInstitutions.map((inst) => (
                                             <tr key={inst.id} className="border-b last:border-0 hover:bg-accent/50">
                                                 <td className="py-4">
                                                     <p className="text-sm font-medium">{inst.name}</p>
                                                     <p className="text-xs text-muted-foreground">{inst.category || "—"}</p>
                                                 </td>
                                                 <td className="py-4 text-sm">
-                                                    {inst.user.email || inst.contact_email || "—"}
+                                                    <p>{inst.user.email || inst.contact_email || "—"}</p>
+                                                    <p className="text-[10px] text-muted-foreground">{inst.user.phone || ""}</p>
                                                 </td>
                                                 <td className="py-4">
                                                     {isProfileComplete(inst) ? (
@@ -231,7 +265,7 @@ export default function AdminInstitutionsPage() {
                                                             <>
                                                                 <Button 
                                                                     size="sm" 
-                                                                    className="bg-emerald-600 hover:bg-emerald-700" 
+                                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white" 
                                                                     disabled={!isProfileComplete(inst) || isSubmitting}
                                                                     onClick={() => handleAction(inst.id, "approved")}
                                                                 >Approve</Button>
@@ -248,8 +282,8 @@ export default function AdminInstitutionsPage() {
 
                             {/* Mobile Card View */}
                             <div className="grid grid-cols-1 gap-4 md:hidden">
-                                {institutions.map((inst) => (
-                                    <div key={inst.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                                {filteredInstitutions.map((inst) => (
+                                    <div key={inst.id} className="border rounded-lg p-4 space-y-3 bg-card shadow-sm">
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <h3 className="font-bold text-sm">{inst.name}</h3>
@@ -277,14 +311,13 @@ export default function AdminInstitutionsPage() {
                                             </Button>
                                             {inst.status === "pending" && (
                                                 <>
-                                                    <Button 
-                                                        size="sm" 
-                                                        className="flex-1 h-8 text-xs bg-emerald-600" 
+                                                    <button 
+                                                        className="flex-1 h-8 text-xs bg-emerald-600 text-white rounded-md flex items-center justify-center gap-1 px-2 disabled:opacity-50"
                                                         disabled={!isProfileComplete(inst) || isSubmitting}
                                                         onClick={() => handleAction(inst.id, "approved")}
                                                     >
-                                                        <CheckCircle className="size-3 mr-1" /> Approve
-                                                    </Button>
+                                                        <CheckCircle className="size-3" /> Approve
+                                                    </button>
                                                     <Button 
                                                         size="sm" 
                                                         variant="destructive" 
@@ -315,7 +348,7 @@ export default function AdminInstitutionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Dialogs remain mostly same but added max-w-[95vw] for mobile safety */}
+            {/* Dialogs */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto rounded-lg">
                     <DialogHeader>
@@ -359,7 +392,7 @@ export default function AdminInstitutionsPage() {
                                     {selectedInst.status === "pending" && (
                                         <div className="grid grid-cols-2 gap-2">
                                             <Button 
-                                                className="bg-emerald-600" 
+                                                className="bg-emerald-600 text-white" 
                                                 disabled={!complete || isSubmitting}
                                                 onClick={() => handleAction(selectedInst.id, "approved")}
                                             >Approve</Button>
@@ -382,7 +415,6 @@ export default function AdminInstitutionsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Rejection/Cancellation Dialogs with mobile width fix */}
             <Dialog open={isRejectOpen} onOpenChange={(open) => { if (!open) { setIsRejectOpen(false); setRejectTarget(null); } }}>
                 <DialogContent className="max-w-[95vw] md:max-w-md rounded-lg">
                     <DialogHeader><DialogTitle>Reject Institution</DialogTitle></DialogHeader>
@@ -405,7 +437,6 @@ export default function AdminInstitutionsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Cancellation Dialog logic similarly follows Reject Dialog */}
             <Dialog open={isCancelOpen} onOpenChange={(open) => { if (!open) { setIsCancelOpen(false); setCancelTarget(null); } }}>
                 <DialogContent className="max-w-[95vw] md:max-w-md rounded-lg">
                     <DialogHeader><DialogTitle>Cancel Registration</DialogTitle></DialogHeader>
@@ -432,7 +463,6 @@ export default function AdminInstitutionsPage() {
     );
 }
 
-// Helper Component for Details
 function DetailItem({ label, value }: { label: string, value: string | null }) {
     return (
         <div>

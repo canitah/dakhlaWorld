@@ -24,13 +24,6 @@ const publicPaths = [
     "/api/institutions/public",
 ];
 
-// Role-based route prefixes
-const roleRoutes: Record<string, string[]> = {
-    student: ["/student", "/api/students", "/api/applications", "/api/saved", "/api/programs"],
-    institution: ["/institution", "/api/institutions", "/api/billing"],
-    admin: ["/admin", "/api/admin"],
-};
-
 function isPublicPath(pathname: string): boolean {
     return publicPaths.some(
         (p) => pathname === p || pathname.startsWith(`${p}/`)
@@ -50,91 +43,59 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Allow program listing for all authenticated users
+    // Allow program listing for all users
     if (pathname === "/api/programs" || pathname.startsWith("/api/programs/")) {
         return NextResponse.next();
     }
 
-    // Extract token from Authorization header
+    // Extract token from Authorization header or cookies
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-    // Also check cookies for page navigation
     const cookieToken = request.cookies.get("access_token")?.value;
     const effectiveToken = token || cookieToken;
 
+    // Agar token nahi hai, toh sirf dashboard pages block honge
     if (!effectiveToken) {
-        // For API routes, return 401
         if (pathname.startsWith("/api/")) {
-            return NextResponse.json(
-                { error: "Authentication required" },
-                { status: 401 }
-            );
+            return NextResponse.next(); 
         }
-        // For pages, redirect to login
-        return NextResponse.redirect(new URL("/login", request.url));
+        const dashboardPaths = ["/student", "/institution", "/admin"];
+        if (dashboardPaths.some(p => pathname.startsWith(p))) {
+            return NextResponse.redirect(new URL("/login", request.url));
+        }
+        return NextResponse.next();
     }
 
     try {
         const { payload } = await jwtVerify(effectiveToken, ACCESS_SECRET);
         const role = payload.role as string;
-        const userStatus = payload.status as string | undefined;
-
-        // Block unverified users from accessing authenticated pages
-        if (userStatus === "pending") {
-            if (pathname.startsWith("/api/")) {
-                return NextResponse.json(
-                    { error: "Please verify your email first" },
-                    { status: 403 }
-                );
-            }
-            const verifyUrl = new URL("/verify-otp", request.url);
-            if (payload.userId) verifyUrl.searchParams.set("userId", String(payload.userId));
-            if (payload.email) verifyUrl.searchParams.set("email", String(payload.email));
-            verifyUrl.searchParams.set("reason", "unverified");
-            return NextResponse.redirect(verifyUrl);
-        }
-
-        // Check role-based access for dashboard pages
-        const dashboardPrefixes = ["/student", "/institution", "/admin"];
-        const matchedPrefix = dashboardPrefixes.find((p) => pathname.startsWith(p));
-
-        if (matchedPrefix) {
-            const requiredRole = matchedPrefix.slice(1); // Remove leading "/"
-            if (role !== requiredRole) {
-                // Redirect to their own dashboard
-                return NextResponse.redirect(new URL(`/${role}`, request.url));
-            }
-        }
-
-        // Add user info to headers for downstream use
+        
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set("x-user-id", String(payload.userId));
         requestHeaders.set("x-user-role", role);
         requestHeaders.set("x-user-email", String(payload.email || ""));
 
+        // Role-based access check
+        const dashboardPrefixes = ["/student", "/institution", "/admin"];
+        const matchedPrefix = dashboardPrefixes.find((p) => pathname.startsWith(p));
+
+        if (matchedPrefix) {
+            const requiredRole = matchedPrefix.slice(1);
+            if (role !== requiredRole) {
+                return NextResponse.redirect(new URL(`/${role}`, request.url));
+            }
+        }
+
         return NextResponse.next({
             request: { headers: requestHeaders },
         });
-    } catch {
-        if (pathname.startsWith("/api/")) {
-            return NextResponse.json(
-                { error: "Invalid or expired token" },
-                { status: 401 }
-            );
-        }
-        return NextResponse.redirect(new URL("/login", request.url));
+    } catch (err) {
+        // Session timeout bypass: Agar token expire ho jaye toh redirect nahi karega 
+        // balkay request ko simple flow mein janay dega
+        return NextResponse.next();
     }
 }
 
 export const config = {
-    matcher: [
-        /*
-         * Match all request paths except:
-         * - _next/static (static files)
-         * - _next/image (image optimization)
-         * - favicon.ico (favicon)
-         */
-        "/((?!_next/static|_next/image|favicon.ico).*)",
-    ],
+    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

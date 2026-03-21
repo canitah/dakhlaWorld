@@ -83,6 +83,7 @@ model Program {
   id                 Int                @id @default(autoincrement())
   institution_id     Int?
   title              String
+  institute_name     String?
   description        String?
   category           String?
   duration           String?

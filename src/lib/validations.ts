@@ -87,6 +87,10 @@ export const institutionProfileSchema = z.object({
 // ─── Program ─────────────────────────────────────────────
 export const programSchema = z.object({
     title: z.string().min(2).max(200),
+    institute_name: z.preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().max(200).optional().nullable(),
+    ), // <--- Naya field yahan add ho gaya
     description: z.string().max(5000).optional().nullable(),
     category: z.string().max(100).optional(),
     duration: z.string().max(100).optional(),
@@ -98,7 +102,10 @@ export const programSchema = z.object({
         { message: "Please enter a valid URL" }
     ),
     is_active: z.boolean().optional(),
-    fee: z.number().int().min(0).optional().nullable(),
+    fee: z.preprocess(
+        (val) => (val === "" ? null : typeof val === "string" ? parseInt(val) : val),
+        z.number().int().min(0).optional().nullable()
+    ), // Fee parsing fix for safety
     schedule_type: z.string().optional().nullable(),
     study_field: z.string().max(200).optional().nullable(),
 });

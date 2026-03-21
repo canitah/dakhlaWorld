@@ -23,6 +23,7 @@ import { Upload, FileText, CheckCircle2, Copy, X } from "lucide-react";
 interface Program {
     id: number;
     title: string;
+    institute_name: string;
     description: string | null;
     category: string | null;
     duration: string | null;
@@ -40,6 +41,7 @@ interface Program {
 interface ProgramDetail {
     id: number;
     title: string;
+    institute_name: string;
     description: string | null;
     category: string | null;
     duration: string | null;
@@ -1131,10 +1133,14 @@ function ProgramCard({
                 {program.title}
             </h3>
 
-            {/* Row 3: Institution + city */}
+      {/* Row 3: Institution + city */}
+
             <div className="text-[13px] text-muted-foreground leading-snug mb-3">
-                <p>{program.postedByPlatform ? "DAKHLA Platform" : program.institution.name}</p>
+
+                <p>{program.postedByPlatform ? (program.institute_name || "DAKHLA Platform") : program.institution.name}</p>
+
                 {!program.postedByPlatform && program.institution.city && <p>{program.institution.city}</p>}
+
             </div>
 
             {/* Row 4: Pills */}
@@ -1224,6 +1230,13 @@ function DetailPanel({
                 <h2 className="text-[22px] font-bold text-foreground leading-snug mb-1">
                     {program.title}
                 </h2>
+
+                {/* Institute Name */}
+                <h2 className="text-[16px] font-semibold text-primary/90 leading-snug">
+            {program.institute_name && program.institute_name.trim() !== "" 
+                ? program.institute_name 
+                : "DAKHLA Platform"}
+        </h2>
 
                 {/* Institution with external link */}
                 {program.postedByPlatform ? (
@@ -1331,6 +1344,8 @@ function DetailPanel({
 
                     {/* Detail rows */}
                     <div className="space-y-4">
+                        
+                        
 
                         {/* Category */}
                         {program.category && (
