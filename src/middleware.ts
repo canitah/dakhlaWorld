@@ -8,6 +8,7 @@ const ACCESS_SECRET = new TextEncoder().encode(
 // Routes that don't require authentication
 const publicPaths = [
     "/",
+    "/programs",
     "/login",
     "/signup",
     "/verify-otp",

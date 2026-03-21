@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -54,8 +54,7 @@ import {
     ImageIcon,
 } from "lucide-react";
 
-/* ─── Static plan definitions (always shown, no DB dependency) ─── */
-
+// --- Interfaces ---
 interface PlanDef {
     name: string;
     dbName: string;
@@ -71,7 +70,23 @@ interface PlanDef {
     features: Record<string, string | boolean>;
 }
 
-const JAZZCASH_ACCOUNT = "03001234567"; // Replace with your actual JazzCash number
+interface DbPlan {
+    id: number;
+    name: string;
+    price_pkr: number;
+}
+
+interface PaymentReq {
+    id: number;
+    status: string;
+    transaction_ref: string | null;
+    screenshot_url: string | null;
+    created_at: string;
+    plan: DbPlan;
+}
+
+// --- Constants ---
+const JAZZCASH_ACCOUNT = "03001234567";
 
 const QR_IMAGES: Record<string, string> = {
     Growth: "/qr-growth.jpeg",
@@ -187,7 +202,7 @@ const PLANS: PlanDef[] = [
     },
 ];
 
-const FEATURE_ROWS: { key: string; label: string; icon: React.ReactNode }[] = [
+const FEATURE_ROWS = [
     { key: "active_admissions", label: "Active Admissions", icon: <CreditCard className="size-4" /> },
     { key: "standard_search_listing", label: "Search Listing", icon: <Eye className="size-4" /> },
     { key: "highlighted_admission_card", label: "Highlighted Card", icon: <StarFilled style={{ fontSize: 14 }} /> },
@@ -201,8 +216,7 @@ const FEATURE_ROWS: { key: string; label: string; icon: React.ReactNode }[] = [
     { key: "support_level", label: "Support Level", icon: <Headphones className="size-4" /> },
 ];
 
-/* ─── Feature cell renderer ─── */
-
+// --- Sub-components ---
 function FeatureCell({ value }: { value: string | boolean }) {
     if (value === true) return (
         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10">
@@ -221,25 +235,6 @@ function FeatureCell({ value }: { value: string | boolean }) {
     );
 }
 
-/* ─── Payment history types ─── */
-
-interface DbPlan {
-    id: number;
-    name: string;
-    price_pkr: number;
-}
-
-interface PaymentReq {
-    id: number;
-    status: string;
-    transaction_ref: string | null;
-    screenshot_url: string | null;
-    created_at: string;
-    plan: DbPlan;
-}
-
-/* ─── Page component ─── */
-
 export default function InstitutionBillingPage() {
     const { fetchWithAuth } = useApi();
     const router = useRouter();
@@ -250,7 +245,7 @@ export default function InstitutionBillingPage() {
     const [autoRenew, setAutoRenew] = useState(true);
     const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
     const [togglingAutoRenew, setTogglingAutoRenew] = useState(false);
-
+    
     // Payment dialog state
     const [selectedPlan, setSelectedPlan] = useState<PlanDef | null>(null);
     const [showDialog, setShowDialog] = useState(false);
@@ -259,9 +254,7 @@ export default function InstitutionBillingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const screenshotInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
     async function loadData() {
         try {
@@ -274,9 +267,7 @@ export default function InstitutionBillingPage() {
                 setAutoRenew(data.auto_renew ?? true);
                 setPlanExpiresAt(data.plan_expires_at || null);
             }
-        } catch {
-            // Billing API may fail if no plans seeded — page still renders
-        }
+        } catch (err) { console.error(err); }
         setIsLoading(false);
     }
 
@@ -296,39 +287,25 @@ export default function InstitutionBillingPage() {
         }
 
         const matchingPlan = dbPlans.find((p) => p.name === selectedPlan.dbName);
-
         if (!matchingPlan) {
             message.error("Plans not found in database. Please ask admin to seed plans first.");
             return;
         }
 
         setIsSubmitting(true);
-
         let screenshotUrl: string | undefined;
 
-        // Upload screenshot via server-side API if provided
         if (screenshotFile) {
             try {
                 const formData = new FormData();
                 formData.append("file", screenshotFile);
                 formData.append("folder", "gap/payment-screenshots");
-
-                const uploadRes = await fetchWithAuth("/upload", {
-                    method: "POST",
-                    body: formData,
-                });
+                const uploadRes = await fetchWithAuth("/upload", { method: "POST", body: formData });
                 if (uploadRes.ok) {
                     const uploadData = await uploadRes.json();
                     screenshotUrl = uploadData.url;
-                } else {
-                    const errData = await uploadRes.json().catch(() => ({}));
-                    console.error("Screenshot upload failed:", uploadRes.status, errData);
-                    message.warning(errData.error || "Could not upload screenshot, but continuing with payment submission.");
                 }
-            } catch (err) {
-                console.error("Screenshot upload exception:", err);
-                message.warning("Screenshot upload failed, but continuing.");
-            }
+            } catch (err) { console.error(err); }
         }
 
         const res = await fetchWithAuth("/billing", {
@@ -364,75 +341,52 @@ export default function InstitutionBillingPage() {
 
     return (
         <DashboardLayout role="institution">
-            {/* ─── Page Header ─── */}
-            <div className="mb-10">
+            {/* Header */}
+            <div className="mb-8 px-1">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                        <CreditCard className="size-6 text-blue-500" />
+                    <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                        <CreditCard className="size-6 text-blue-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                            Institution Pricing Plans
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Choose the plan that best fits your institution&apos;s needs
-                        </p>
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Institution Pricing Plans</h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Select a plan to boost your institution's visibility</p>
                     </div>
                 </div>
             </div>
 
-            {/* ─── Plan Cards ─── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-10">
+            {/* Plan Cards - Responsive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-10">
                 {PLANS.map((plan) => (
-                    <Card
-                        key={plan.name}
-                        className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${plan.badge ? "ring-2 ring-amber-500/50" : ""}`}
-                    >
-                        {/* Gradient top accent */}
-                        <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${plan.gradient.replace("/10", "").replace("/5", "").replace("to-transparent", plan.dotColor.replace("bg-", "to-"))}`}
-                            style={{
-                                background: plan.name === "Starter" ? "linear-gradient(to right, #10b981, #34d399)"
-                                    : plan.name === "Growth" ? "linear-gradient(to right, #3b82f6, #60a5fa)"
-                                        : plan.name === "Pro" ? "linear-gradient(to right, #8b5cf6, #a78bfa)"
-                                            : "linear-gradient(to right, #f59e0b, #f97316)"
-                            }}
-                        />
-
+                    <Card key={plan.name} className={`relative overflow-hidden transition-all hover:shadow-md ${plan.badge ? "ring-2 ring-amber-500/50" : ""}`}>
+                        <div className={`absolute inset-x-0 top-0 h-1`} style={{ 
+                            background: plan.name === "Starter" ? "linear-gradient(to right, #10b981, #34d399)" : 
+                                        plan.name === "Growth" ? "linear-gradient(to right, #3b82f6, #60a5fa)" : 
+                                        plan.name === "Pro" ? "linear-gradient(to right, #8b5cf6, #a78bfa)" : 
+                                        "linear-gradient(to right, #f59e0b, #f97316)" 
+                        }} />
+                        
                         {plan.badge && (
                             <div className="absolute top-3 right-3">
-                                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-[10px] font-bold uppercase tracking-wider shadow-sm">
-                                    <Sparkles className="size-3 mr-0.5" />
-                                    {plan.badge}
-                                </Badge>
+                                <Badge className="bg-amber-500 text-white border-0 text-[10px] font-bold uppercase">{plan.badge}</Badge>
                             </div>
                         )}
 
                         <CardContent className="pt-6 pb-5 px-5 flex flex-col h-full">
-                            {/* Icon & name */}
                             <div className="flex items-center gap-3 mb-4">
-                                <div className={`p-2.5 rounded-xl ${plan.iconBg}`}>
-                                    {plan.icon}
-                                </div>
+                                <div className={`p-2 rounded-xl ${plan.iconBg}`}>{plan.icon}</div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        {plan.price === 0 ? "Free forever" : "per month"}
-                                    </p>
+                                    <h3 className="text-base font-bold">{plan.name}</h3>
+                                    <p className="text-[10px] text-muted-foreground">{plan.price === 0 ? "Free forever" : "per month"}</p>
                                 </div>
                             </div>
 
-                            {/* Price */}
                             <div className="mb-5">
                                 <div className="flex items-baseline gap-1">
-                                    {plan.price === 0 ? (
-                                        <span className="text-3xl font-extrabold text-foreground">Free</span>
-                                    ) : (
+                                    {plan.price === 0 ? <span className="text-2xl font-extrabold">Free</span> : (
                                         <>
-                                            <span className="text-sm font-medium text-muted-foreground">PKR</span>
-                                            <span className={`text-3xl font-extrabold ${plan.color}`}>
-                                                {plan.price.toLocaleString()}
-                                            </span>
-                                            <span className="text-sm text-muted-foreground">/mo</span>
+                                            <span className="text-xs font-medium text-muted-foreground">PKR</span>
+                                            <span className={`text-2xl font-extrabold ${plan.color}`}>{plan.price.toLocaleString()}</span>
+                                            <span className="text-xs text-muted-foreground">/mo</span>
                                         </>
                                     )}
                                 </div>
@@ -440,67 +394,29 @@ export default function InstitutionBillingPage() {
 
                             <Separator className="mb-4" />
 
-                            {/* Key features (top 5) */}
-                            <div className="space-y-2.5 mb-5">
+                            <div className="space-y-2.5 mb-6">
                                 {FEATURE_ROWS.slice(0, 5).map((row) => {
                                     const val = plan.features[row.key];
                                     const isIncluded = val === true || (typeof val === "string" && val !== "false");
                                     return (
-                                        <div key={row.key} className="flex items-center gap-2.5 text-sm">
-                                            {isIncluded ? (
-                                                <CheckCircleFilled className="text-emerald-500 shrink-0" style={{ fontSize: 14 }} />
-                                            ) : (
-                                                <CloseCircleFilled className="text-muted-foreground/40 shrink-0" style={{ fontSize: 14 }} />
-                                            )}
-                                            <span className={isIncluded ? "text-foreground" : "text-muted-foreground/60"}>
-                                                {row.label}
-                                                {typeof val === "string" && <span className="text-muted-foreground ml-1 text-xs">({val})</span>}
+                                        <div key={row.key} className="flex items-center gap-2.5 text-xs">
+                                            {isIncluded ? <CheckCircleFilled className="text-emerald-500" /> : <CloseCircleFilled className="text-muted-foreground/30" />}
+                                            <span className={isIncluded ? "text-foreground font-medium" : "text-muted-foreground/60"}>
+                                                {row.label} {typeof val === "string" && <span className="text-muted-foreground ml-1 text-[10px]">({val})</span>}
                                             </span>
                                         </div>
                                     );
                                 })}
                             </div>
 
-                            {/* CTA Button — pushed to bottom */}
                             <div className="mt-auto">
                                 {(() => {
                                     const isCurrentPlan = currentPlan?.name === plan.dbName;
-                                    const isFreePlan = plan.price === 0;
-                                    const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
-                                    const canResubscribe = isCurrentPlan && isExpired && !autoRenew;
-
-                                    if (isCurrentPlan && !canResubscribe) {
-                                        return (
-                                            <Button variant="outline" disabled className="w-full text-sm">
-                                                ✓ Current Plan
-                                            </Button>
-                                        );
-                                    }
-                                    if (isCurrentPlan && canResubscribe) {
-                                        return (
-                                            <Button
-                                                className={`w-full text-sm text-white shadow-lg transition-all duration-200 ${plan.btnClass}`}
-                                                onClick={() => handleSelectPlan(plan)}
-                                            >
-                                                Renew {plan.name}
-                                                <ArrowRight className="size-4 ml-1" />
-                                            </Button>
-                                        );
-                                    }
-                                    if (isFreePlan) {
-                                        return (
-                                            <Button variant="outline" disabled className="w-full text-sm">
-                                                Free Plan
-                                            </Button>
-                                        );
-                                    }
+                                    if (isCurrentPlan) return <Button variant="outline" disabled className="w-full text-xs h-9">✓ Current Plan</Button>;
+                                    if (plan.price === 0) return <Button variant="outline" disabled className="w-full text-xs h-9">Basic Plan</Button>;
                                     return (
-                                        <Button
-                                            className={`w-full text-sm text-white shadow-lg transition-all duration-200 ${plan.btnClass}`}
-                                            onClick={() => handleSelectPlan(plan)}
-                                        >
-                                            {currentPlan ? `Upgrade to ${plan.name}` : `Get ${plan.name}`}
-                                            <ArrowRight className="size-4 ml-1" />
+                                        <Button className={`w-full text-xs h-9 text-white ${plan.btnClass}`} onClick={() => handleSelectPlan(plan)}>
+                                            {currentPlan ? "Upgrade" : "Select Plan"} <ArrowRight className="size-3 ml-1" />
                                         </Button>
                                     );
                                 })()}
@@ -510,51 +426,38 @@ export default function InstitutionBillingPage() {
                 ))}
             </div>
 
-            {/* ─── Current Plan Info & Auto-Renewal ─── */}
+            {/* Active Plan Info */}
             {currentPlan && (
-                <Card className="mb-10 border-blue-200 dark:border-blue-800/50">
-                    <CardContent className="py-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <Card className="mb-8 border-blue-100 bg-blue-50/30">
+                    <CardContent className="py-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                                    <Shield className="size-5 text-blue-500" />
+                                <div className="size-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-blue-200 shadow-lg">
+                                    <Shield className="size-5" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Active Plan</p>
-                                    <p className="text-lg font-bold text-foreground">{currentPlan.name}</p>
+                                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Current Plan</p>
+                                    <p className="text-base font-bold">{currentPlan.name}</p>
                                 </div>
                             </div>
-                            {planExpiresAt && (
-                                <div className="text-sm text-muted-foreground">
-                                    <span className="font-medium">{autoRenew ? "Auto-renews" : "Expires"} on: </span>
-                                    {new Date(planExpiresAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                                </div>
-                            )}
-                            <div className="flex items-center gap-3">
-                                <label className="text-sm font-medium text-foreground">Auto-Renewal</label>
+                            <div className="flex flex-col sm:items-end">
+                                <p className="text-xs font-medium">{autoRenew ? "Auto-renews" : "Expires"} on:</p>
+                                <p className="text-sm font-bold">{planExpiresAt ? new Date(planExpiresAt).toLocaleDateString() : "—"}</p>
+                            </div>
+                            <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-blue-100 self-start sm:self-center">
+                                <span className="text-xs font-bold px-1">Auto-Renew</span>
                                 <button
                                     onClick={async () => {
                                         setTogglingAutoRenew(true);
                                         try {
-                                            const res = await fetchWithAuth("/billing/auto-renew", {
-                                                method: "PUT",
-                                                body: JSON.stringify({ auto_renew: !autoRenew }),
-                                            });
-                                            if (res.ok) {
-                                                setAutoRenew(!autoRenew);
-                                                message.success(autoRenew ? "Auto-renewal disabled" : "Auto-renewal enabled");
-                                            }
+                                            const res = await fetchWithAuth("/billing/auto-renew", { method: "PUT", body: JSON.stringify({ auto_renew: !autoRenew }) });
+                                            if (res.ok) { setAutoRenew(!autoRenew); message.success(autoRenew ? "Disabled" : "Enabled"); }
                                         } catch { /* ignore */ }
                                         setTogglingAutoRenew(false);
                                     }}
-                                    disabled={togglingAutoRenew}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 ${autoRenew ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-                                        } ${togglingAutoRenew ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${autoRenew ? "bg-blue-600" : "bg-gray-300"}`}
                                 >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${autoRenew ? "translate-x-6" : "translate-x-1"
-                                            }`}
-                                    />
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${autoRenew ? "translate-x-6" : "translate-x-0.5"}`} />
                                 </button>
                             </div>
                         </div>
@@ -562,164 +465,100 @@ export default function InstitutionBillingPage() {
                 </Card>
             )}
 
-            {/* ─── Payment History ─── */}
-            <Card>
-                <CardHeader>
+            {/* History Table */}
+            <Card className="rounded-2xl overflow-hidden border-muted/60">
+                <CardHeader className="bg-muted/30 py-4">
                     <div className="flex items-center gap-2">
-                        <Clock className="size-5 text-muted-foreground" />
-                        <CardTitle className="text-lg">Payment History</CardTitle>
+                        <Clock className="size-4 text-muted-foreground" />
+                        <CardTitle className="text-base">Payment History</CardTitle>
                     </div>
                 </CardHeader>
-                <CardContent>
-                    {requests.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-muted mb-4">
-                                <CreditCard className="size-6 text-muted-foreground" />
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">No payment requests yet</p>
-                            <p className="text-xs text-muted-foreground/60 mt-1">
-                                Select a plan above to get started
-                            </p>
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="font-semibold">Plan</TableHead>
-                                    <TableHead className="font-semibold">Amount</TableHead>
-                                    <TableHead className="font-semibold">Reference</TableHead>
-                                    <TableHead className="font-semibold">Status</TableHead>
-                                    <TableHead className="font-semibold">Date</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {requests.map((req) => (
-                                    <TableRow key={req.id}>
-                                        <TableCell className="font-medium">{req.plan.name}</TableCell>
-                                        <TableCell>PKR {req.plan.price_pkr.toLocaleString()}</TableCell>
-                                        <TableCell className="text-muted-foreground font-mono text-xs">
-                                            {req.transaction_ref || "—"}
-                                        </TableCell>
-                                        <TableCell><StatusBadge status={req.status} /></TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {new Date(req.created_at).toLocaleDateString()}
-                                        </TableCell>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        {requests.length === 0 ? (
+                            <div className="py-12 text-center text-muted-foreground text-sm">No payment history found.</div>
+                        ) : (
+                            <Table>
+                                <TableHeader className="bg-muted/20">
+                                    <TableRow>
+                                        <TableHead className="text-xs font-bold uppercase">Plan</TableHead>
+                                        <TableHead className="text-xs font-bold uppercase">Amount</TableHead>
+                                        <TableHead className="text-xs font-bold uppercase">Status</TableHead>
+                                        <TableHead className="text-xs font-bold uppercase text-right">Date</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                                </TableHeader>
+                                <TableBody>
+                                    {requests.map((req) => (
+                                        <TableRow key={req.id}>
+                                            <TableCell className="text-sm font-bold">{req.plan.name}</TableCell>
+                                            <TableCell className="text-sm">PKR {req.plan.price_pkr.toLocaleString()}</TableCell>
+                                            <TableCell><StatusBadge status={req.status} /></TableCell>
+                                            <TableCell className="text-xs text-right text-muted-foreground">{new Date(req.created_at).toLocaleDateString()}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
 
-            {/* ─── QR Code Payment Dialog (shadcn — auto dark/light) ─── */}
+            {/* Payment Dialog */}
             <Dialog open={showDialog} onOpenChange={(open) => { if (!open) { setShowDialog(false); setSelectedPlan(null); } }}>
-                <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <CreditCard className="size-5" />
-                            Pay for {selectedPlan?.dbName} Plan
-                        </DialogTitle>
-                        <DialogDescription>
-                            Scan the QR code below to make payment via JazzCash, then submit your transaction reference.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {selectedPlan && (
-                        <div className="space-y-5">
-                            {/* Plan summary */}
-                            <div className="bg-accent rounded-xl p-4 text-center border border-border">
-                                <p className="text-sm text-muted-foreground">You are upgrading to</p>
-                                <p className="text-xl font-bold text-foreground mt-1">
-                                    {selectedPlan.dbName} Plan
-                                </p>
-                                <p className="text-2xl font-extrabold text-blue-500 mt-1">
-                                    PKR {selectedPlan.price.toLocaleString()}
-                                    <span className="text-sm font-normal text-muted-foreground">/month</span>
-                                </p>
+                <DialogContent className="max-w-[95vw] sm:max-w-[500px] p-0 rounded-3xl overflow-hidden border-none shadow-2xl">
+                    <div className="max-h-[90vh] overflow-y-auto bg-card">
+                        <div className="bg-blue-600 p-6 text-white">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <CreditCard className="size-5" /> Confirm Payment
+                            </h2>
+                            <p className="text-blue-100 text-xs mt-1">Upgrade to {selectedPlan?.dbName} Plan</p>
+                        </div>
+                        
+                        <div className="p-6 space-y-5">
+                            <div className="bg-accent/50 p-4 rounded-2xl text-center border border-dashed border-blue-200">
+                                <p className="text-lg font-bold">Total: PKR {selectedPlan?.price.toLocaleString()}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold mt-1">Pay via JazzCash to {JAZZCASH_ACCOUNT}</p>
                             </div>
 
-                            {/* QR Code — actual JazzCash images */}
-                            {QR_IMAGES[selectedPlan.dbName] && (
-                                <div className="rounded-xl overflow-hidden border border-border">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={QR_IMAGES[selectedPlan.dbName]}
-                                        alt={`JazzCash QR Code — Rs. ${selectedPlan.price.toLocaleString()}`}
-                                        className="w-full h-auto"
-                                    />
+                            {selectedPlan && QR_IMAGES[selectedPlan.dbName] && (
+                                <div className="rounded-2xl border overflow-hidden p-2 bg-white">
+                                    <img src={QR_IMAGES[selectedPlan.dbName]} alt="QR" className="w-full h-auto" />
                                 </div>
                             )}
 
-                            {/* Payment proof form */}
-                            <div className="space-y-3">
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                        📱 After scanning and paying, enter your transaction reference below and optionally paste a screenshot URL as proof.
-                                    </p>
-                                </div>
+                            <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-foreground">
-                                        Transaction Reference <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        value={transRef}
-                                        onChange={(e) => setTransRef(e.target.value)}
-                                        placeholder="e.g., TXN-2026-XXXX or JazzCash ID"
-                                    />
+                                    <Label className="text-xs font-bold uppercase">Transaction Reference *</Label>
+                                    <Input value={transRef} onChange={(e) => setTransRef(e.target.value)} placeholder="Enter JazzCash Transaction ID" className="h-11 rounded-xl" />
                                 </div>
+
                                 <div className="space-y-2">
-                                    <Label className="text-foreground">Transaction Screenshot (optional proof)</Label>
-                                    <div
-                                        className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 ${screenshotFile ? "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10" : "border-border"
-                                            }`}
-                                        onClick={() => screenshotInputRef.current?.click()}
-                                    >
-                                        <input
-                                            ref={screenshotInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={(e) => { if (e.target.files?.[0]) setScreenshotFile(e.target.files[0]); }}
-                                        />
+                                    <Label className="text-xs font-bold uppercase">Screenshot (Optional)</Label>
+                                    <div className="border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => screenshotInputRef.current?.click()}>
+                                        <input ref={screenshotInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) setScreenshotFile(e.target.files[0]); }} />
                                         {screenshotFile ? (
-                                            <div className="flex items-center justify-center gap-3">
-                                                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                                    <ImageIcon className="w-4 h-4 text-blue-500" />
+                                            <div className="flex items-center justify-between text-left">
+                                                <div className="flex items-center gap-2">
+                                                    <ImageIcon className="size-5 text-blue-500" />
+                                                    <span className="text-xs font-bold truncate max-w-[150px]">{screenshotFile.name}</span>
                                                 </div>
-                                                <div className="text-left">
-                                                    <p className="text-sm font-medium text-foreground">{screenshotFile.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{(screenshotFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setScreenshotFile(null); }}
-                                                    className="ml-auto p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
+                                                <X className="size-4 text-red-500" onClick={(e) => { e.stopPropagation(); setScreenshotFile(null); }} />
                                             </div>
                                         ) : (
-                                            <>
-                                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
-                                                    <Upload className="w-4 h-4 text-muted-foreground" />
-                                                </div>
-                                                <p className="text-sm font-medium text-foreground">Click to upload screenshot</p>
-                                                <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG, or JPEG</p>
-                                            </>
+                                            <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                                                <Upload className="size-5" />
+                                                <span className="text-xs font-medium">Click to upload proof</span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
-                                <Button
-                                    onClick={handleSubmit}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25"
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? "Submitting..." : "Submit Payment for Verification"}
-                                    {!isSubmitting && <ArrowRight className="size-4 ml-1" />}
+
+                                <Button className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20" onClick={handleSubmit} disabled={isSubmitting}>
+                                    {isSubmitting ? "Processing..." : "Submit Payment"} <ArrowRight className="size-4 ml-2" />
                                 </Button>
                             </div>
                         </div>
-                    )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </DashboardLayout>

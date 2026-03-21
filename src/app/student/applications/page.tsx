@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileText, Filter, X, CalendarDays, Eye } from "lucide-react";
+import { Search, FileText, Filter, X, CalendarDays, Eye, ChevronRight, Globe, LayoutGrid } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -42,15 +42,20 @@ export default function StudentApplicationsPage() {
     const [trackingResult, setTrackingResult] = useState<Application | null>(null);
     const [trackingError, setTrackingError] = useState<string | null>(null);
     const [isTracking, setIsTracking] = useState(false);
+    const clearTracking = () => {
+    setTrackingCode("");
+    setTrackingResult(null);
+    setTrackingError(null);
+};
     const [reviewApp, setReviewApp] = useState<Application | null>(null);
+    const [isFilterVisible, setIsFilterVisible] = useState(false);
 
-    // Highlight support from notification click
+    // Highlight support
     const [highlightId, setHighlightId] = useState<number | null>(null);
     const [highlightProgram, setHighlightProgram] = useState<string | null>(null);
     const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
-    const highlightRef = useRef<HTMLTableRowElement | null>(null);
+    const highlightRef = useRef<HTMLDivElement | null>(null);
 
-    // Read URL params on mount (avoids useSearchParams prerender error)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const h = params.get("highlight");
@@ -59,7 +64,6 @@ export default function StudentApplicationsPage() {
         if (hp) setHighlightProgram(hp);
     }, []);
 
-    // Filter states
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterInstitution, setFilterInstitution] = useState("all");
     const [filterCategory, setFilterCategory] = useState("all");
@@ -78,18 +82,12 @@ export default function StudentApplicationsPage() {
         load();
     }, []);
 
-    // Handle highlight from notification
     useEffect(() => {
         if (applications.length === 0) return;
         let targetId: number | null = null;
-
-        if (highlightId) {
-            targetId = highlightId;
-        } else if (highlightProgram) {
-            // Find first application matching the program title
-            const match = applications.find(
-                (a) => a.program.title.toLowerCase() === highlightProgram.toLowerCase()
-            );
+        if (highlightId) targetId = highlightId;
+        else if (highlightProgram) {
+            const match = applications.find(a => a.program.title.toLowerCase() === highlightProgram.toLowerCase());
             if (match) targetId = match.id;
         }
 
@@ -108,16 +106,11 @@ export default function StudentApplicationsPage() {
         setIsTracking(true);
         setTrackingError(null);
         setTrackingResult(null);
-
         try {
             const res = await fetchWithAuth(`/applications/track?code=${encodeURIComponent(trackingCode.trim())}`);
-            if (res.ok) {
-                const data = await res.json();
-                setTrackingResult(data.application);
-            } else {
-                const data = await res.json();
-                setTrackingError(data.error || "Application not found");
-            }
+            const data = await res.json();
+            if (res.ok) setTrackingResult(data.application);
+            else setTrackingError(data.error || "Application not found");
         } catch {
             setTrackingError("Failed to track application");
         } finally {
@@ -125,32 +118,16 @@ export default function StudentApplicationsPage() {
         }
     };
 
-    // Derive unique filter options from applications
-    const statuses = useMemo(() => {
-        const set = new Set(applications.map((a) => a.status));
-        return Array.from(set).sort();
-    }, [applications]);
+    const statuses = useMemo(() => Array.from(new Set(applications.map(a => a.status))).sort(), [applications]);
+    const institutions = useMemo(() => Array.from(new Set(applications.map(a => a.program.institution?.name || "DAKHLA Platform"))).sort(), [applications]);
+    const categories = useMemo(() => Array.from(new Set(applications.map(a => a.program.category).filter(Boolean) as string[])).sort(), [applications]);
 
-    const institutions = useMemo(() => {
-        const set = new Set(applications.map((a) => a.program.institution?.name || "DAKHLA Platform"));
-        return Array.from(set).sort();
-    }, [applications]);
-
-    const categories = useMemo(() => {
-        const set = new Set(applications.map((a) => a.program.category).filter(Boolean) as string[]);
-        return Array.from(set).sort();
-    }, [applications]);
-
-    // Filtered applications
     const filtered = useMemo(() => {
         return applications.filter((app) => {
             if (filterStatus !== "all" && app.status !== filterStatus) return false;
             if (filterInstitution !== "all" && (app.program.institution?.name || "DAKHLA Platform") !== filterInstitution) return false;
             if (filterCategory !== "all" && app.program.category !== filterCategory) return false;
-            if (filterDateFrom) {
-                const from = new Date(filterDateFrom);
-                if (new Date(app.created_at) < from) return false;
-            }
+            if (filterDateFrom && new Date(app.created_at) < new Date(filterDateFrom)) return false;
             if (filterDateTo) {
                 const to = new Date(filterDateTo);
                 to.setHours(23, 59, 59, 999);
@@ -162,19 +139,11 @@ export default function StudentApplicationsPage() {
 
     const hasActiveFilters = filterStatus !== "all" || filterInstitution !== "all" || filterCategory !== "all" || filterDateFrom || filterDateTo;
 
-    const clearFilters = () => {
-        setFilterStatus("all");
-        setFilterInstitution("all");
-        setFilterCategory("all");
-        setFilterDateFrom("");
-        setFilterDateTo("");
-    };
-
     if (isLoading) {
         return (
             <DashboardLayout role="student">
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="flex items-center justify-center h-[60vh]">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
                 </div>
             </DashboardLayout>
         );
@@ -182,24 +151,322 @@ export default function StudentApplicationsPage() {
 
     return (
         <DashboardLayout role="student">
-            <h1 className="text-2xl font-bold mb-6">My Applications</h1>
+            <div className="max-w-7xl mx-auto pb-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">My Applications</h1>
+                        <p className="text-muted-foreground text-sm mt-1">Manage and track your global learning journey</p>
+                    </div>
+                </div>
 
-            {/* Track Application by Code */}
+                {/* Track Section */}
+               {/* Track Section - Isse pura replace karein */}
+<Card className="mb-8 border-none shadow-md bg-gradient-to-br from-blue-600 to-blue-800 text-white overflow-hidden relative">
+    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+        <Globe className="size-32" />
+    </div>
+    <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2 text-white font-bold">
+            <Search className="size-5" />
+            Quick Track
+        </CardTitle>
+    </CardHeader>
+    <CardContent>
+        <div className="flex flex-col sm:flex-row gap-3 max-w-2xl relative z-10">
+            <div className="relative flex-1">
+                <Input
+                    placeholder="Enter Application Code..."
+                    value={trackingCode}
+                    onChange={(e) => setTrackingCode(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleTrack()}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-blue-100 h-11 focus-visible:ring-white/30 pr-10"
+                />
+                {/* Input ke andar wala Clear (X) Button */}
+                {trackingCode && (
+                    <button 
+                        onClick={clearTracking}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors p-1"
+                    >
+                        <X className="size-4" />
+                    </button>
+                )}
+            </div>
+            
+            <div className="flex gap-2">
+                <button
+                    onClick={handleTrack}
+                    disabled={isTracking || !trackingCode.trim()}
+                    className="h-11 px-8 bg-white text-blue-700 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors disabled:opacity-50 flex-1 sm:flex-none shadow-sm"
+                >
+                    {isTracking ? "Tracking..." : "Track Now"}
+                </button>
+
+                {/* Search Result ya Error aane ke baad Reset/Back Button */}
+                {(trackingResult || trackingError) && (
+                    <button
+                        onClick={clearTracking}
+                        className="h-11 px-4 bg-blue-500/30 text-white border border-white/20 rounded-lg text-sm font-medium hover:bg-blue-500/50 transition-colors flex items-center gap-1"
+                    >
+                        Reset
+                    </button>
+                )}
+            </div>
+        </div>
+
+        {/* Tracking Result View */}
+        {trackingResult && (
+           <div className="mt-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 relative z-10">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                        <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-100 font-mono">{trackingResult.application_code}</Badge>
+                        <StatusBadge status={trackingResult.status} />
+                    </div>
+                    <button 
+                        onClick={() => setReviewApp(trackingResult)} 
+                        className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 group"
+                    >
+                       View Details 
+                <ChevronRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+        </div>
+                <p className="text-sm font-semibold text-slate-800">{trackingResult.program.title}</p>
+            </div>
+        )}
+
+        {/* Error Message with Clear Option */}
+        {trackingError && (
+            <div className="mt-3 flex items-center justify-between text-sm text-red-100 bg-red-500/20 p-3 rounded-lg border border-red-400/20 animate-in shake-in">
+                <span className="flex items-center gap-2">⚠️ {trackingError}</span>
+                <button onClick={clearTracking} className="text-white hover:underline text-xs font-bold">Clear</button>
+            </div>
+        )}
+    </CardContent>
+</Card>
+
+                {applications.length === 0 ? (
+                    <Card className="border-dashed py-16">
+                        <CardContent className="text-center">
+                            <div className="bg-slate-100 dark:bg-slate-800 size-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FileText className="size-8 text-muted-foreground" />
+                            </div>
+                            <h3 className="text-lg font-semibold">No applications found</h3>
+                            <p className="text-muted-foreground max-w-xs mx-auto mt-2 mb-6">Start your journey by exploring available programs.</p>
+                            <button onClick={() => router.push('/explore')} className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 transition-all">Explore Programs</button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-4">
+                        {/* Header & Filter Toggle */}
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold flex items-center gap-2">
+                                <LayoutGrid className="size-5 text-blue-600" />
+                                All Records ({filtered.length})
+                            </h2>
+                            <div className="flex gap-2">
+                                {hasActiveFilters && (
+                                    <button onClick={() => { setFilterStatus("all"); setFilterInstitution("all"); setFilterCategory("all"); setFilterDateFrom(""); setFilterDateTo(""); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X className="size-5" /></button>
+                                )}
+                                <button 
+                                    onClick={() => setIsFilterVisible(!isFilterVisible)} 
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${isFilterVisible ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400'}`}
+                                >
+                                    <Filter className="size-4" /> Filters
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Collapsible Filters */}
+                        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 transition-all duration-300 ${isFilterVisible ? 'opacity-100' : 'hidden opacity-0'}`}>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-slate-500 px-1">Status</label>
+                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="all">All Statuses</option>
+                                    {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-slate-500 px-1">Institution</label>
+                                <select value={filterInstitution} onChange={(e) => setFilterInstitution(e.target.value)} className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="all">All Institutions</option>
+                                    {institutions.map(i => <option key={i} value={i}>{i}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-slate-500 px-1">Category</label>
+                                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="all">All Categories</option>
+                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-slate-500 px-1 flex items-center gap-1"><CalendarDays className="size-3" /> From</label>
+                                <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase text-slate-500 px-1 flex items-center gap-1"><CalendarDays className="size-3" /> To</label>
+                                <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+
+                        {/* Desktop Table */}
+                        <div className="hidden md:block overflow-hidden rounded-xl border border-slate-200 bg-white dark:bg-slate-900 shadow-sm">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200">
+                                    <tr>
+                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Code</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Program & Institution</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Category</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Status</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-slate-500 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filtered.map((app) => (
+                                        <tr 
+                                            key={app.id} 
+                                            ref={app.id === activeHighlight ? highlightRef as any : undefined}
+                                            className={`hover:bg-blue-50/30 transition-all ${app.id === activeHighlight ? "bg-blue-50 ring-1 ring-inset ring-blue-500" : ""}`}
+                                        >
+                                            <td className="p-4 font-mono text-xs font-semibold text-blue-600">{app.application_code}</td>
+                                            <td className="p-4">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{app.program.title}</p>
+                                                <p className="text-[11px] text-muted-foreground">{app.program.institution?.name || "DAKHLA Platform"}</p>
+                                            </td>
+                                            <td className="p-4"><Badge variant="secondary" className="font-normal text-[10px]">{app.program.category || "—"}</Badge></td>
+                                            <td className="p-4"><StatusBadge status={app.status} /></td>
+                                            <td className="p-4 text-right">
+                                                <button onClick={() => setReviewApp(app)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors inline-flex"><Eye className="size-4" /></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile List Layout (Visible only on small screens) */}
+                        <div className="md:hidden grid grid-cols-1 gap-4">
+                            {filtered.map((app) => (
+                                <div 
+                                    key={app.id}
+                                    ref={app.id === activeHighlight ? highlightRef as any : undefined}
+                                    className={`p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden ${app.id === activeHighlight ? "ring-2 ring-blue-500 bg-blue-50/50 animate-pulse" : ""}`}
+                                >
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span className="text-[10px] font-bold font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{app.application_code}</span>
+                                        <StatusBadge status={app.status} />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white mb-1 leading-snug">{app.program.title}</h3>
+                                    <p className="text-xs text-muted-foreground mb-4">{app.program.institution?.name || "DAKHLA Platform"}</p>
+                                    
+                                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                                        <div className="flex gap-4">
+                                            <div>
+                                                <p className="text-[10px] uppercase text-slate-400 font-bold">Category</p>
+                                                <p className="text-xs font-medium">{app.program.category || "General"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] uppercase text-slate-400 font-bold">Applied Date</p>
+                                                <p className="text-xs font-medium">{new Date(app.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setReviewApp(app)}
+                                            className="bg-blue-600 text-white size-9 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200"
+                                        >
+                                            <Eye className="size-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Modern Review Dialog */}
+                <Dialog open={!!reviewApp} onOpenChange={(open) => !open && setReviewApp(null)}>
+                    <DialogContent className="p-0 overflow-hidden border-none max-w-lg sm:rounded-2xl">
+                        {reviewApp && (
+                            <>
+                                <div className="p-6 bg-blue-600 text-white relative">
+                                    <button 
+                                        onClick={() => setReviewApp(null)}
+                                        className="absolute top-4 right-4 text-white/70 hover:text-white"
+                                    >
+                                        <X className="size-5" />
+                                    </button>
+                                    <Badge className="bg-white/20 text-white border-none mb-2">{reviewApp.application_code}</Badge>
+                                    <DialogTitle className="text-xl md:text-2xl font-bold leading-tight">{reviewApp.program.title}</DialogTitle>
+                                    <p className="text-blue-100 text-sm mt-1">{reviewApp.program.institution?.name || "DAKHLA Global Platform"}</p>
+                                </div>
+                                <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto bg-white dark:bg-slate-950">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Application Status</p>
+                                            <div className="mt-1"><StatusBadge status={reviewApp.status} /></div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Submission Date</p>
+                                            <p className="text-sm font-semibold mt-1">{new Date(reviewApp.created_at).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-bold flex items-center gap-2 mb-3">
+                                            <FileText className="size-4 text-blue-600" />
+                                            Questionnaire Responses
+                                        </h4>
+                                        {reviewApp.answers && reviewApp.answers.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {reviewApp.answers.map((a, idx) => (
+                                                    <div key={a.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                                                        <p className="text-xs font-bold text-blue-600 mb-1">Q{idx + 1}: {a.question.question}</p>
+                                                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{a.answer}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 border-2 border-dashed rounded-xl border-slate-100">
+                                                <p className="text-sm text-muted-foreground">No additional responses provided.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t flex justify-end">
+                                    <button 
+                                        onClick={() => setReviewApp(null)}
+                                        className="px-6 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </DialogContent>
+                </Dialog>
+            </div>
+ 
+        </DashboardLayout>
+    );
+
+    return (
+        <DashboardLayout role="student">
+            <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">My Applications</h1>
+
+            {/* Track Application */}
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
-                        <Search className="size-4" />
-                        Track Application
+                        <Search className="size-4" /> Track Application
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-3 items-center">
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                         <Input
                             placeholder="Enter code (APP-XXXXXXXX) or program name"
                             value={trackingCode}
                             onChange={(e) => setTrackingCode(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleTrack()}
-                            className="max-w-sm"
+                            className="flex-1 min-w-[200px]"
                         />
                         <button
                             onClick={handleTrack}
@@ -211,12 +478,15 @@ export default function StudentApplicationsPage() {
                     </div>
 
                     {trackingResult && (
-                        <div className="mt-4 p-4 rounded-lg border border-border bg-accent/30">
-                            <div className="flex items-center gap-2 mb-2">
-                                <FileText className="size-4 text-primary" />
-                                <span className="text-sm font-semibold text-foreground">{trackingResult.application_code}</span>
+                       <div className="mt-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 relative z-10">
+                            <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-2 items-start sm:items-center">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="size-4 text-primary" />
+                                    <span className="text-sm font-semibold text-foreground">{trackingResult.application_code}</span>
+                                </div>
+                                <StatusBadge status={trackingResult.status} />
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <span className="text-muted-foreground font-medium">Program:</span>
                                     <p className="text-foreground">{trackingResult.program.title}</p>
@@ -226,10 +496,6 @@ export default function StudentApplicationsPage() {
                                     <p className="text-foreground">{trackingResult.program.institution?.name || "DAKHLA Platform"}</p>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground font-medium">Status:</span>
-                                    <div className="mt-0.5"><StatusBadge status={trackingResult.status} /></div>
-                                </div>
-                                <div>
                                     <span className="text-muted-foreground font-medium">Applied:</span>
                                     <p className="text-foreground">{new Date(trackingResult.created_at).toLocaleDateString()}</p>
                                 </div>
@@ -237,9 +503,7 @@ export default function StudentApplicationsPage() {
                         </div>
                     )}
 
-                    {trackingError && (
-                        <p className="mt-3 text-sm text-destructive">{trackingError}</p>
-                    )}
+                    {trackingError && <p className="mt-3 text-sm text-destructive">{trackingError}</p>}
                 </CardContent>
             </Card>
 
@@ -253,7 +517,7 @@ export default function StudentApplicationsPage() {
             ) : (
                 <Card>
                     <CardHeader>
-                        <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
                             <CardTitle>All Applications ({filtered.length}{filtered.length !== applications.length ? ` of ${applications.length}` : ""})</CardTitle>
                             {hasActiveFilters && (
                                 <button
@@ -265,141 +529,76 @@ export default function StudentApplicationsPage() {
                             )}
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        {/* Filters Row */}
-                        <div className="mb-4 flex flex-wrap items-end gap-3 p-3 rounded-lg border border-border bg-accent/30">
-                            <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground mr-1">
+                    <CardContent className="space-y-4">
+                        {/* Filters */}
+                        <div className="flex flex-col md:flex-row flex-wrap gap-3 p-3 rounded-lg border border-border bg-accent/30 items-start">
+                            <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
                                 <Filter className="size-4" /> Filters
                             </div>
-
-                            {/* Status Filter */}
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
                                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Status</label>
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                >
+                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                                     <option value="all">All</option>
-                                    {statuses.map((s) => (
-                                        <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                                    ))}
+                                    {statuses.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                                 </select>
                             </div>
 
-                            {/* Institution Filter */}
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
                                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Institution</label>
-                                <select
-                                    value={filterInstitution}
-                                    onChange={(e) => setFilterInstitution(e.target.value)}
-                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[200px]"
-                                >
+                                <select value={filterInstitution} onChange={(e) => setFilterInstitution(e.target.value)} className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="all">All</option>
-                                    {institutions.map((i) => (
-                                        <option key={i} value={i}>{i}</option>
-                                    ))}
+                                    {institutions.map(i => <option key={i} value={i}>{i}</option>)}
                                 </select>
                             </div>
 
-                            {/* Category Filter */}
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
                                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Category</label>
-                                <select
-                                    value={filterCategory}
-                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[200px]"
-                                >
+                                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="all">All</option>
-                                    {categories.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
-                                    ))}
+                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
 
-                            {/* Date From */}
-                            <div className="flex flex-col gap-1">
-                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                    <CalendarDays className="size-3" /> From
-                                </label>
-                                <input
-                                    type="date"
-                                    value={filterDateFrom}
-                                    onChange={(e) => setFilterDateFrom(e.target.value)}
-                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                />
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1"><CalendarDays className="size-3" /> From</label>
+                                <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
 
-                            {/* Date To */}
-                            <div className="flex flex-col gap-1">
-                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                    <CalendarDays className="size-3" /> To
-                                </label>
-                                <input
-                                    type="date"
-                                    value={filterDateTo}
-                                    onChange={(e) => setFilterDateTo(e.target.value)}
-                                    className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                />
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1"><CalendarDays className="size-3" /> To</label>
+                                <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="h-9 px-3 text-sm rounded-md border border-border bg-background text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Application Code</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Program</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Category</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Applied</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
+                        <div className="overflow-x-auto rounded-lg shadow-sm border border-border">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-accent/20">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Code</th>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Program</th>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Institution</th>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Category</th>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Status</th>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Applied</th>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="bg-background">
                                     {filtered.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
-                                                No applications match the selected filters.
-                                            </td>
-                                        </tr>
+                                        <tr><td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No applications match the selected filters.</td></tr>
                                     ) : (
-                                        filtered.map((app) => (
-                                            <tr
-                                                key={app.id}
-                                                ref={app.id === activeHighlight ? highlightRef : undefined}
-                                                className={`border-b last:border-0 hover:bg-accent/50 transition-all duration-500 ${app.id === activeHighlight
-                                                    ? "bg-blue-500/10 ring-1 ring-blue-500/30 animate-pulse"
-                                                    : ""
-                                                    }`}
-                                            >
-                                                <td className="py-3">
-                                                    <Badge variant="outline" className="text-xs font-mono">
-                                                        {app.application_code}
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-3 text-sm font-medium">{app.program.title}</td>
-                                                <td className="py-3 text-sm text-muted-foreground">
-                                                    {app.program.institution?.name || "DAKHLA Platform"}
-                                                </td>
-                                                <td className="py-3 text-sm text-muted-foreground">
-                                                    {app.program.category || "—"}
-                                                </td>
-                                                <td className="py-3">
-                                                    <StatusBadge status={app.status} />
-                                                </td>
-                                                <td className="py-3 text-sm text-muted-foreground">
-                                                    {new Date(app.created_at).toLocaleDateString()}
-                                                </td>
-                                                <td className="py-3">
-                                                    <button
-                                                        onClick={() => setReviewApp(app)}
-                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
-                                                    >
-                                                        <Eye className="size-3.5" />
-                                                        Review
+                                        filtered.map(app => (
+                                            <tr key={app.id} ref={app.id === activeHighlight ? highlightRef : undefined} className={`border-b last:border-0 hover:bg-accent/50 transition-all duration-500 ${app.id === activeHighlight ? "bg-blue-500/10 ring-1 ring-blue-500/30 animate-pulse" : ""}`}>
+                                                <td className="px-3 py-2"><Badge variant="outline" className="text-xs font-mono">{app.application_code}</Badge></td>
+                                                <td className="px-3 py-2 text-sm font-medium">{app.program.title}</td>
+                                                <td className="px-3 py-2 text-sm text-muted-foreground">{app.program.institution?.name || "DAKHLA Platform"}</td>
+                                                <td className="px-3 py-2 text-sm text-muted-foreground">{app.program.category || "—"}</td>
+                                                <td className="px-3 py-2"><StatusBadge status={app.status} /></td>
+                                                <td className="px-3 py-2 text-sm text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</td>
+                                                <td className="px-3 py-2">
+                                                    <button onClick={() => setReviewApp(app)} className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                                                        <Eye className="size-3.5" /> Review
                                                     </button>
                                                 </td>
                                             </tr>
@@ -415,9 +614,8 @@ export default function StudentApplicationsPage() {
             {/* Review Dialog */}
             <Dialog open={!!reviewApp} onOpenChange={(open) => !open && setReviewApp(null)}>
                 <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="text-lg">Application Review</DialogTitle>
-                    </DialogHeader>
+                    <DialogHeader><DialogTitle className="text-lg font-semibold">Application Review</DialogTitle></DialogHeader>
+                    
                     {reviewApp && (
                         <div className="space-y-5">
                             {/* Application Code & Status */}

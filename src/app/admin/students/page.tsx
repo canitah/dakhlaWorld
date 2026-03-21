@@ -10,11 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { message } from "antd";
-import { Download } from "lucide-react";
+import { Download, Search, User, MapPin, GraduationCap, Calendar, Eye, FileText } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 
 /* ─── Types ─── */
-
 interface StudentApp {
     id: number;
     status: string;
@@ -42,8 +41,6 @@ interface Student {
     };
     applications: StudentApp[];
 }
-
-/* ─── Page ─── */
 
 export default function AdminStudentsPage() {
     const { fetchWithAuth } = useApi();
@@ -76,7 +73,6 @@ export default function AdminStudentsPage() {
         setIsDetailOpen(true);
     };
 
-    // Derived data
     const filtered = students.filter((s) => {
         if (!search.trim()) return true;
         const q = search.toLowerCase();
@@ -110,48 +106,32 @@ export default function AdminStudentsPage() {
 
     return (
         <DashboardLayout role="admin">
-            <h1 className="text-2xl font-bold mb-6">Manage Students</h1>
+            <div className="flex flex-col gap-4 mb-6">
+                <h1 className="text-xl md:text-2xl font-bold">Manage Students</h1>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <Card>
-                    <CardContent className="pt-5 pb-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total Students</p>
-                        <p className="text-2xl font-bold text-foreground mt-1">{students.length}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-5 pb-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">With Applications</p>
-                        <p className="text-2xl font-bold text-foreground mt-1">{studentsWithApps}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-5 pb-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total Applications</p>
-                        <p className="text-2xl font-bold text-foreground mt-1">{totalApps}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-5 pb-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">No Applications</p>
-                        <p className="text-2xl font-bold text-foreground mt-1">{students.length - studentsWithApps}</p>
-                    </CardContent>
-                </Card>
+                {/* Summary Cards - Mobile optimized grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    <StatCard title="Total Students" value={students.length} />
+                    <StatCard title="With Apps" value={studentsWithApps} />
+                    <StatCard title="Total Apps" value={totalApps} />
+                    <StatCard title="No Apps" value={students.length - studentsWithApps} />
+                </div>
             </div>
 
-            {/* Search + Export */}
-            <div className="mb-4 flex items-center gap-3">
-                <Input
-                    placeholder="Search by name, email, city, or phone..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="max-w-md h-10"
-                />
+            {/* Search + Export - Stacked on mobile */}
+            <div className="mb-6 flex flex-col md:flex-row items-center gap-3">
+                <div className="relative w-full md:max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by name, email, city..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-10 h-10 w-full"
+                    />
+                </div>
                 <Button
                     variant="outline"
-                    size="sm"
-                    className="h-10 gap-2"
+                    className="h-10 gap-2 w-full md:w-auto justify-center"
                     onClick={exportStudents}
                     disabled={filtered.length === 0}
                 >
@@ -160,151 +140,172 @@ export default function AdminStudentsPage() {
                 </Button>
             </div>
 
-            {/* Students Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        Students ({filtered.length})
-                    </CardTitle>
+            <Card className="border-none shadow-none md:border md:shadow-sm">
+                <CardHeader className="px-4 md:px-6">
+                    <CardTitle className="text-lg">Students ({filtered.length})</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 md:px-6">
                     {isLoading ? (
-                        <div className="flex justify-center py-8">
+                        <div className="flex justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <p className="text-center py-8 text-muted-foreground">
+                        <p className="text-center py-12 text-muted-foreground">
                             {search ? "No students match your search" : "No students registered yet"}
                         </p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Name</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Email</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">City</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Field</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Applications</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Registered</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filtered.map((student) => (
-                                        <tr key={student.id} className="border-b last:border-0 hover:bg-accent/50">
-                                            <td className="py-3 text-sm font-medium">{student.full_name || "—"}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{student.user.email || "—"}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{student.city || "—"}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{student.intended_field || "—"}</td>
-                                            <td className="py-3">
-                                                <Badge variant={student.applications.length > 0 ? "default" : "secondary"} className="text-xs">
-                                                    {student.applications.length}
-                                                </Badge>
-                                            </td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {new Date(student.user.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="py-3">
-                                                <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => viewDetail(student)}>
-                                                    View
-                                                </Button>
-                                            </td>
+                        <>
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b text-left">
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Name</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">City</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Field</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Apps</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Registered</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground text-right">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {filtered.map((student) => (
+                                            <tr key={student.id} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
+                                                <td className="py-4">
+                                                    <p className="text-sm font-medium">{student.full_name || "—"}</p>
+                                                    <p className="text-xs text-muted-foreground">{student.user.email}</p>
+                                                </td>
+                                                <td className="py-4 text-sm text-muted-foreground">{student.city || "—"}</td>
+                                                <td className="py-4 text-sm text-muted-foreground">{student.intended_field || "—"}</td>
+                                                <td className="py-4">
+                                                    <Badge variant={student.applications.length > 0 ? "default" : "secondary"}>
+                                                        {student.applications.length}
+                                                    </Badge>
+                                                </td>
+                                                <td className="py-4 text-sm text-muted-foreground">
+                                                    {new Date(student.user.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="py-4 text-right">
+                                                    <Button size="sm" variant="outline" onClick={() => viewDetail(student)}>View</Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="grid grid-cols-1 gap-4 md:hidden">
+                                {filtered.map((student) => (
+                                    <div key={student.id} className="border rounded-xl p-4 space-y-4 bg-white shadow-sm">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-2">
+                                                <div className="bg-blue-50 p-2 rounded-full text-blue-600">
+                                                    <User className="size-4" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-sm">{student.full_name || "—"}</h3>
+                                                    <p className="text-[11px] text-muted-foreground">{student.user.email}</p>
+                                                </div>
+                                            </div>
+                                            <Badge variant={student.applications.length > 0 ? "default" : "secondary"} className="text-[10px]">
+                                                {student.applications.length} Apps
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 text-xs border-y py-3">
+                                            <div className="space-y-1">
+                                                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="size-3" /> City</p>
+                                                <p className="font-medium">{student.city || "—"}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-muted-foreground flex items-center gap-1"><GraduationCap className="size-3" /> Field</p>
+                                                <p className="font-medium truncate">{student.intended_field || "—"}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-1">
+                                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                <Calendar className="size-3" /> {new Date(student.user.created_at).toLocaleDateString()}
+                                            </p>
+                                            <Button size="sm" variant="outline" className="h-8 text-xs px-4" onClick={() => viewDetail(student)}>
+                                                View Details
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
 
-            {/* Student Detail Dialog */}
+            {/* Detail Dialog - Responsive Width */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl p-4 md:p-6">
                     <DialogHeader>
-                        <DialogTitle>Student Details</DialogTitle>
-                        <DialogDescription>Detailed information about this student and their applications.</DialogDescription>
+                        <DialogTitle className="text-lg flex items-center gap-2">
+                            <FileText className="size-5 text-blue-500" /> Student Profile
+                        </DialogTitle>
+                        <DialogDescription>Overview of registration and academic interests.</DialogDescription>
                     </DialogHeader>
+
                     {selectedStudent && (
-                        <div className="space-y-5">
-                            {/* Profile Info */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Full Name</p>
-                                    <p className="text-sm font-medium">{selectedStudent.full_name || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Email</p>
-                                    <p className="text-sm">{selectedStudent.user.email || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Phone</p>
-                                    <p className="text-sm">{selectedStudent.user.phone || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">City</p>
-                                    <p className="text-sm">{selectedStudent.city || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Student Type</p>
-                                    <p className="text-sm capitalize">{selectedStudent.student_type || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Education Level</p>
-                                    <p className="text-sm capitalize">{selectedStudent.education_level || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Intended Field</p>
-                                    <p className="text-sm">{selectedStudent.intended_field || "—"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Registered</p>
-                                    <p className="text-sm">{new Date(selectedStudent.user.created_at).toLocaleDateString()}</p>
-                                </div>
+                        <div className="space-y-6 pt-2">
+                            {/* Profile Info Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 bg-slate-50/50 p-4 rounded-xl border">
+                                <DetailItem label="Full Name" value={selectedStudent.full_name} />
+                                <DetailItem label="Email" value={selectedStudent.user.email} />
+                                <DetailItem label="Phone" value={selectedStudent.user.phone} />
+                                <DetailItem label="City" value={selectedStudent.city} />
+                                <DetailItem label="Student Type" value={selectedStudent.student_type} />
+                                <DetailItem label="Education" value={selectedStudent.education_level} />
+                                <DetailItem label="Intended Field" value={selectedStudent.intended_field} />
+                                <DetailItem label="Registered" value={new Date(selectedStudent.user.created_at).toLocaleDateString()} />
                             </div>
 
-                            {/* CV */}
+                            {/* CV Section */}
                             {selectedStudent.cv_url && (
-                                <div>
-                                    <p className="text-xs text-muted-foreground mb-1">CV / Resume</p>
+                                <div className="border-t pt-4">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Documents</p>
                                     <a
                                         href={selectedStudent.cv_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-sm text-blue-600 dark:text-blue-400 underline hover:no-underline"
+                                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-all w-full justify-center"
                                     >
-                                        View CV →
+                                        <Eye className="size-4" /> View Full CV / Resume
                                     </a>
                                 </div>
                             )}
 
-                            {/* Applications List */}
-                            <div>
-                                <h4 className="text-sm font-bold text-foreground mb-3">
-                                    Applications ({selectedStudent.applications.length})
+                            {/* Applications Section */}
+                            <div className="border-t pt-4">
+                                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                                    <Badge variant="outline">{selectedStudent.applications.length}</Badge>
+                                    Submitted Applications
                                 </h4>
                                 {selectedStudent.applications.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No applications submitted yet.</p>
+                                    <p className="text-sm text-muted-foreground italic">No applications submitted yet.</p>
                                 ) : (
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         {selectedStudent.applications.map((app) => (
-                                            <div key={app.id} className="border border-border rounded-lg p-3 bg-accent/30">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="text-sm font-medium text-foreground truncate">{app.program.title}</p>
-                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            <div key={app.id} className="border rounded-xl p-4 bg-white shadow-sm border-l-4 border-l-blue-500">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-foreground truncate">{app.program.title}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">
                                                             {app.program.institution?.name || "DAKHLA Platform"}
                                                         </p>
-                                                        <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                                                        <p className="text-[10px] text-muted-foreground mt-1 font-mono uppercase bg-slate-100 inline-block px-1 rounded">
                                                             {app.application_code}
                                                         </p>
                                                     </div>
-                                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                    <div className="text-right shrink-0">
                                                         <StatusBadge status={app.status} />
-                                                        <span className="text-[11px] text-muted-foreground">
+                                                        <p className="text-[10px] text-muted-foreground mt-2">
                                                             {new Date(app.created_at).toLocaleDateString()}
-                                                        </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -317,5 +318,26 @@ export default function AdminStudentsPage() {
                 </DialogContent>
             </Dialog>
         </DashboardLayout>
+    );
+}
+
+// Helper Components
+function StatCard({ title, value }: { title: string; value: number }) {
+    return (
+        <Card className="border-none shadow-sm md:border">
+            <CardContent className="pt-4 pb-3 md:pt-5 md:pb-4 px-3 md:px-6">
+                <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider">{title}</p>
+                <p className="text-xl md:text-2xl font-black text-foreground mt-1">{value}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
+function DetailItem({ label, value }: { label: string; value: string | null }) {
+    return (
+        <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">{label}</p>
+            <p className="text-sm font-medium text-foreground truncate capitalize">{value || "—"}</p>
+        </div>
     );
 }

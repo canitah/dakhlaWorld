@@ -226,10 +226,15 @@ export default function HomePage() {
   }, [appliedSearch, appliedLocation, activeCategory, activeSchedule, activeCompany, activeDatePosted, activeFeeRange]);
 
   function handleSearch(e?: React.FormEvent) {
-    e?.preventDefault();
-    setAppliedSearch(searchQuery);
-    setAppliedLocation(locationQuery);
-  }
+  e?.preventDefault();
+
+  const params = new URLSearchParams();
+
+  if (searchQuery) params.set("search", searchQuery);
+  if (locationQuery) params.set("city", locationQuery);
+
+  router.push(`/programs?${params.toString()}`);
+}
 
   // Sort
   const sortedPrograms = useMemo(() => {
@@ -340,7 +345,7 @@ export default function HomePage() {
                 Home
               </Link>
               <Link href="/signup?role=institution" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent rounded-lg" onClick={() => setMobileMenuOpen(false)}>
-                Employers / Post Program
+                Institution / Post Program
               </Link>
               <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent rounded-lg" onClick={() => setMobileMenuOpen(false)}>
                 Sign in
@@ -350,505 +355,104 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ═══════════ HERO BANNER ═══════════ */}
-      <section className="relative w-full overflow-visible bg-black">
-        <div className="relative min-h-[420px] sm:min-h-[480px] md:min-h-[560px] lg:min-h-[640px] xl:min-h-[700px]">
-          <img
-            src="/banner.jpeg"
-            alt="dakhla – Global Admissions Platform"
-            className="absolute inset-0 w-full h-full object-cover object-top"
-          />
-          {/* Dark cinematic overlay */}
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+     {/* ═══════════ HERO BANNER ═══════════ */}
+<section className="relative w-full overflow-hidden bg-black">
+  <div className="relative min-h-[580px] sm:min-h-[480px] md:min-h-[560px] lg:min-h-[640px] xl:min-h-[700px] flex flex-col justify-center">
+    <video
+      autoPlay
+      muted
+      loop
+      playsInline
+      src="/banner.mp4"
+      aria-label="dakhla – Global Admissions Platform"
+      className="absolute inset-0 w-full h-full object-cover object-center"
+    />
+    
+    {/* Dark cinematic overlay */}
+    <div className="absolute inset-0 bg-black/40" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
 
-          {/* Content over banner */}
-          <div className="relative h-full max-w-[1400px] mx-auto px-4 sm:px-6 flex flex-col justify-center pt-36 sm:pt-24 pb-12 sm:pb-16">
-            {/* Heading */}
-            <h1 className="text-3xl sm:text-4xl md:text-[3.2rem] lg:text-[3.6rem] font-bold text-white leading-[1.15] tracking-tight max-w-2xl">
-              Find the right program{" "}
-              <br className="hidden sm:block" />
-              for your future
-            </h1>
+    {/* Content over banner */}
+    <div className="relative z-10 w-full max-w-[1400px] mx-auto px-5 sm:px-6 pt-20 pb-32 sm:py-24">
+      {/* Heading */}
+      <h1 className="text-[2.2rem] sm:text-4xl md:text-[3.2rem] lg:text-[3.6rem] font-bold text-white leading-[1.1] tracking-tight max-w-2xl">
+        Find the right program{" "}
+        <br className="hidden sm:block" />
+        for your future
+      </h1>
 
-            {/* Search bar */}
-            <div className="mt-6 sm:mt-8 max-w-[720px]">
-              <form onSubmit={handleSearch} className="flex items-center bg-white rounded-lg overflow-hidden shadow-lg">
-                <div className="flex items-center gap-2 flex-1 px-4 h-12 sm:h-[52px]">
-                  <Search className="w-4 h-4 text-gray-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Search programs, institutions..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
-                  />
-                </div>
-                <div className="hidden sm:flex items-center gap-2 border-l border-gray-200 px-4 h-12 sm:h-[52px] w-44">
-                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="City"
-                    value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="h-12 sm:h-[52px] px-5 sm:px-7 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-none rounded-r-lg shrink-0"
-                >
-                  <Search className="w-4 h-4 sm:hidden" />
-                  <span className="hidden sm:inline">Find Programs</span>
-                </Button>
-              </form>
-            </div>
-
-            {/* Popular category pills */}
-            <div className="mt-5 sm:mt-6 flex items-center gap-2 flex-wrap max-w-[720px]">
-              <span className="text-sm text-white/70 font-medium mr-1">Popular:</span>
-              {["Computer Science", "Engineering", "Pre-Primary", "Culinary"].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => { setSearchQuery(cat); handleSearch(new Event("submit") as unknown as React.FormEvent); }}
-                  className="px-3.5 py-1.5 rounded-full text-[13px] font-medium text-white border border-white/30 hover:bg-white/15 transition-colors cursor-pointer"
-                >
-                  {cat} →
-                </button>
-              ))}
-            </div>
-
-            {/* ── Filter chips inside banner ── */}
-            <div className="mt-4 sm:mt-5 flex items-center gap-2 flex-wrap">
-
-            {/* Pay / Fee Range */}
-            <FilterDropdown
-              label={activeFeeRange ? activeFeeRange.label : "Pay"}
-              icon={<DollarSign className="w-3.5 h-3.5" />}
-              isActive={!!activeFeeRange}
-            >
-              <button
-                onClick={() => setActiveFeeRange(null)}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                All Fee Ranges
-              </button>
-              {FEE_RANGES.map((range) => (
-                <button
-                  key={range.label}
-                  onClick={() => setActiveFeeRange(activeFeeRange?.label === range.label ? null : range)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${activeFeeRange?.label === range.label ? "text-blue-600 font-semibold" : ""}`}
-                >
-                  {range.label}
-                </button>
-              ))}
-            </FilterDropdown>
-
-            {/* Company / Institution */}
-            <FilterDropdown
-              label={activeCompany || "Company"}
-              icon={<Building2 className="w-3.5 h-3.5" />}
-              isActive={!!activeCompany}
-            >
-              <button
-                onClick={() => setActiveCompany("")}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                All Companies
-              </button>
-              {initialFilters.companies.map((name: string) => (
-                <button
-                  key={name}
-                  onClick={() => setActiveCompany(activeCompany === name ? "" : name)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors truncate ${activeCompany === name ? "text-blue-600 font-semibold" : ""}`}
-                >
-                  {name}
-                </button>
-              ))}
-            </FilterDropdown>
-
-            {/* Job Type / Schedule */}
-            <FilterDropdown
-              label={activeSchedule || "Program Type"}
-              icon={<Briefcase className="w-3.5 h-3.5" />}
-              isActive={!!activeSchedule}
-            >
-              <button
-                onClick={() => setActiveSchedule("")}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                All Types
-              </button>
-              {initialFilters.scheduleTypes.map((st: string) => (
-                <button
-                  key={st}
-                  onClick={() => setActiveSchedule(activeSchedule === st ? "" : st)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${activeSchedule === st ? "text-blue-600 font-semibold" : ""}`}
-                >
-                  {st}
-                </button>
-              ))}
-            </FilterDropdown>
-
-            {/* Category */}
-            <FilterDropdown
-              label={activeCategory || "Category"}
-              icon={<GraduationCap className="w-3.5 h-3.5" />}
-              isActive={!!activeCategory}
-            >
-              <button
-                onClick={() => setActiveCategory("")}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                All Categories
-              </button>
-              {initialFilters.categories.map((cat: string) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(activeCategory === cat ? "" : cat)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${activeCategory === cat ? "text-blue-600 font-semibold" : ""}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </FilterDropdown>
-
-            {/* Location */}
-            <FilterDropdown
-              label={appliedLocation || "Location"}
-              icon={<MapPin className="w-3.5 h-3.5" />}
-              isActive={!!appliedLocation}
-            >
-              <button
-                onClick={() => { setLocationQuery(""); setAppliedLocation(""); }}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                All Locations
-              </button>
-              {initialFilters.cities.map((city: string) => (
-                <button
-                  key={city}
-                  onClick={() => { const next = appliedLocation === city ? "" : city; setLocationQuery(next); setAppliedLocation(next); }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${appliedLocation === city ? "text-blue-600 font-semibold" : ""}`}
-                >
-                  {city}
-                </button>
-              ))}
-            </FilterDropdown>
-
-            {/* Date Posted */}
-            <FilterDropdown
-              label={activeDatePosted ? DATE_POSTED_OPTIONS.find(o => o.value === activeDatePosted)?.label || "Date posted" : "Date posted"}
-              icon={<Calendar className="w-3.5 h-3.5" />}
-              isActive={!!activeDatePosted}
-            >
-              <button
-                onClick={() => setActiveDatePosted("")}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                Any time
-              </button>
-              {DATE_POSTED_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setActiveDatePosted(activeDatePosted === opt.value ? "" : opt.value)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${activeDatePosted === opt.value ? "text-blue-600 font-semibold" : ""}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </FilterDropdown>
-
-            {/* Clear all */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="inline-flex items-center gap-1 text-xs sm:text-sm text-red-300 hover:text-red-200 font-medium ml-1 whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-                Clear all
-              </button>
-            )}
-            </div>
+      {/* Search bar */}
+      <div className="mt-8 sm:mt-10 max-w-[720px]">
+        <form onSubmit={handleSearch} className="flex items-center bg-white rounded-xl sm:rounded-lg overflow-hidden shadow-2xl">
+          <div className="flex items-center gap-2 flex-1 px-4 h-14 sm:h-[56px]">
+            <Search className="w-5 h-5 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search programs, institutions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent text-base sm:text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
+            />
           </div>
-        </div>
-      </section>
-
-      {/* ═══════════ MAIN CONTENT ═══════════ */}
-      <div className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4">
-
-          {/* Results header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm text-muted-foreground">
-              {appliedLocation ? (
-                <span>Programs in <span className="text-blue-600 font-medium">{appliedLocation}</span></span>
-              ) : activeCompany ? (
-                <span>Programs by <span className="text-blue-600 font-medium">{activeCompany}</span></span>
-              ) : (
-                <span>All Programs</span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {totalResults.toLocaleString()} result{totalResults !== 1 ? "s" : ""}
-              </span>
-              <div className="flex items-center gap-1 text-xs sm:text-sm">
-                <span className="text-muted-foreground hidden sm:inline">Sort by:</span>
-                <button
-                  onClick={() => setSortBy("relevance")}
-                  className={`font-medium px-1 ${sortBy === "relevance" ? "text-blue-600 underline underline-offset-4" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  relevance
-                </button>
-                <span className="text-muted-foreground">·</span>
-                <button
-                  onClick={() => setSortBy("date")}
-                  className={`font-medium px-1 ${sortBy === "date" ? "text-blue-600 underline underline-offset-4" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  date
-                </button>
-              </div>
-            </div>
+          
+          {/* Location - Hidden on mobile to keep search bar clean */}
+          <div className="hidden md:flex items-center gap-2 border-l border-gray-200 px-4 h-[56px] w-44">
+            <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="City"
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
+            />
           </div>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-            </div>
-          ) : programs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Search className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">No programs found</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Try adjusting your search terms or filters to find more results.
-              </p>
-              {hasActiveFilters && (
-                <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                  Clear all filters
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col md:flex-row gap-4 md:gap-5">
-              {/* ── Left: Program Cards List ── */}
-              <div className={`w-full md:w-[420px] lg:w-[460px] md:shrink-0 space-y-2 md:overflow-y-auto md:max-h-[calc(100vh-240px)] md:pr-1 ${mobileView === "detail" ? "hidden md:block" : ""}`}>
-                {sortedPrograms.map((program) => (
-                  <div
-                    key={program.id}
-                    onClick={() => { setSelectedProgram(program); setMobileView("detail"); }}
-                    className={`group relative bg-card rounded-lg border p-3 sm:p-4 cursor-pointer transition-all duration-150 hover:shadow-md ${selectedProgram?.id === program.id
-                      ? "border-blue-500 shadow-md ring-1 ring-blue-500/30"
-                      : "border-border hover:border-blue-300"
-                      }`}
-                  >
-                    {/* Badge for featured or platform */}
-                    {program.postedByPlatform ? (
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
-                          ✦ Posted by DAKHLA
-                        </span>
-                      </div>
-                    ) : program.institution.planTier.toLowerCase().includes("featured") && (
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-500/30">
-                          ★ Featured
-                        </span>
-                      </div>
-                    )}
+          <Button
+            type="submit"
+            className="h-14 sm:h-[56px] px-5 sm:px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold sm:font-semibold shrink-0 rounded-none transition-all active:scale-95"
+          >
+            <Search className="w-6 h-6 sm:hidden" />
+            <span className="hidden sm:inline text-sm">Find Programs</span>
+          </Button>
+        </form>
+      </div>
 
-                    <h3 className="text-sm sm:text-[15px] font-bold text-foreground leading-snug mb-1 pr-16 group-hover:text-blue-600 transition-colors">
-                      {program.title}
-                    </h3>
-
-                    <p className="text-xs sm:text-[13px] text-muted-foreground mb-0.5">
-                      {program.postedByPlatform ? "DAKHLA Platform" : program.institution.name}
-                    </p>
-
-                    {!program.postedByPlatform && program.institution.city && (
-                      <p className="text-xs sm:text-[13px] text-muted-foreground mb-2">
-                        {program.institution.city}
-                      </p>
-                    )}
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {program.fee !== null && (
-                        <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs border border-border rounded-md px-2 py-0.5 text-foreground font-medium bg-accent/50">
-                          {formatFee(program.fee)}
-                        </span>
-                      )}
-                      {program.schedule_type && (
-                        <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs border border-border rounded-md px-2 py-0.5 text-foreground font-medium bg-accent/50">
-                          {program.schedule_type}
-                        </span>
-                      )}
-                      {program.duration && (
-                        <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs border border-border rounded-md px-2 py-0.5 text-muted-foreground bg-accent/50">
-                          {program.duration}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Bottom row */}
-                    <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground flex-wrap">
-                      {program.deadline && (
-                        <span className="flex items-center gap-1 text-red-500 dark:text-red-400 font-medium">
-                          <Clock className="w-3 h-3" />
-                          Deadline: {formatDate(program.deadline)}
-                        </span>
-                      )}
-                      <span>Posted {timeAgo(program.created_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* ── Right: Detail Panel ── */}
-              <div className={`flex-1 min-w-0 ${mobileView === "list" ? "hidden md:block" : ""}`}>
-                {/* Mobile back */}
-                <button
-                  className="md:hidden flex items-center gap-2 text-sm font-medium text-blue-600 mb-3 cursor-pointer"
-                  onClick={() => setMobileView("list")}
-                >
-                  ← Back to results
-                </button>
-
-                {selectedProgram ? (
-                  <div className="bg-card border border-border rounded-lg md:sticky md:top-[60px] md:max-h-[calc(100vh-240px)] overflow-y-auto">
-                    {/* Header */}
-                    <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-border">
-                      <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1">
-                        {selectedProgram.title}
-                      </h2>
-                      {selectedProgram.postedByPlatform ? (
-                        <p className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
-                            ✦ Posted by DAKHLA Platform
-                          </span>
-                        </p>
-                      ) : (
-                        <>
-                          <p
-                            className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
-                            onClick={() => router.push(`/institution-detail/${selectedProgram.institution.uniqueId}`)}
-                          >
-                            {selectedProgram.institution.name}
-                            <ExternalLink className="w-3 h-3" />
-                          </p>
-                          {selectedProgram.institution.city && (
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {selectedProgram.institution.city}
-                            </p>
-                          )}
-                        </>
-                      )}
-                      {selectedProgram.fee !== null && (
-                        <p className="text-sm text-foreground font-medium mb-4">
-                          {formatFee(selectedProgram.fee)}
-                          {selectedProgram.schedule_type && ` · ${selectedProgram.schedule_type}`}
-                        </p>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 sm:px-6 h-10 rounded-full shadow-sm"
-                          onClick={() => router.push("/signup?role=student")}
-                        >
-                          Apply now
-                        </Button>
-                        <button
-                          className="h-10 w-10 flex items-center justify-center rounded-full border border-border hover:border-blue-400 transition-colors text-muted-foreground hover:text-blue-600"
-                          onClick={() => router.push("/login")}
-                        >
-                          <Bookmark className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Body */}
-                    <div className="px-4 sm:px-6 py-4 sm:py-5">
-                      <h3 className="text-base font-bold text-foreground mb-4">
-                        Program details
-                      </h3>
-
-                      <div className="space-y-4">
-                        {selectedProgram.program_code && (
-                          <DetailRow icon={<Hash />} label="Program Code" value={selectedProgram.program_code} />
-                        )}
-                        {selectedProgram.fee !== null && (
-                          <DetailRow icon={<DollarSign />} label="Fee" value={formatFee(selectedProgram.fee)} />
-                        )}
-                        {selectedProgram.schedule_type && (
-                          <DetailRow icon={<Briefcase />} label="Schedule Type" value={selectedProgram.schedule_type} />
-                        )}
-                        {selectedProgram.category && (
-                          <DetailRow icon={<Tag />} label="Category" value={selectedProgram.category} />
-                        )}
-                        {selectedProgram.duration && (
-                          <DetailRow icon={<Clock />} label="Duration" value={selectedProgram.duration} />
-                        )}
-                        {selectedProgram.study_field && (
-                          <DetailRow icon={<BookOpen />} label="Study Field" value={selectedProgram.study_field} />
-                        )}
-                        {selectedProgram.eligibility && (
-                          <DetailRow icon={<Users />} label="Eligibility" value={selectedProgram.eligibility} />
-                        )}
-                        {selectedProgram.application_method && (
-                          <DetailRow icon={<Link2 />} label="Application Method" value={selectedProgram.application_method === "external" ? "External Application" : "Apply via GAP"} />
-                        )}
-                        {selectedProgram.external_url && selectedProgram.application_method === "external" && (
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5 [&>svg]:w-4 [&>svg]:h-4 [&>svg]:text-muted-foreground">
-                              <ExternalLink />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-foreground">External Link</p>
-                              <a
-                                href={selectedProgram.external_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline break-all"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {selectedProgram.external_url}
-                              </a>
-                            </div>
-                          </div>
-                        )}
-                        {selectedProgram.deadline && (
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/15 flex items-center justify-center shrink-0 mt-0.5">
-                              <Calendar className="w-4 h-4 text-red-600 dark:text-red-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">Application Deadline</p>
-                              <p className="text-sm text-red-600 dark:text-red-400 font-medium">{formatDate(selectedProgram.deadline)}</p>
-                            </div>
-                          </div>
-                        )}
-                        <DetailRow icon={<Calendar />} label="Posted Date" value={formatDate(selectedProgram.created_at)} />
-                        <DetailRow icon={<Building2 />} label={selectedProgram.postedByPlatform ? "Posted by" : "Institution"} value={selectedProgram.postedByPlatform ? "DAKHLA Platform" : `${selectedProgram.institution.name}${selectedProgram.institution.category ? ` · ${selectedProgram.institution.category}` : ""}`} />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="hidden md:flex flex-col items-center justify-center h-80 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                      <GraduationCap className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-base font-semibold text-foreground mb-1">Select a program</p>
-                    <p className="text-sm text-muted-foreground">Click on any program card to view its details here.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+      {/* Popular category pills */}
+      <div className="mt-6 flex flex-wrap items-center gap-2 max-w-[720px]">
+        <span className="text-sm text-white/80 font-medium w-full mb-1 sm:w-auto sm:mb-0">Popular:</span>
+        <div className="flex flex-wrap gap-2">
+          {["Computer Science", "Engineering", "Pre-Primary", "Culinary"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => router.push(`/programs?category=${encodeURIComponent(cat)}`)}
+              className="px-4 py-2 rounded-full text-[13px] font-medium text-white border border-white/30 bg-white/5 hover:bg-white/20 transition-all active:scale-95 whitespace-nowrap"
+            >
+              {cat} →
+            </button>
+          ))}
         </div>
       </div>
+    </div>
+
+    {/* Trusted by strip - Improved Responsive Layout */}
+    <div className="absolute bottom-8 sm:bottom-10 inset-x-0 z-10">
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-10">
+          <span className="text-[11px] tracking-widest font-bold text-white/50">
+           Popular Institutes:
+          </span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 sm:gap-10">
+            {["NED", "KMDC", "NUST", "LUMS", "KGS"].map((inst) => (
+              <span key={inst} className="text-white/90 text-lg sm:text-xl font-bold tracking-tight hover:text-white transition-colors cursor-default">
+                {inst}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 
       {/* ═══════════ TESTIMONIALS CAROUSEL ═══════════ */}

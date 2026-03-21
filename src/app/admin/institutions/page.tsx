@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { message } from "antd";
-import { Download } from "lucide-react";
+import { Download, Eye, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 
 interface Institution {
@@ -50,7 +50,6 @@ export default function AdminInstitutionsPage() {
     const [filter, setFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(true);
 
-    // Read URL param on mount for deep linking
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const urlStatus = params.get("status");
@@ -58,6 +57,7 @@ export default function AdminInstitutionsPage() {
             setFilter(urlStatus);
         }
     }, []);
+
     const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [rejectTarget, setRejectTarget] = useState<Institution | null>(null);
@@ -145,138 +145,179 @@ export default function AdminInstitutionsPage() {
 
     return (
         <DashboardLayout role="admin">
-            <h1 className="text-2xl font-bold mb-6">Manage Institutions</h1>
+            <div className="flex flex-col gap-4 mb-6">
+                <h1 className="text-xl md:text-2xl font-bold">Manage Institutions</h1>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Horizontal Scrollable Filters on Mobile */}
+                    <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 no-scrollbar">
+                        {["all", "pending", "approved", "rejected", "cancelled"].map((s) => (
+                            <Button
+                                key={s}
+                                variant={filter === s ? "default" : "outline"}
+                                size="sm"
+                                className={`capitalize whitespace-nowrap ${filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                                onClick={() => setFilter(s)}
+                            >
+                                {s}
+                            </Button>
+                        ))}
+                    </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex gap-2">
-                    {["all", "pending", "approved", "rejected", "cancelled"].map((s) => (
-                        <Button
-                            key={s}
-                            variant={filter === s ? "default" : "outline"}
-                            size="sm"
-                            className={filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}
-                            onClick={() => setFilter(s)}
-                        >
-                            <span className="capitalize">{s}</span>
-                        </Button>
-                    ))}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 w-full sm:w-auto justify-center"
+                        onClick={exportInstitutions}
+                        disabled={institutions.length === 0}
+                    >
+                        <Download className="size-4" />
+                        Export CSV
+                    </Button>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={exportInstitutions}
-                    disabled={institutions.length === 0}
-                >
-                    <Download className="size-4" />
-                    Export CSV
-                </Button>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>
+            <Card className="border-none shadow-none md:border md:shadow-sm">
+                <CardHeader className="px-4 md:px-6">
+                    <CardTitle className="text-lg">
                         {filter.charAt(0).toUpperCase() + filter.slice(1)} Institutions ({institutions.length})
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 md:px-6">
                     {isLoading ? (
-                        <div className="flex justify-center py-8">
+                        <div className="flex justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
                     ) : institutions.length === 0 ? (
-                        <p className="text-center py-8 text-muted-foreground">No {filter} institutions</p>
+                        <p className="text-center py-12 text-muted-foreground">No {filter} institutions found.</p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Name</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Email</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Category</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">City</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Profile</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Registered</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {institutions.map((inst) => {
-                                        const complete = isProfileComplete(inst);
-                                        return (
+                        <>
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b text-left">
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Name</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Contact</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Profile</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {institutions.map((inst) => (
                                             <tr key={inst.id} className="border-b last:border-0 hover:bg-accent/50">
-                                                <td className="py-3 text-sm font-medium">{inst.name}</td>
-                                                <td className="py-3 text-sm text-muted-foreground">{inst.user.email || inst.contact_email || "—"}</td>
-                                                <td className="py-3 text-sm text-muted-foreground">{inst.category || "—"}</td>
-                                                <td className="py-3 text-sm text-muted-foreground">{inst.city || "—"}</td>
-                                                <td className="py-3">
-                                                    {complete ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                                            ✓ Complete
-                                                        </span>
+                                                <td className="py-4">
+                                                    <p className="text-sm font-medium">{inst.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{inst.category || "—"}</p>
+                                                </td>
+                                                <td className="py-4 text-sm">
+                                                    {inst.user.email || inst.contact_email || "—"}
+                                                </td>
+                                                <td className="py-4">
+                                                    {isProfileComplete(inst) ? (
+                                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-xs font-medium">✓ Complete</span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                                            ⚠ Incomplete
-                                                        </span>
+                                                        <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded text-xs font-medium">⚠ Incomplete</span>
                                                     )}
                                                 </td>
-                                                <td className="py-3"><StatusBadge status={inst.status} /></td>
-                                                <td className="py-3 text-sm text-muted-foreground">
-                                                    {new Date(inst.created_at).toLocaleDateString()}
+                                                <td className="py-4">
+                                                    <StatusBadge status={inst.status} />
                                                 </td>
-                                                <td className="py-3">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => viewDetail(inst)}>
-                                                            View
-                                                        </Button>
+                                                <td className="py-4">
+                                                    <div className="flex gap-2">
+                                                        <Button size="sm" variant="outline" onClick={() => viewDetail(inst)}>View</Button>
                                                         {inst.status === "pending" && (
                                                             <>
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700"
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    className="bg-emerald-600 hover:bg-emerald-700" 
                                                                     disabled={!isProfileComplete(inst) || isSubmitting}
                                                                     onClick={() => handleAction(inst.id, "approved")}
-                                                                >
-                                                                    Approve
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="destructive"
-                                                                    className="text-xs h-7"
-                                                                    disabled={isSubmitting}
-                                                                    onClick={() => openRejectDialog(inst)}
-                                                                >
-                                                                    Reject
-                                                                </Button>
+                                                                >Approve</Button>
+                                                                <Button size="sm" variant="destructive" onClick={() => openRejectDialog(inst)} disabled={isSubmitting}>Reject</Button>
                                                             </>
-                                                        )}
-                                                        {inst.status === "approved" && (
-                                                            <Button
-                                                                size="sm"
-                                                                className="text-xs h-7 bg-orange-600 hover:bg-orange-700 text-white"
-                                                                disabled={isSubmitting}
-                                                                onClick={() => openCancelDialog(inst)}
-                                                            >
-                                                                Cancel Registration
-                                                            </Button>
                                                         )}
                                                     </div>
                                                 </td>
                                             </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="grid grid-cols-1 gap-4 md:hidden">
+                                {institutions.map((inst) => (
+                                    <div key={inst.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold text-sm">{inst.name}</h3>
+                                                <p className="text-xs text-muted-foreground">{inst.category || "General"}</p>
+                                            </div>
+                                            <StatusBadge status={inst.status} />
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div className="text-muted-foreground">City: <span className="text-foreground">{inst.city || "—"}</span></div>
+                                            <div className="text-muted-foreground text-right">Programs: <span className="text-foreground font-medium">{inst._count.programs}</span></div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {isProfileComplete(inst) ? (
+                                                <span className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold">● Profile Complete</span>
+                                            ) : (
+                                                <span className="text-[10px] uppercase tracking-wider text-amber-600 font-bold">● Incomplete Profile</span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 pt-2 border-t mt-2">
+                                            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => viewDetail(inst)}>
+                                                <Eye className="size-3 mr-1" /> View
+                                            </Button>
+                                            {inst.status === "pending" && (
+                                                <>
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="flex-1 h-8 text-xs bg-emerald-600" 
+                                                        disabled={!isProfileComplete(inst) || isSubmitting}
+                                                        onClick={() => handleAction(inst.id, "approved")}
+                                                    >
+                                                        <CheckCircle className="size-3 mr-1" /> Approve
+                                                    </Button>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="destructive" 
+                                                        className="flex-1 h-8 text-xs" 
+                                                        onClick={() => openRejectDialog(inst)}
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        <XCircle className="size-3 mr-1" /> Reject
+                                                    </Button>
+                                                </>
+                                            )}
+                                            {inst.status === "approved" && (
+                                                <Button 
+                                                    size="sm" 
+                                                    className="w-full h-8 text-xs bg-orange-600 text-white" 
+                                                    onClick={() => openCancelDialog(inst)}
+                                                    disabled={isSubmitting}
+                                                >
+                                                    <AlertCircle className="size-3 mr-1" /> Cancel Registration
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
 
-            {/* Institution Detail Dialog */}
+            {/* Dialogs remain mostly same but added max-w-[95vw] for mobile safety */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto rounded-lg">
                     <DialogHeader>
                         <DialogTitle>Institution Details</DialogTitle>
                     </DialogHeader>
@@ -284,137 +325,79 @@ export default function AdminInstitutionsPage() {
                         const complete = isProfileComplete(selectedInst);
                         const missing = getMissingFields(selectedInst);
                         return (
-                            <div className="space-y-4">
-                                {/* Profile Completeness Banner */}
-                                {!complete && (
-                                    <div className="bg-amber-500/10 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
-                                            ⚠️ Profile Incomplete — Cannot be approved
+                            <div className="space-y-6">
+                                {!complete ? (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800">
+                                        <p className="text-sm font-bold flex items-center gap-2">
+                                            <AlertCircle className="size-4" /> Profile Incomplete
                                         </p>
-                                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                                            Missing: {missing.join(", ")}
-                                        </p>
+                                        <p className="text-xs mt-1">Missing: {missing.join(", ")}</p>
                                     </div>
-                                )}
-                                {complete && (
-                                    <div className="bg-emerald-500/10 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-400">
-                                            ✅ Profile Complete — Ready for review
+                                ) : (
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-emerald-800">
+                                        <p className="text-sm font-bold flex items-center gap-2">
+                                            <CheckCircle className="size-4" /> Profile Ready for Review
                                         </p>
                                     </div>
                                 )}
 
-                                {/* Profile Fields */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Institution Name</p>
-                                        <p className="text-sm font-medium">{selectedInst.name || "—"}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Account Email</p>
-                                        <p className="text-sm">{selectedInst.user.email || "—"}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Contact Email</p>
-                                        <p className="text-sm">{selectedInst.contact_email || <span className="text-amber-600 italic">Not provided</span>}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Category</p>
-                                        <p className="text-sm capitalize">{selectedInst.category || <span className="text-amber-600 italic">Not provided</span>}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">City</p>
-                                        <p className="text-sm">{selectedInst.city || <span className="text-amber-600 italic">Not provided</span>}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Phone</p>
-                                        <p className="text-sm">{selectedInst.user.phone || "—"}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Programs Listed</p>
-                                        <p className="text-sm font-medium">{selectedInst._count.programs}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Registered</p>
-                                        <p className="text-sm">{new Date(selectedInst.created_at).toLocaleDateString()}</p>
-                                    </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <DetailItem label="Name" value={selectedInst.name} />
+                                    <DetailItem label="Category" value={selectedInst.category} />
+                                    <DetailItem label="City" value={selectedInst.city} />
+                                    <DetailItem label="Email" value={selectedInst.contact_email || selectedInst.user.email} />
+                                    <DetailItem label="Phone" value={selectedInst.user.phone} />
+                                    <DetailItem label="Programs" value={selectedInst._count.programs.toString()} />
                                 </div>
 
-                                {/* Description */}
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Description</p>
-                                    <p className="text-sm mt-1">
-                                        {selectedInst.description || <span className="text-amber-600 italic">Not provided</span>}
-                                    </p>
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold">Description</p>
+                                    <p className="text-sm leading-relaxed">{selectedInst.description || "No description provided."}</p>
                                 </div>
 
-                                {/* Status */}
-                                <div className="flex items-center gap-2">
-                                    <p className="text-xs text-muted-foreground">Current Status:</p>
-                                    <StatusBadge status={selectedInst.status} />
-                                </div>
-
-                                {/* Action Buttons */}
-                                {selectedInst.status === "pending" && (
-                                    <div className="flex gap-2 pt-2">
-                                        <Button
-                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                                            disabled={!complete}
-                                            onClick={() => handleAction(selectedInst.id, "approved")}
-                                        >
-                                            {complete ? "✓ Approve" : "Cannot Approve (Incomplete Profile)"}
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            className="flex-1"
-                                            onClick={() => { setIsDetailOpen(false); openRejectDialog(selectedInst); }}
-                                        >
-                                            Reject
-                                        </Button>
-                                    </div>
-                                )}
-                                {selectedInst.status === "approved" && (
-                                    <div className="flex gap-2 pt-2">
-                                        <Button
-                                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                                <div className="flex flex-col gap-2 pt-4 border-t">
+                                    {selectedInst.status === "pending" && (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button 
+                                                className="bg-emerald-600" 
+                                                disabled={!complete || isSubmitting}
+                                                onClick={() => handleAction(selectedInst.id, "approved")}
+                                            >Approve</Button>
+                                            <Button 
+                                                variant="destructive" 
+                                                onClick={() => { setIsDetailOpen(false); openRejectDialog(selectedInst); }}
+                                            >Reject</Button>
+                                        </div>
+                                    )}
+                                    {selectedInst.status === "approved" && (
+                                        <Button 
+                                            className="bg-orange-600 text-white" 
                                             onClick={() => { setIsDetailOpen(false); openCancelDialog(selectedInst); }}
-                                        >
-                                            Cancel Registration
-                                        </Button>
-                                    </div>
-                                )}
+                                        >Cancel Registration</Button>
+                                    )}
+                                </div>
                             </div>
                         );
                     })()}
                 </DialogContent>
             </Dialog>
-            {/* Rejection Reason Dialog */}
-            <Dialog open={isRejectOpen} onOpenChange={(open) => { if (!open) { setIsRejectOpen(false); setRejectTarget(null); setRejectReason(""); } }}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Reject Institution</DialogTitle>
-                    </DialogHeader>
+
+            {/* Rejection/Cancellation Dialogs with mobile width fix */}
+            <Dialog open={isRejectOpen} onOpenChange={(open) => { if (!open) { setIsRejectOpen(false); setRejectTarget(null); } }}>
+                <DialogContent className="max-w-[95vw] md:max-w-md rounded-lg">
+                    <DialogHeader><DialogTitle>Reject Institution</DialogTitle></DialogHeader>
                     {rejectTarget && (
                         <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                You are rejecting <strong>{rejectTarget.name}</strong>. Please provide a reason for the rejection (optional but recommended).
-                            </p>
+                            <p className="text-sm text-muted-foreground">Rejecting <strong>{rejectTarget.name}</strong>. Reason (optional):</p>
                             <textarea
-                                className="w-full min-h-[100px] rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                placeholder="e.g. Incomplete documentation, unverifiable institution details..."
+                                className="w-full min-h-[100px] rounded-md border p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
                             />
                             <div className="flex gap-2 justify-end">
-                                <Button variant="outline" onClick={() => { setIsRejectOpen(false); setRejectTarget(null); setRejectReason(""); }}>
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    disabled={isSubmitting}
-                                    onClick={() => handleAction(rejectTarget.id, "rejected", rejectReason.trim() || undefined)}
-                                >
-                                    {isSubmitting ? "Rejecting..." : "Confirm Rejection"}
+                                <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Cancel</Button>
+                                <Button variant="destructive" disabled={isSubmitting} onClick={() => handleAction(rejectTarget.id, "rejected", rejectReason.trim())}>
+                                    Confirm Rejection
                                 </Button>
                             </div>
                         </div>
@@ -422,33 +405,23 @@ export default function AdminInstitutionsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Cancellation Reason Dialog */}
-            <Dialog open={isCancelOpen} onOpenChange={(open) => { if (!open) { setIsCancelOpen(false); setCancelTarget(null); setCancelReason(""); } }}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Cancel Institution Registration</DialogTitle>
-                    </DialogHeader>
+            {/* Cancellation Dialog logic similarly follows Reject Dialog */}
+            <Dialog open={isCancelOpen} onOpenChange={(open) => { if (!open) { setIsCancelOpen(false); setCancelTarget(null); } }}>
+                <DialogContent className="max-w-[95vw] md:max-w-md rounded-lg">
+                    <DialogHeader><DialogTitle>Cancel Registration</DialogTitle></DialogHeader>
                     {cancelTarget && (
                         <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                You are cancelling the registration of <strong>{cancelTarget.name}</strong>. A reason is required and will be sent to the institution.
-                            </p>
+                            <p className="text-sm text-muted-foreground font-medium text-red-600">This action is permanent.</p>
                             <textarea
-                                className="w-full min-h-[100px] rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                                placeholder="e.g. Violation of terms, fraudulent activity, non-compliance..."
+                                className="w-full min-h-[100px] rounded-md border p-3 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="Mandatory reason for cancellation..."
                                 value={cancelReason}
                                 onChange={(e) => setCancelReason(e.target.value)}
                             />
                             <div className="flex gap-2 justify-end">
-                                <Button variant="outline" onClick={() => { setIsCancelOpen(false); setCancelTarget(null); setCancelReason(""); }}>
-                                    Go Back
-                                </Button>
-                                <Button
-                                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                                    disabled={isSubmitting || !cancelReason.trim()}
-                                    onClick={() => handleAction(cancelTarget.id, "cancelled", cancelReason.trim())}
-                                >
-                                    {isSubmitting ? "Cancelling..." : "Confirm Cancellation"}
+                                <Button variant="outline" onClick={() => setIsCancelOpen(false)}>Back</Button>
+                                <Button className="bg-orange-600 text-white" disabled={isSubmitting || !cancelReason.trim()} onClick={() => handleAction(cancelTarget.id, "cancelled", cancelReason.trim())}>
+                                    Confirm Cancellation
                                 </Button>
                             </div>
                         </div>
@@ -456,5 +429,15 @@ export default function AdminInstitutionsPage() {
                 </DialogContent>
             </Dialog>
         </DashboardLayout>
+    );
+}
+
+// Helper Component for Details
+function DetailItem({ label, value }: { label: string, value: string | null }) {
+    return (
+        <div>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">{label}</p>
+            <p className="text-sm truncate">{value || "—"}</p>
+        </div>
     );
 }

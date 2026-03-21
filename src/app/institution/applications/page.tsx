@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { exportToCSV } from "@/lib/export-csv";
 import {
     Dialog,
     DialogContent,
@@ -40,6 +41,7 @@ import {
     Briefcase,
 } from "lucide-react";
 
+// --- Interfaces ---
 interface Application {
     id: number;
     application_code: string;
@@ -75,7 +77,6 @@ interface StudentDetail {
     user: { email: string | null; phone: string | null };
 }
 
-// ── Advanced filter types ────────────────────────────────────────────────────
 type FilterColumn = "name" | "email" | "program" | "status" | "city" | "education";
 type FilterOperator = "contains" | "equals" | "starts_with";
 interface AdvancedFilter {
@@ -102,7 +103,7 @@ const OPERATOR_OPTIONS: { value: FilterOperator; label: string }[] = [
 
 const STATUS_OPTIONS = ["submitted", "viewed", "accepted", "rejected", "withdrawn"];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ---
 function getFieldValue(app: Application, col: FilterColumn): string {
     switch (col) {
         case "name": return app.student.full_name || "";
@@ -111,6 +112,7 @@ function getFieldValue(app: Application, col: FilterColumn): string {
         case "status": return app.status;
         case "city": return app.student.city || "";
         case "education": return app.student.education_level || "";
+        default: return "";
     }
 }
 
@@ -121,19 +123,19 @@ function matchesFilter(value: string, operator: FilterOperator, filterValue: str
         case "contains": return v.includes(f);
         case "equals": return v === f;
         case "starts_with": return v.startsWith(f);
+        default: return true;
     }
 }
 
 export default function InstitutionApplicationsPage() {
     const { fetchWithAuth } = useApi();
-    const router = useRouter();
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
-    // ── Filter state ──
+    
+    // Filter states
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [programFilter, setProgramFilter] = useState<string>("all");
@@ -141,52 +143,10 @@ export default function InstitutionApplicationsPage() {
     const [advFilters, setAdvFilters] = useState<AdvancedFilter[]>([]);
     const [nextFilterId, setNextFilterId] = useState(1);
 
-    // Highlight support from notification click
-    const [highlightId, setHighlightId] = useState<number | null>(null);
-    const [highlightProgram, setHighlightProgram] = useState<string | null>(null);
-    const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
-    const highlightRef = useRef<HTMLTableRowElement | null>(null);
-
-    // Read URL params on mount (avoids useSearchParams prerender error)
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const h = params.get("highlight");
-        const hp = params.get("highlightProgram");
-        if (h) setHighlightId(parseInt(h));
-        if (hp) setHighlightProgram(hp);
-    }, []);
-
-    // ── Dropdown open state ──
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const [programDropdownOpen, setProgramDropdownOpen] = useState(false);
 
-    useEffect(() => {
-        loadApplications();
-    }, []);
-
-    // Handle highlight from notification
-    useEffect(() => {
-        if (applications.length === 0) return;
-        let targetId: number | null = null;
-
-        if (highlightId) {
-            targetId = highlightId;
-        } else if (highlightProgram) {
-            const match = applications.find(
-                (a) => a.program.title.toLowerCase() === highlightProgram.toLowerCase()
-            );
-            if (match) targetId = match.id;
-        }
-
-        if (targetId) {
-            setActiveHighlight(targetId);
-            setTimeout(() => {
-                highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 300);
-            const timer = setTimeout(() => setActiveHighlight(null), 4000);
-            return () => clearTimeout(timer);
-        }
-    }, [highlightId, highlightProgram, applications]);
+    useEffect(() => { loadApplications(); }, []);
 
     async function loadApplications() {
         const res = await fetchWithAuth("/institutions/applications");
@@ -205,12 +165,10 @@ export default function InstitutionApplicationsPage() {
                 body: JSON.stringify({ status }),
             });
             if (res.ok) {
-                message.success(`Application ${status}`);
+                message.success(`Application marked as ${status}`);
                 loadApplications();
             }
-        } finally {
-            setUpdatingStatus(null);
-        }
+        } finally { setUpdatingStatus(null); }
     };
 
     const viewStudentProfile = async (studentId: number) => {
@@ -219,33 +177,17 @@ export default function InstitutionApplicationsPage() {
             const data = await res.json();
             setSelectedStudent(data.student);
             setIsPreviewOpen(true);
-        } else {
-            message.error("Could not load student profile");
-        }
+        } else { message.error("Could not load student profile"); }
     };
 
-    // ── Derive unique programs for filter ──
     const uniquePrograms = useMemo(() => {
         const programs = new Map<number, string>();
         applications.forEach(app => programs.set(app.program.id, app.program.title));
         return Array.from(programs.entries()).map(([id, title]) => ({ id, title }));
     }, [applications]);
 
-    // ── Advanced filter management ──
-    const addFilter = () => {
-        setAdvFilters(prev => [...prev, { id: nextFilterId, column: "name", operator: "contains", value: "" }]);
-        setNextFilterId(prev => prev + 1);
-    };
-    const removeFilter = (id: number) => setAdvFilters(prev => prev.filter(f => f.id !== id));
-    const updateFilter = (id: number, field: keyof AdvancedFilter, value: string) => {
-        setAdvFilters(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
-    };
-
-    // ── Filter applications ──
     const filteredApplications = useMemo(() => {
         let result = applications;
-
-        // Search
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             result = result.filter(app =>
@@ -254,32 +196,14 @@ export default function InstitutionApplicationsPage() {
                 app.program.title.toLowerCase().includes(q)
             );
         }
-
-        // Status quick filter
-        if (statusFilter !== "all") {
-            result = result.filter(app => app.status === statusFilter);
-        }
-
-        // Program quick filter
-        if (programFilter !== "all") {
-            result = result.filter(app => app.program.id === parseInt(programFilter, 10));
-        }
-
-        // Advanced filters
+        if (statusFilter !== "all") { result = result.filter(app => app.status === statusFilter); }
+        if (programFilter !== "all") { result = result.filter(app => app.program.id === parseInt(programFilter, 10)); }
         for (const f of advFilters) {
             if (!f.value.trim()) continue;
             result = result.filter(app => matchesFilter(getFieldValue(app, f.column), f.operator, f.value));
         }
-
         return result;
     }, [applications, searchQuery, statusFilter, programFilter, advFilters]);
-
-    // ── Status counts ──
-    const statusCounts = useMemo(() => {
-        const counts: Record<string, number> = { all: applications.length };
-        applications.forEach(app => { counts[app.status] = (counts[app.status] || 0) + 1; });
-        return counts;
-    }, [applications]);
 
     if (isLoading) {
         return (
@@ -293,541 +217,283 @@ export default function InstitutionApplicationsPage() {
 
     return (
         <DashboardLayout role="institution">
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold">Applications</h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                        {applications.length} total application{applications.length !== 1 ? "s" : ""}
-                    </p>
-                </div>
+            {/* Header */}
+            <div className="flex flex-col gap-1 mb-6 px-1">
+                <h1 className="text-2xl font-bold tracking-tight">Applications</h1>
+                <p className="text-sm text-muted-foreground">{applications.length} Total Applications</p>
             </div>
 
-            {/* ── Search & Filter Bar ───────────────────────────────────────── */}
-            <div className="flex flex-col gap-3 mb-5">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    {/* Search Input */}
+            {/* Filter Controls */}
+            <div className="flex flex-col gap-4 mb-6">
+                <div className="flex flex-col lg:flex-row gap-3">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         <input
                             type="text"
-                            placeholder="Search by name, email, or program..."
+                            placeholder="Search applicant or program..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-muted-foreground/60"
+                            className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border rounded-2xl focus:ring-2 focus:ring-blue-500/40 outline-none transition-all"
                         />
-                        {searchQuery && (
-                            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                <X className="size-4" />
-                            </button>
-                        )}
                     </div>
 
-                    {/* Status Dropdown */}
-                    <div className="relative">
-                        <button
-                            onClick={() => { setStatusDropdownOpen(!statusDropdownOpen); setProgramDropdownOpen(false); }}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm bg-card border rounded-lg hover:bg-accent transition-colors min-w-[150px]"
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Status Dropdown */}
+                        <div className="relative flex-1 sm:flex-none">
+                            <Button 
+                                variant="outline" 
+                                className="w-full justify-between gap-2 px-4 py-2.5 rounded-2xl text-sm h-[42px]"
+                                onClick={() => { setStatusDropdownOpen(!statusDropdownOpen); setProgramDropdownOpen(false); }}
+                            >
+                                <span className="capitalize">Status: {statusFilter}</span>
+                                <ChevronDown className="size-4 opacity-50" />
+                            </Button>
+                            {statusDropdownOpen && (
+                                <div className="absolute top-full left-0 mt-2 w-44 bg-card border rounded-2xl shadow-xl z-50 py-1">
+                                    <button onClick={() => { setStatusFilter("all"); setStatusDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-accent capitalize">All</button>
+                                    {STATUS_OPTIONS.map(s => (
+                                        <button key={s} onClick={() => { setStatusFilter(s); setStatusDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-accent capitalize">{s}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Program Dropdown (Restored) */}
+                        <div className="relative flex-1 sm:flex-none">
+                            <Button 
+                                variant="outline" 
+                                className="w-full justify-between gap-2 px-4 py-2.5 rounded-2xl text-sm h-[42px]"
+                                onClick={() => { setProgramDropdownOpen(!programDropdownOpen); setStatusDropdownOpen(false); }}
+                            >
+                                <span className="truncate max-w-[120px]">Program: {programFilter === "all" ? "All" : uniquePrograms.find(p => p.id === parseInt(programFilter))?.title}</span>
+                                <ChevronDown className="size-4 opacity-50" />
+                            </Button>
+                            {programDropdownOpen && (
+                                <div className="absolute top-full right-0 mt-2 w-64 bg-card border rounded-2xl shadow-xl z-50 py-1 max-h-60 overflow-y-auto">
+                                    <button onClick={() => { setProgramFilter("all"); setProgramDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-accent">All Programs</button>
+                                    {uniquePrograms.map(p => (
+                                        <button key={p.id} onClick={() => { setProgramFilter(p.id.toString()); setProgramDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-accent truncate">{p.title}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <Button 
+                            variant={showFilters ? "default" : "outline"} 
+                            className={`rounded-2xl h-[42px] px-4 flex-1 sm:flex-none ${showFilters ? 'bg-blue-600' : ''}`}
+                            onClick={() => setShowFilters(!showFilters)}
                         >
-                            <span className="text-muted-foreground">Status:</span>
-                            <span className="font-medium capitalize">{statusFilter === "all" ? "All" : statusFilter}</span>
-                            <ChevronDown className="size-4 text-muted-foreground ml-auto" />
-                        </button>
-                        {statusDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-1 w-48 bg-card border rounded-lg shadow-lg z-50 py-1">
-                                <button
-                                    onClick={() => { setStatusFilter("all"); setStatusDropdownOpen(false); }}
-                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-accent flex items-center justify-between ${statusFilter === "all" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
-                                >
-                                    All <span className="text-xs text-muted-foreground">{statusCounts.all}</span>
-                                </button>
-                                {STATUS_OPTIONS.map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => { setStatusFilter(s); setStatusDropdownOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-accent capitalize flex items-center justify-between ${statusFilter === s ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
-                                    >
-                                        {s} <span className="text-xs text-muted-foreground">{statusCounts[s] || 0}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                            <Filter className="size-4 mr-2" /> Advanced
+                        </Button>
 
-                    {/* Program Dropdown */}
-                    <div className="relative">
-                        <button
-                            onClick={() => { setProgramDropdownOpen(!programDropdownOpen); setStatusDropdownOpen(false); }}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm bg-card border rounded-lg hover:bg-accent transition-colors min-w-[150px]"
+                        <Button 
+                            variant="outline" 
+                            className="rounded-2xl h-[42px] px-4 flex-1 sm:flex-none"
+                            onClick={() => exportToCSV(filteredApplications, "applications.csv")}
                         >
-                            <span className="text-muted-foreground">Program:</span>
-                            <span className="font-medium truncate max-w-[120px]">{programFilter === "all" ? "All" : uniquePrograms.find(p => p.id === parseInt(programFilter, 10))?.title || "All"}</span>
-                            <ChevronDown className="size-4 text-muted-foreground ml-auto" />
-                        </button>
-                        {programDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-1 w-64 bg-card border rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
-                                <button
-                                    onClick={() => { setProgramFilter("all"); setProgramDropdownOpen(false); }}
-                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${programFilter === "all" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
-                                >
-                                    All Programs
-                                </button>
-                                {uniquePrograms.map(p => (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => { setProgramFilter(String(p.id)); setProgramDropdownOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-accent truncate ${programFilter === String(p.id) ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : ""}`}
-                                    >
-                                        {p.title}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                            <FileDown className="size-4 mr-2" /> Export
+                        </Button>
                     </div>
-
-                    {/* More Filters Toggle */}
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className={`flex items-center gap-2 px-4 py-2.5 text-sm border rounded-lg transition-colors ${showFilters ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : "bg-card hover:bg-accent"}`}
-                    >
-                        <Filter className="size-4" />
-                        More Filters
-                        {advFilters.length > 0 && (
-                            <Badge className="text-[10px] px-1.5 py-0 bg-blue-600 text-white">{advFilters.length}</Badge>
-                        )}
-                    </button>
                 </div>
 
-                {/* Active filter pills */}
-                {(searchQuery || statusFilter !== "all" || programFilter !== "all" || advFilters.length > 0) && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Active:</span>
-                        {searchQuery && (
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                                Search: &quot;{searchQuery}&quot;
-                                <button onClick={() => setSearchQuery("")}><X className="size-3" /></button>
-                            </Badge>
-                        )}
-                        {statusFilter !== "all" && (
-                            <Badge variant="secondary" className="gap-1 text-xs capitalize">
-                                Status: {statusFilter}
-                                <button onClick={() => setStatusFilter("all")}><X className="size-3" /></button>
-                            </Badge>
-                        )}
-                        {programFilter !== "all" && (
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                                Program: {uniquePrograms.find(p => p.id === parseInt(programFilter, 10))?.title}
-                                <button onClick={() => setProgramFilter("all")}><X className="size-3" /></button>
-                            </Badge>
-                        )}
-                        {advFilters.map(f => f.value.trim() && (
-                            <Badge key={f.id} variant="secondary" className="gap-1 text-xs">
-                                {COLUMN_OPTIONS.find(c => c.value === f.column)?.label} {f.operator.replace("_", " ")} &quot;{f.value}&quot;
-                                <button onClick={() => removeFilter(f.id)}><X className="size-3" /></button>
-                            </Badge>
-                        ))}
-                        <button onClick={() => { setSearchQuery(""); setStatusFilter("all"); setProgramFilter("all"); setAdvFilters([]); }} className="text-xs text-blue-600 dark:text-blue-400 hover:underline ml-1">
-                            Clear all
-                        </button>
-                    </div>
-                )}
-
-                {/* ── Advanced Filter Panel ──────────────────────────────────── */}
+                {/* Advanced Filter Panel (Restored Logic) */}
                 {showFilters && (
-                    <div className="bg-card border rounded-xl p-4 space-y-3">
+                    <div className="bg-muted/30 border rounded-[2rem] p-5 space-y-4 animate-in slide-in-from-top-2">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold">Advanced Filters</h3>
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addFilter}>
-                                <Plus className="size-3" /> Add Filter
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Custom Rules</h3>
+                            <Button size="sm" variant="ghost" className="text-blue-600" onClick={() => {
+                                setAdvFilters([...advFilters, { id: nextFilterId, column: "name", operator: "contains", value: "" }]);
+                                setNextFilterId(nextFilterId + 1);
+                            }}>
+                                <Plus className="size-4 mr-1" /> Add Rule
                             </Button>
                         </div>
-
-                        {advFilters.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                                No advanced filters. Click &quot;Add Filter&quot; to create one.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {advFilters.map(f => (
-                                    <div key={f.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-lg bg-accent/50 border">
-                                        {/* Column Select */}
-                                        <select
-                                            value={f.column}
-                                            onChange={e => updateFilter(f.id, "column", e.target.value)}
-                                            className="px-3 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                                        >
-                                            {COLUMN_OPTIONS.map(c => (
-                                                <option key={c.value} value={c.value}>{c.label}</option>
-                                            ))}
-                                        </select>
-
-                                        {/* Operator Select */}
-                                        <select
-                                            value={f.operator}
-                                            onChange={e => updateFilter(f.id, "operator", e.target.value)}
-                                            className="px-3 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                                        >
-                                            {OPERATOR_OPTIONS.map(o => (
-                                                <option key={o.value} value={o.value}>{o.label}</option>
-                                            ))}
-                                        </select>
-
-                                        {/* Value Input */}
-                                        <input
-                                            type="text"
-                                            placeholder="Value..."
-                                            value={f.value}
-                                            onChange={e => updateFilter(f.id, "value", e.target.value)}
-                                            className="flex-1 px-3 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/40 placeholder:text-muted-foreground/60"
-                                        />
-
-                                        {/* Remove */}
-                                        <button onClick={() => removeFilter(f.id)} className="self-center text-muted-foreground hover:text-red-500 transition-colors p-1">
-                                            <X className="size-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <div className="grid grid-cols-1 gap-3">
+                            {advFilters.map(f => (
+                                <div key={f.id} className="flex flex-col sm:flex-row gap-2 bg-card p-3 rounded-2xl border">
+                                    <select className="bg-transparent text-sm font-medium focus:outline-none min-w-[130px]" value={f.column} onChange={e => setAdvFilters(advFilters.map(x => x.id === f.id ? {...x, column: e.target.value as any} : x))}>
+                                        {COLUMN_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                    </select>
+                                    <select className="bg-transparent text-sm text-blue-600 focus:outline-none min-w-[100px]" value={f.operator} onChange={e => setAdvFilters(advFilters.map(x => x.id === f.id ? {...x, operator: e.target.value as any} : x))}>
+                                        {OPERATOR_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                    <input className="flex-1 bg-muted/50 px-3 py-1 rounded-xl text-sm border-none" placeholder="Search..." value={f.value} onChange={e => setAdvFilters(advFilters.map(x => x.id === f.id ? {...x, value: e.target.value} : x))} />
+                                    <Button size="sm" variant="ghost" onClick={() => setAdvFilters(advFilters.filter(x => x.id !== f.id))}><X className="size-4 text-red-500" /></Button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* ── Status Tabs ──────────────────────────────────────────── */}
-            <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
-                {["all", ...STATUS_OPTIONS].map((s) => (
-                    <button
-                        key={s}
-                        onClick={() => setStatusFilter(s)}
-                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${statusFilter === s
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "bg-card border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-                            }`}
-                    >
-                        <span className="capitalize">{s === "all" ? "All" : s}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === s
-                            ? "bg-white/20 text-white"
-                            : "bg-muted text-muted-foreground"
-                            }`}>
-                            {statusCounts[s] || 0}
-                        </span>
-                    </button>
-                ))}
-            </div>
-
-            {/* ── Results Count ──────────────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-muted-foreground">
-                    Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {applications.length} application{applications.length !== 1 ? "s" : ""}
-                </p>
-            </div>
-
-            {/* ── Applications Table ─────────────────────────────────────── */}
-            <Card>
-                <CardContent className="pt-6">
-                    {filteredApplications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                                <Search className="size-5 text-muted-foreground" />
-                            </div>
-                            <p className="font-medium">No applications found</p>
-                            <p className="text-muted-foreground text-sm mt-1">
-                                {applications.length === 0 ? "No applications received yet" : "Try adjusting your search or filters"}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Applicant</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">App ID</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Program</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredApplications.map((app) => (
-                                        <tr
-                                            key={app.id}
-                                            ref={app.id === activeHighlight ? highlightRef : undefined}
-                                            className={`border-b last:border-0 hover:bg-accent/50 transition-all duration-500 ${app.id === activeHighlight
-                                                ? "bg-blue-500/10 ring-1 ring-blue-500/30 animate-pulse"
-                                                : ""
-                                                }`}
-                                        >
-                                            <td className="py-3">
-                                                <div>
-                                                    <p className="text-sm font-medium">{app.student.full_name || "—"}</p>
-                                                    <p className="text-xs text-muted-foreground">{app.student.user.email}</p>
-                                                </div>
-                                            </td>
-                                            <td className="py-3">
-                                                <Badge variant="outline" className="text-xs font-mono">
-                                                    {app.application_code}
-                                                </Badge>
-                                            </td>
-                                            <td className="py-3 text-sm">{app.program.title}</td>
-                                            <td className="py-3"><StatusBadge status={app.status} /></td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {new Date(app.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="py-3">
-                                                <div className="flex gap-1">
-                                                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => viewStudentProfile(app.student.id)}>
-                                                        Profile
-                                                    </Button>
-                                                    {app.status === "submitted" && (
-                                                        <Button size="sm" className="text-xs h-7 bg-blue-600 hover:bg-blue-700" onClick={() => handleStatusUpdate(app.id, "viewed")} disabled={updatingStatus === `${app.id}_viewed`}>
-                                                            {updatingStatus === `${app.id}_viewed` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" /> : null}
-                                                            {updatingStatus === `${app.id}_viewed` ? "Updating..." : "Mark Viewed"}
-                                                        </Button>
-                                                    )}
-                                                    {(app.status === "viewed" || app.status === "rejected") && (
-                                                        <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusUpdate(app.id, "accepted")} disabled={updatingStatus === `${app.id}_accepted`}>
-                                                            {updatingStatus === `${app.id}_accepted` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" /> : null}
-                                                            {updatingStatus === `${app.id}_accepted` ? "Accepting..." : "Accept"}
-                                                        </Button>
-                                                    )}
-                                                    {(app.status === "viewed" || app.status === "accepted") && (
-                                                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => handleStatusUpdate(app.id, "rejected")} disabled={updatingStatus === `${app.id}_rejected`}>
-                                                            {updatingStatus === `${app.id}_rejected` ? <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" /> : null}
-                                                            {updatingStatus === `${app.id}_rejected` ? "Rejecting..." : "Reject"}
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* ─── Student Profile Preview Dialog (shadcn — auto dark/light) ─── */}
-            <Dialog open={isPreviewOpen} onOpenChange={(open) => { if (!open) setIsPreviewOpen(false); }}>
-                <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0">
-                    {selectedStudent && (
-                        <>
-                            {/* ─── Header with profile picture & basic info ─── */}
-                            <div className="relative">
-                                {/* Avatar & name */}
-                                <div className="px-6 pt-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative shrink-0">
-                                            {selectedStudent.profile_picture_url ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={selectedStudent.profile_picture_url}
-                                                    alt={selectedStudent.full_name || "Student"}
-                                                    className="w-16 h-16 rounded-full border-2 border-border object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-16 h-16 rounded-full border-2 border-border bg-blue-600 flex items-center justify-center">
-                                                    <User className="size-7 text-white" />
-                                                </div>
-                                            )}
+            {/* Applications List */}
+            <div className="grid grid-cols-1 gap-4">
+                {filteredApplications.map(app => (
+                    <Card key={app.id} className="rounded-[2rem] border-muted/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
+                        <div className="p-5 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="size-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm">
+                                        {app.student.full_name?.charAt(0) || <User className="size-6" />}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-lg leading-none">{app.student.full_name || "—"}</h3>
+                                            <StatusBadge status={app.status} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <DialogHeader className="text-left p-0">
-                                                <DialogTitle className="text-xl font-bold truncate">
-                                                    {selectedStudent.full_name || "Unnamed Student"}
-                                                </DialogTitle>
-                                                <DialogDescription className="sr-only">
-                                                    Student profile details
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                        </div>
+                                        <p className="text-sm text-muted-foreground mt-1">{app.student.user.email}</p>
                                     </div>
                                 </div>
-
-                                {/* Contact info below avatar */}
-                                <div className="px-6 mt-3 space-y-1.5">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Mail className="size-3.5 shrink-0" />
-                                        <span className="truncate">{selectedStudent.user.email || "—"}</span>
-                                    </div>
-                                    {selectedStudent.city && (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <MapPin className="size-3.5 shrink-0" />
-                                            <span>{selectedStudent.city}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* ─── Quick Info Tags with Labels ─── */}
-                            <div className="px-6 mt-4">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                    {selectedStudent.student_type && (
-                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                                            <Users className="size-4 text-blue-500" />
-                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                Student Type
-                                            </span>
-                                            <span className="text-sm font-bold text-foreground capitalize">
-                                                {selectedStudent.student_type}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {selectedStudent.education_level && (
-                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-                                            <GraduationCap className="size-4 text-cyan-500" />
-                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                Education
-                                            </span>
-                                            <span className="text-sm font-bold text-foreground capitalize">
-                                                {selectedStudent.education_level}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {selectedStudent.experience_level && (
-                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                                            <Trophy className="size-4 text-purple-500" />
-                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                Experience
-                                            </span>
-                                            <span className="text-sm font-bold text-foreground capitalize">
-                                                {selectedStudent.experience_level}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {selectedStudent.age_range && (
-                                        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                                            <Calendar className="size-4 text-amber-500" />
-                                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                Age Range
-                                            </span>
-                                            <span className="text-sm font-bold text-foreground">
-                                                {selectedStudent.age_range}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <Separator className="mx-6 mt-5" />
-
-                            {/* ─── Detail Fields ─── */}
-                            <div className="px-6 py-5 space-y-4">
-                                {/* Intended Field & Learning Goal */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {selectedStudent.intended_field && (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                                <Target className="size-3.5" />
-                                                Intended Field
-                                            </div>
-                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
-                                                <span className="text-sm font-medium text-foreground">
-                                                    {selectedStudent.intended_field}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {selectedStudent.learning_goal && (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                                <Rocket className="size-3.5" />
-                                                Learning Goal
-                                            </div>
-                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
-                                                <span className="text-sm font-medium text-foreground">
-                                                    {selectedStudent.learning_goal}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Preferred Field & Schedule */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {selectedStudent.preferred_field && (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                                <BookOpen className="size-3.5" />
-                                                Preferred Field
-                                            </div>
-                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
-                                                <span className="text-sm font-medium text-foreground">
-                                                    {selectedStudent.preferred_field}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {selectedStudent.preferred_schedule && (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                                <Clock className="size-3.5" />
-                                                Preferred Schedule
-                                            </div>
-                                            <div className="p-2.5 rounded-lg bg-accent border border-border">
-                                                <span className="text-sm font-medium text-foreground">
-                                                    {selectedStudent.preferred_schedule}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Budget Range */}
-                                {(selectedStudent.budget_min !== null || selectedStudent.budget_max !== null) && (
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                            <DollarSign className="size-3.5" />
-                                            Budget Range (PKR)
-                                        </div>
-                                        <div className="p-2.5 rounded-lg bg-accent border border-border">
-                                            <span className="text-sm font-medium text-foreground">
-                                                {selectedStudent.budget_min?.toLocaleString() ?? "—"} – {selectedStudent.budget_max?.toLocaleString() ?? "—"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Personal Statement */}
-                                {selectedStudent.personal_statement && (
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                            <FileText className="size-3.5" />
-                                            Personal Statement
-                                        </div>
-                                        <div className="p-3.5 rounded-lg bg-accent border border-border">
-                                            <p className="text-sm leading-relaxed text-foreground">
-                                                {selectedStudent.personal_statement}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CV Button */}
-                                {selectedStudent.cv_url && (
-                                    <>
-                                        <Separator />
-                                        <Button
-                                            className="w-full h-11 text-[15px] font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200"
-                                            onClick={async () => {
-                                                try {
-                                                    const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
-                                                    if (!res.ok) throw new Error();
-                                                    const data = await res.json();
-                                                    window.open(data.url, "_blank");
-                                                } catch {
-                                                    message.error("Failed to load CV");
-                                                }
-                                            }}
-                                        >
-                                            <FileDown className="size-5 mr-2" />
-                                            View CV / Resume
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Button variant="outline" className="rounded-2xl h-10 px-5 text-sm font-semibold" onClick={() => viewStudentProfile(app.student.id)}>
+                                        View Profile
+                                    </Button>
+                                    {app.status === 'submitted' && (
+                                        <Button className="bg-blue-600 rounded-2xl h-10 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20" 
+                                            onClick={() => handleStatusUpdate(app.id, 'viewed')} 
+                                            disabled={updatingStatus === `${app.id}_viewed`}>
+                                            Mark Viewed
                                         </Button>
-                                    </>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </>
+                            
+                            <Separator className="my-5 opacity-50" />
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                                        <Target className="size-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Program</p>
+                                        <p className="text-sm font-bold truncate max-w-[150px]">{app.program.title}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="size-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                                        <Calendar className="size-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Applied Date</p>
+                                        <p className="text-sm font-bold">{new Date(app.created_at).toLocaleDateString('en-GB')}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="size-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                        <MapPin className="size-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">City</p>
+                                        <p className="text-sm font-bold">{app.student.city || "Global"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                ))}
+
+                {filteredApplications.length === 0 && (
+                    <div className="py-20 text-center bg-muted/20 rounded-[3rem] border-2 border-dashed">
+                        <Search className="size-10 text-muted-foreground/30 mx-auto mb-3" />
+                        <p className="text-muted-foreground">No matching applications found.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Profile Dialog (Full Details Restored) */}
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 rounded-[2.5rem] overflow-hidden border-none shadow-2xl">
+                    {selectedStudent && (
+                        <div className="max-h-[85vh] overflow-y-auto bg-card">
+                            <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 text-white relative">
+                                <div className="flex flex-col sm:flex-row items-center gap-6">
+                                    <div className="size-24 rounded-[2rem] bg-white/20 backdrop-blur-md flex items-center justify-center text-4xl font-bold border-2 border-white/30 shadow-xl">
+                                        {selectedStudent.full_name?.charAt(0)}
+                                    </div>
+                                    <div className="text-center sm:text-left">
+                                        <h2 className="text-2xl font-bold">{selectedStudent.full_name}</h2>
+                                        <p className="text-blue-100 flex items-center justify-center sm:justify-start gap-2 mt-1">
+                                            <Mail className="size-3.5" /> {selectedStudent.user.email}
+                                        </p>
+                                        <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                                            <Badge className="bg-white/20 hover:bg-white/30 border-none text-white rounded-lg">{selectedStudent.student_type}</Badge>
+                                            <Badge className="bg-white/20 hover:bg-white/30 border-none text-white rounded-lg">{selectedStudent.education_level}</Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="p-6 sm:p-8 space-y-8">
+                                {/* Details Grid */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: "Age Range", value: selectedStudent.age_range, icon: User },
+                                        { label: "City", value: selectedStudent.city, icon: MapPin },
+                                        { label: "Experience", value: selectedStudent.experience_level, icon: Briefcase },
+                                        { label: "Schedule", value: selectedStudent.preferred_schedule, icon: Clock }
+                                    ].map((item, i) => (
+                                        <div key={i} className="bg-muted/30 p-3 rounded-2xl border border-border/50">
+                                            <item.icon className="size-3.5 text-blue-600 mb-1" />
+                                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tighter">{item.label}</p>
+                                            <p className="text-xs font-bold truncate">{item.value || "—"}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 font-bold text-blue-600">
+                                        <FileText className="size-4" /> Personal Statement
+                                    </div>
+                                    <div className="text-sm text-muted-foreground leading-relaxed bg-blue-50/50 p-5 rounded-3xl border border-blue-100/50 italic">
+                                        "{selectedStudent.personal_statement || "No statement provided."}"
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2"><DollarSign className="size-3.5" /> Budget Range</p>
+                                        <p className="text-sm font-bold bg-muted/30 p-3 rounded-xl border italic">
+                                            PKR {selectedStudent.budget_min?.toLocaleString()} - {selectedStudent.budget_max?.toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2"><BookOpen className="size-3.5" /> Learning Goals</p>
+                                        <p className="text-sm font-bold bg-muted/30 p-3 rounded-xl border truncate">
+                                            {selectedStudent.learning_goal || "Not specified"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                               <Button 
+                                    className="w-full h-14 bg-blue-600 hover:bg-blue-700 rounded-[1.5rem] text-white font-bold text-lg shadow-xl shadow-blue-500/20 transition-all active:scale-95"
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetchWithAuth(`/students/profile/cv?userId=${selectedStudent.user_id}`);
+                                            if (!res.ok) throw new Error();
+                                            const data = await res.json();
+                                            
+                                            const response = await fetch(data.url);
+                                            const blob = await response.blob();
+                                            const url = window.URL.createObjectURL(blob);
+                                            
+                                            const link = document.createElement('a');
+                                            link.href = url;
+                                            link.setAttribute('download', `${selectedStudent.full_name || 'Student'}_CV.pdf`);
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            
+                                            link.parentNode?.removeChild(link);
+                                            window.URL.revokeObjectURL(url);
+                                        } catch { 
+                                            message.error("pdf"); 
+                                        }
+                                    }}
+                                >
+                                    <FileDown className="size-5 mr-3" /> Download CV / Resume
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>

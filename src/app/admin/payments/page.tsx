@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { message } from "antd";
-import { Download } from "lucide-react";
+import { Download, ExternalLink, Calendar, CreditCard, Banknote, Building2 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 
 interface PaymentRequest {
@@ -26,7 +26,6 @@ export default function AdminPaymentsPage() {
     const [filter, setFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(true);
 
-    // Read URL param on mount for deep linking
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const urlStatus = params.get("status");
@@ -76,97 +75,173 @@ export default function AdminPaymentsPage() {
 
     return (
         <DashboardLayout role="admin">
-            <h1 className="text-2xl font-bold mb-6">Manage Payments</h1>
+            <div className="flex flex-col gap-4 mb-6">
+                <h1 className="text-xl md:text-2xl font-bold">Manage Payments</h1>
 
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex gap-2">
-                    {["all", "pending", "approved", "rejected"].map((s) => (
-                        <Button
-                            key={s}
-                            variant={filter === s ? "default" : "outline"}
-                            size="sm"
-                            className={filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}
-                            onClick={() => setFilter(s)}
-                        >
-                            <span className="capitalize">{s}</span>
-                        </Button>
-                    ))}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Mobile: Horizontal scroll for filters */}
+                    <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 no-scrollbar">
+                        {["all", "pending", "approved", "rejected"].map((s) => (
+                            <Button
+                                key={s}
+                                variant={filter === s ? "default" : "outline"}
+                                size="sm"
+                                className={`capitalize whitespace-nowrap ${filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                                onClick={() => setFilter(s)}
+                            >
+                                {s}
+                            </Button>
+                        ))}
+                    </div>
+                    
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 w-full sm:w-auto justify-center"
+                        onClick={exportPayments}
+                        disabled={requests.length === 0}
+                    >
+                        <Download className="size-4" />
+                        Export CSV
+                    </Button>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={exportPayments}
-                    disabled={requests.length === 0}
-                >
-                    <Download className="size-4" />
-                    Export CSV
-                </Button>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Payment Requests ({requests.length})</CardTitle>
+            <Card className="border-none shadow-none md:border md:shadow-sm">
+                <CardHeader className="px-4 md:px-6">
+                    <CardTitle className="text-lg">
+                        Payment Requests ({requests.length})
+                    </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 md:px-6">
                     {isLoading ? (
-                        <div className="flex justify-center py-8">
+                        <div className="flex justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
                     ) : requests.length === 0 ? (
-                        <p className="text-center py-8 text-muted-foreground">No {filter} payment requests</p>
+                        <p className="text-center py-12 text-muted-foreground">No {filter} payment requests</p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Plan</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Amount</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Reference</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Screenshot</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
-                                        <th className="pb-3 text-sm font-semibold text-muted-foreground">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {requests.map((req) => (
-                                        <tr key={req.id} className="border-b last:border-0 hover:bg-accent/50">
-                                            <td className="py-3 text-sm font-medium">{req.institution.name}</td>
-                                            <td className="py-3 text-sm">{req.plan.name}</td>
-                                            <td className="py-3 text-sm">PKR {req.plan.price_pkr.toLocaleString()}</td>
-                                            <td className="py-3 text-sm text-muted-foreground">{req.transaction_ref || "—"}</td>
-                                            <td className="py-3 text-sm">
-                                                {req.screenshot_url ? (
-                                                    <a href={req.screenshot_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                                                        View
-                                                    </a>
-                                                ) : "—"}
-                                            </td>
-                                            <td className="py-3"><StatusBadge status={req.status} /></td>
-                                            <td className="py-3 text-sm text-muted-foreground">
-                                                {new Date(req.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="py-3">
-                                                <div className="flex gap-1">
-                                                    {req.status !== "approved" && (
-                                                        <Button size="sm" className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleVerify(req.id, "approved")}>
-                                                            Approve
-                                                        </Button>
-                                                    )}
-                                                    {req.status !== "rejected" && (
-                                                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => handleVerify(req.id, "rejected")}>
-                                                            Reject
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </td>
+                        <>
+                            {/* --- Desktop View (Table) --- */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b text-left">
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Plan</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Amount</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Reference</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Screenshot</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
+                                            <th className="pb-3 text-sm font-semibold text-muted-foreground text-right">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {requests.map((req) => (
+                                            <tr key={req.id} className="border-b last:border-0 hover:bg-accent/50">
+                                                <td className="py-4 text-sm font-medium">{req.institution.name}</td>
+                                                <td className="py-4 text-sm">{req.plan.name}</td>
+                                                <td className="py-4 text-sm font-semibold text-blue-700">PKR {req.plan.price_pkr.toLocaleString()}</td>
+                                                <td className="py-4 text-sm text-muted-foreground font-mono">{req.transaction_ref || "—"}</td>
+                                                <td className="py-4 text-sm">
+                                                    {req.screenshot_url ? (
+                                                        <a href={req.screenshot_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline">
+                                                            View <ExternalLink className="size-3" />
+                                                        </a>
+                                                    ) : "—"}
+                                                </td>
+                                                <td className="py-4"><StatusBadge status={req.status} /></td>
+                                                <td className="py-4 text-sm text-muted-foreground">
+                                                    {new Date(req.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="py-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        {req.status !== "approved" && (
+                                                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8" onClick={() => handleVerify(req.id, "approved")}>
+                                                                Approve
+                                                            </Button>
+                                                        )}
+                                                        {req.status !== "rejected" && (
+                                                            <Button size="sm" variant="destructive" className="h-8" onClick={() => handleVerify(req.id, "rejected")}>
+                                                                Reject
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* --- Mobile View (Cards) --- */}
+                            <div className="grid grid-cols-1 gap-4 md:hidden">
+                                {requests.map((req) => (
+                                    <div key={req.id} className="border rounded-xl p-4 space-y-4 bg-white shadow-sm">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="size-4 text-blue-600" />
+                                                <h3 className="font-bold text-sm text-gray-900">{req.institution.name}</h3>
+                                            </div>
+                                            <StatusBadge status={req.status} />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs border-y py-3">
+                                            <div className="space-y-1">
+                                                <p className="text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" /> Plan</p>
+                                                <p className="font-medium text-foreground">{req.plan.name}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-muted-foreground flex items-center gap-1"><Banknote className="size-3" /> Amount</p>
+                                                <p className="font-bold text-blue-700">PKR {req.plan.price_pkr.toLocaleString()}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-muted-foreground">Reference</p>
+                                                <p className="font-mono text-[10px] break-all">{req.transaction_ref || "—"}</p>
+                                            </div>
+                                            <div className="space-y-1 text-right sm:text-left">
+                                                <p className="text-muted-foreground flex items-center justify-end sm:justify-start gap-1"><Calendar className="size-3" /> Date</p>
+                                                <p className="text-foreground">{new Date(req.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2">
+                                            {req.screenshot_url && (
+                                                <a 
+                                                    href={req.screenshot_url} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium border rounded-md hover:bg-gray-50 text-blue-600"
+                                                >
+                                                    <ExternalLink className="size-3" /> View Screenshot
+                                                </a>
+                                            )}
+                                            
+                                            <div className="flex gap-2">
+                                                {req.status !== "approved" && (
+                                                    <Button 
+                                                        className="flex-1 bg-emerald-600 h-9 text-xs" 
+                                                        onClick={() => handleVerify(req.id, "approved")}
+                                                    >
+                                                        Approve
+                                                    </Button>
+                                                )}
+                                                {req.status !== "rejected" && (
+                                                    <Button 
+                                                        variant="destructive" 
+                                                        className="flex-1 h-9 text-xs" 
+                                                        onClick={() => handleVerify(req.id, "rejected")}
+                                                    >
+                                                        Reject
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
