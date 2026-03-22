@@ -19,6 +19,10 @@ jobs:
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      # --- THIS IS THE NEW FIX FOR PRISMA ---
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Build Project Artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
