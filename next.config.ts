@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /* Rewrites hata dein agar API isi project ke andar hai */
 };
 
 export default nextConfig;

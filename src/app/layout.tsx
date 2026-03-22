@@ -10,9 +10,11 @@ import { SidebarProvider } from "@/store/sidebar-store";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GAP — Global Admissions Platform",
-  description:
-    "Pakistan-first, global-ready admissions marketplace connecting students with institutions worldwide.",
+  title: "Dakhla",
+  description: "Pakistan-first, global-ready admissions marketplace connecting students with institutions worldwide.",
+  icons: {
+    icon: "/favicon.ico", // Ye line aapka blue logo tab mein le aayegi
+  },
 };
 
 export default function RootLayout({

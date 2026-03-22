@@ -301,6 +301,7 @@ import {
 interface Program {
     id: number;
     title: string;
+    institute_name: string; // Fallback if institution data is missing
     category: string | null;
     duration: string | null;
     deadline: string | null;
@@ -671,8 +672,14 @@ export default function StudentDashboard() {
                                     <tbody className="divide-y divide-border">
                                         {applications.map((app) => (
                                             <tr key={app.id} className="hover:bg-accent/50 transition-colors">
-                                                <td className="px-6 py-4 text-sm font-medium">{app.program.title}</td>
-                                                <td className="px-6 py-4 text-sm text-muted-foreground">{app.program.institution.name}</td>
+                                                <td className="px-6 py-4 text-sm font-medium">
+  {app.program?.title || "No Title"}
+</td>
+<td className="px-6 py-4 text-sm text-muted-foreground">
+  {app.program?.institution?.name 
+    ? app.program.institution.name 
+    : (app.program?.institute_name || "Dakhla Platform")}
+</td>
                                                 <td className="px-6 py-4"><StatusBadge status={app.status} /></td>
                                                 <td className="px-6 py-4 text-sm text-muted-foreground">
                                                     {new Date(app.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}

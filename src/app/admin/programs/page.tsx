@@ -34,7 +34,7 @@ interface Program {
     id: number;
     program_code: string;
     title: string;
-    institute_name: string | null; // Added institute_name 
+    institute_name: string | null;
     description: string | null;
     category: string | null;
     duration: string | null;
@@ -60,7 +60,7 @@ const SCHEDULE_OPTIONS = [
 
 const emptyProgram = {
     title: "",
-    institute_name: "", // Added to initial state 
+    institute_name: "",
     description: "",
     category: "",
     duration: "",
@@ -159,7 +159,7 @@ export default function AdminProgramsPage() {
         setEditingId(program.id);
         setFormState({
             title: program.title,
-            institute_name: program.institute_name || "", // Added to edit mapping 
+            institute_name: program.institute_name || "",
             description: program.description || "",
             category: program.category || "",
             duration: program.duration || "",
@@ -230,24 +230,14 @@ export default function AdminProgramsPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Platform Programs</h1>
                     <p className="text-sm text-muted-foreground mt-1">{programs.length} programs posted</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="relative w-64 hidden md:block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <input
-                            type="text"
-                            placeholder="Search by name, fee, field..."
-                            className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
+                {/* Mobile View: Search below Button | Desktop View: Side by Side */}
+                <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center gap-3">
                     <Dialog
                         open={isDialogOpen}
                         onOpenChange={(v) => {
@@ -256,7 +246,7 @@ export default function AdminProgramsPage() {
                         }}
                     >
                         <DialogTrigger asChild>
-                            <Button className="bg-blue-600 hover:bg-blue-700 h-10 px-4">
+                            <Button className="bg-blue-600 hover:bg-blue-700 h-10 px-4 w-full sm:w-auto">
                                 <Plus className="size-4 mr-2" /> Post New Program
                             </Button>
                         </DialogTrigger>
@@ -268,26 +258,11 @@ export default function AdminProgramsPage() {
                             </DialogHeader>
                             <Form layout="vertical" onFinish={handleSubmit} requiredMark="optional" disabled={isSubmitting} className="mt-2">
                                 <Form.Item label={<span className="font-medium">Program Title</span>} rules={[{ required: true }]}>
-                                    <AntInput 
-                                        prefix={<BookOutlined />} 
-                                        placeholder="e.g., BS Computer Science" 
-                                        size="large" 
-                                        value={formState.title}
-                                        onChange={(e) => setFormState({ ...formState, title: e.target.value })} 
-                                    />
+                                    <AntInput prefix={<BookOutlined />} placeholder="e.g., BS Computer Science" size="large" value={formState.title} onChange={(e) => setFormState({ ...formState, title: e.target.value })} />
                                 </Form.Item>
-
-                                {/* New Institute Name Field  */}
                                 <Form.Item label={<span className="font-medium">University / Institute Name</span>}>
-                                    <AntInput 
-                                        prefix={<BankOutlined />} 
-                                        placeholder="e.g., Punjab University" 
-                                        size="large" 
-                                        value={formState.institute_name}
-                                        onChange={(e) => setFormState({ ...formState, institute_name: e.target.value })} 
-                                    />
+                                    <AntInput prefix={<BankOutlined />} placeholder="e.g., Punjab University" size="large" value={formState.institute_name} onChange={(e) => setFormState({ ...formState, institute_name: e.target.value })} />
                                 </Form.Item>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <Form.Item label="Category">
                                         <AntInput prefix={<TagOutlined />} placeholder="e.g., CS" size="large" value={formState.category} onChange={(e) => setFormState({ ...formState, category: e.target.value })} />
@@ -316,17 +291,28 @@ export default function AdminProgramsPage() {
                             </Form>
                         </DialogContent>
                     </Dialog>
+
+                    {/* Search Bar - Fixed under button in mobile via sm:flex-row-reverse */}
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, fee, field..."
+                            className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* Program Listing UI (Desktop & Mobile) [cite: 182-189] */}
             {filteredPrograms.length === 0 ? (
                 <div className="flex flex-col items-center justify-center border border-dashed rounded-2xl py-20 text-center bg-card">
                     <BookOpen className="size-12 text-muted-foreground/40 mb-4" />
                     <h3 className="text-base font-semibold">No programs found</h3>
                 </div>
             ) : selectedProgram ? (
-                <div className="flex gap-5 items-start">
+                <div className="flex flex-col md:flex-row gap-5 items-start">
                     <div className="hidden md:block w-[420px] shrink-0 space-y-4">
                         {filteredPrograms.map((p) => (
                             <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={selectedProgram.id === p.id} />
@@ -353,7 +339,6 @@ function ProgramCard({ program, onClick, isSelected }: { program: Program; onCli
                     <h3 className="text-base font-bold truncate">{program.title}</h3>
                     <Badge className="bg-blue-500/15 text-blue-700 text-[10px]"><Shield className="size-3 mr-0.5" /> Platform</Badge>
                 </div>
-                {/* Display Institute Name on Card */}
                 <p className="text-xs text-blue-600 font-medium mb-2">{program.institute_name || "Dakhla University"}</p>
                 <p className="text-[11px] font-mono text-muted-foreground mb-3">{program.program_code}</p>
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -372,7 +357,7 @@ function ProgramCard({ program, onClick, isSelected }: { program: Program; onCli
 
 function ProgramDetailPanel({ program, onClose, onEdit, onDelete, onToggleActive }: any) {
     return (
-        <Card className="flex-1 overflow-hidden">
+        <Card className="w-full flex-1 overflow-hidden">
             <CardContent className="p-0">
                 <div className="px-6 pt-5 pb-4 flex items-start justify-between">
                     <div>
@@ -391,8 +376,8 @@ function ProgramDetailPanel({ program, onClose, onEdit, onDelete, onToggleActive
                     <div><p className="text-[11px] font-semibold text-muted-foreground uppercase">Description</p><p className="text-sm leading-relaxed whitespace-pre-line">{program.description}</p></div>
                 </div>
                 <Separator />
-                <div className="px-6 py-4 flex gap-3">
-                    <Button variant="outline" onClick={() => onEdit(program)}><Pencil className="size-4 mr-2" /> Edit</Button>
+                <div className="px-6 py-4 flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => onEdit(program)} className="flex-1 sm:flex-none"><Pencil className="size-4 mr-2" /> Edit</Button>
                     <Button variant="outline" className={program.is_active ? "text-amber-600" : "text-emerald-600"} onClick={() => onToggleActive(program)}>
                         <Power className="size-4 mr-2" /> {program.is_active ? "Deactivate" : "Activate"}
                     </Button>
