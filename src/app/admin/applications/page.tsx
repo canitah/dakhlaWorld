@@ -229,7 +229,7 @@ export default function AdminApplicationsPage() {
                     className="w-full sm:w-auto flex items-center justify-center gap-2"
                     onClick={() => {
                         if (applications.length === 0) return message.info("No applications to export");
-                        exportToCSV(applications, "applications.csv");
+                        exportToCSV(applications as any, "applications.csv");
                     }}
                 >
                     <Download className="size-4" /> Export CSV

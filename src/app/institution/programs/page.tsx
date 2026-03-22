@@ -14,7 +14,6 @@ import { ExclamationCircleFilled, BookOutlined, TagOutlined, ClockCircleOutlined
 import {
     Plus,
     Lock,
-    Search,
     Pencil,
     Trash2,
     BookOpen,
@@ -92,17 +91,6 @@ export default function InstitutionProgramsPage() {
 
     const [programs, setPrograms] = useState<Program[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const filteredPrograms = programs?.filter((program: any) => {
-    const searchLower = searchQuery.toLowerCase();
-    
-    return (
-        program.title?.toLowerCase().includes(searchLower) ||
-        program.program_code?.toLowerCase().includes(searchLower) ||
-        program.city?.toLowerCase().includes(searchLower) ||
-        program.institution_name?.toLowerCase().includes(searchLower)
-    );
-}) || [];
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form, setForm] = useState(emptyProgram);
@@ -634,57 +622,37 @@ export default function InstitutionProgramsPage() {
                             onToggleActive={handleToggleActive}
                         />
                     </div>
-               {/* Desktop: side-by-side layout */}
+                 {/* Desktop: side-by-side layout - Fixed & Error-Free */}
 <div className="hidden md:flex gap-5 items-start h-[calc(100vh-280px)] overflow-hidden mt-4">
     
-    {/* LEFT COLUMN (Search + List) */}
-    <div className="w-[420px] shrink-0 flex flex-col h-full bg-white border rounded-xl overflow-hidden shadow-sm">
-        
-        {/* --- YEH SEARCH BAR HAI --- */}
-        <div className="p-3 border-b bg-gray-50/50">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4" />
-                <input 
-                    type="text"
-                    placeholder="Search programs..."
-                    className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+    {/* LEFT SIDE: Scrollable Cards List */}
+    <div className="w-[420px] shrink-0 space-y-4 overflow-y-auto h-full pr-2 pb-20 custom-scrollbar">
+        {programs && programs.length > 0 ? (
+            programs.map((program) => (
+                <ProgramCard
+                    key={program.id}
+                    program={program}
+                    onClick={() => selectProgram(program)}
+                    isSelected={selectedProgram?.id === program.id}
                 />
-            </div>
-        </div>
-
-        {/* --- YEH CARDS LIST HAI --- */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar pb-10">
-            {filteredPrograms.length > 0 ? (
-                filteredPrograms.map((program: any) => (
-                    <ProgramCard
-                        key={program.id}
-                        program={program}
-                        onClick={() => setSelectedProgram(program)}
-                        isSelected={selectedProgram?.id === program.id}
-                    />
-                ))
-            ) : (
-                <div className="text-center py-10 text-gray-400 text-sm italic">
-                    No programs found.
-                </div>
-            )}
-        </div>
+            ))
+        ) : (
+            <p className="text-gray-500">No programs found.</p>
+        )}
     </div>
 
-    {/* RIGHT COLUMN (Details Panel) */}
-    <div className="flex-1 h-full overflow-y-auto bg-white rounded-xl border shadow-sm">
+    {/* RIGHT SIDE: Details Panel */}
+    <div className="flex-1 h-full overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-sm custom-scrollbar">
         {selectedProgram ? (
             <ProgramDetailPanel
                 program={selectedProgram}
-                onClose={() => setSelectedProgram(null)}
+                onClose={() => selectProgram(null)}
                 onEdit={handleEdit}
                 onDelete={handleDeleteRequest}
                 onToggleActive={handleToggleActive}
             />
         ) : (
-            <div className="h-full flex items-center justify-center text-gray-400 italic">
+            <div className="h-full flex items-center justify-center text-gray-400">
                 Select a program to view details
             </div>
         )}
@@ -693,25 +661,15 @@ export default function InstitutionProgramsPage() {
                 </>
             ) : (
                 /* ── Default Mode: Horizontal card grid ───────────────── */
-                <div className="flex flex-col gap-4">
-    {/* Mobile Search Bar */}
-    <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4" />
-        <input 
-            type="text"
-            placeholder="Search programs..."
-            className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-        />
-    </div>
-
-    <div className="grid grid-cols-1 gap-4">
-        {filteredPrograms.map((program) => (
-            <ProgramCard key={program.id} program={program} onClick={() => setSelectedProgram(program)} />
-        ))}
-    </div>
-</div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {programs.map((program) => (
+                        <ProgramCard
+                            key={program.id}
+                            program={program}
+                            onClick={() => selectProgram(program)}
+                        />
+                    ))}
+                </div>
             )}
 
         </DashboardLayout>
