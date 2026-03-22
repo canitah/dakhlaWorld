@@ -115,6 +115,7 @@ model Application {
   program_id       Int
   student_id       Int
   status           String           @default("submitted")
+  is_external      Boolean          @default(false)
   created_at       DateTime         @default(now())
   updated_at       DateTime         @updatedAt
   application_code String           @unique @db.VarChar(255)

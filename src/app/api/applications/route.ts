@@ -55,18 +55,52 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const parsed = applicationSchema.safeParse(body);
+        const { program_id, status, is_external } = body;
 
-        if (!parsed.success) {
-            return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-        }
-
+        // 1. Student Profile Check (Dono cases ke liye sirf ek baar)
         const profile = await prisma.studentProfile.findUnique({
             where: { user_id: authResult.user.userId },
         });
 
         if (!profile) {
             return NextResponse.json({ error: "Complete your profile first" }, { status: 400 });
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // CASE A: EXTERNAL APPLICATION (TRACKING)
+        // ══════════════════════════════════════════════════════════════
+        if (is_external) {
+            const extCode = `EXT-${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+            const application = await prisma.application.upsert({
+                where: {
+                    program_id_student_id: {
+                        program_id: Number(program_id),
+                        student_id: profile.id,
+                    },
+                },
+                update: {
+                    status: status || "viewed",
+                    updated_at: new Date(),
+                },
+                create: {
+                    program_id: Number(program_id),
+                    student_id: profile.id,
+                    status: status || "viewed",
+                    is_external: true, 
+                    application_code: extCode,
+                },
+            });
+
+            return NextResponse.json({ application, message: "External status tracked" }, { status: 200 });
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // CASE B: INTERNAL APPLICATION
+        // ══════════════════════════════════════════════════════════════
+        const parsed = applicationSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
         }
 
         // Check program exists, is active, and institution is approved
@@ -83,8 +117,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Program not found or inactive" }, { status: 404 });
         }
 
-        // For institution-posted programs, check institution is approved
-        // Admin-posted programs (posted_by_admin = true) skip this check
         const isAdminProgram = (program as any).posted_by_admin === true;
 
         if (!isAdminProgram) {
@@ -96,7 +128,7 @@ export async function POST(request: Request) {
             }
         }
 
-        // Check duplicate application
+        // Check duplicate internal application
         const existing = await prisma.application.findUnique({
             where: {
                 program_id_student_id: {
@@ -106,7 +138,7 @@ export async function POST(request: Request) {
             },
         });
 
-        if (existing) {
+        if (existing && !existing.is_external) {
             return NextResponse.json(
                 { error: "You have already applied to this program" },
                 { status: 409 }
@@ -119,16 +151,30 @@ export async function POST(request: Request) {
         do {
             const digits = Math.floor(10000000 + Math.random() * 90000000).toString();
             applicationCode = `APP-${digits}`;
-            const existing = await prisma.application.findUnique({ where: { application_code: applicationCode } });
-            isUnique = !existing;
+            const codeCheck = await prisma.application.findUnique({ where: { application_code: applicationCode } });
+            isUnique = !codeCheck;
         } while (!isUnique);
 
-        const application = await prisma.application.create({
-            data: {
+        // Create or Update (if it was just 'viewed' externally before)
+        const application = await prisma.application.upsert({
+            where: {
+                program_id_student_id: {
+                    program_id: parsed.data.program_id,
+                    student_id: profile.id,
+                },
+            },
+            update: {
+                status: "submitted",
+                application_code: applicationCode,
+                is_external: false,
+                updated_at: new Date(),
+            },
+            create: {
                 program_id: parsed.data.program_id,
                 student_id: profile.id,
                 application_code: applicationCode,
                 status: "submitted",
+                is_external: false,
             },
             include: {
                 program: {
@@ -139,21 +185,21 @@ export async function POST(request: Request) {
             },
         });
 
-        // Save question answers if provided
+        // Save question answers
         if (body.answers && Array.isArray(body.answers)) {
             const answersData = body.answers
                 .filter((a: any) => a.question_id && typeof a.answer === "string" && a.answer.trim())
                 .map((a: any) => ({
                     application_id: application.id,
                     question_id: a.question_id,
-                    answer: a.answer.trim(),
+                    answer_text: a.answer.trim(), // Ensure field name matches your schema
                 }));
             if (answersData.length > 0) {
                 await prisma.questionAnswer.createMany({ data: answersData });
             }
         }
 
-        // Send confirmation email to student (fire-and-forget)
+        // Notifications & Emails (Fire and forget)
         const studentUser = await prisma.user.findUnique({
             where: { id: authResult.user.userId },
             select: { email: true },
@@ -162,48 +208,37 @@ export async function POST(request: Request) {
         const institutionName = isAdminProgram ? "DAKHLA Platform" : (program.institution?.name || "Unknown");
 
         if (studentUser?.email) {
-            sendApplicationSubmittedEmail(
-                studentUser.email,
-                program.title,
-                institutionName
-            ).catch(() => { });
+            sendApplicationSubmittedEmail(studentUser.email, program.title, institutionName).catch(() => { });
         }
 
-        // Create in-app notification
+        // Notification Logic
         if (isAdminProgram) {
-            // Notify all admin users about the application
-            const adminUsers = await prisma.user.findMany({
-                where: { role: "admin" },
-                select: { id: true },
-            });
+            const adminUsers = await prisma.user.findMany({ where: { role: "admin" }, select: { id: true } });
             for (const admin of adminUsers) {
                 await prisma.notification.create({
                     data: {
                         user_id: admin.id,
                         title: "New Application Received",
-                        message: `A student has applied to the platform program "${program.title}".`,
+                        message: `A student has applied to "${program.title}".`,
                         type: "application_submitted",
                         link: `/admin/applications?highlight=${application.id}`,
                     },
-                });
+                }).catch(() => {});
             }
         } else if (program.institution) {
-            // Notify the institution
             await prisma.notification.create({
                 data: {
                     user_id: program.institution.user_id,
                     title: "New Application Received",
-                    message: `A student has applied to your program "${program.title}".`,
+                    message: `A student has applied to "${program.title}".`,
                     type: "application_submitted",
                     link: `/institution/applications?highlight=${application.id}`,
                 },
-            });
+            }).catch(() => {});
         }
 
-        return NextResponse.json(
-            { application, message: "Application submitted successfully" },
-            { status: 201 }
-        );
+        return NextResponse.json({ application, message: "Application submitted successfully" }, { status: 201 });
+
     } catch (error) {
         console.error("Create application error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

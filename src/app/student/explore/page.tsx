@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -67,6 +67,13 @@ interface ProgramDetail {
     _count: { applications: number };
     questions?: { id: number; question: string; is_required: boolean }[];
     postedByPlatform?: boolean;
+}
+
+interface Application {
+  id: number;
+  program_id: number;
+  status: string;
+  is_external: boolean;
 }
 
 interface StudentPrefs {
@@ -195,6 +202,8 @@ function ExplorePage() {
     const router = useRouter();
     const [urlProgramCode, setUrlProgramCode] = useState<string | null>(null);
     const [programs, setPrograms] = useState<Program[]>([]);
+    const [showConfirmCard, setShowConfirmCard] = useState(false);
+    const [pendingProgramId, setPendingProgramId] = useState<number | null>(null);
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
     const [page, setPage] = useState(1);
@@ -238,6 +247,28 @@ function ExplorePage() {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchInputRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // 1. In dono states ko define karein
+const [userApplications, setUserApplications] = useState<any[]>([]);
+
+// 2. Ye function applications fetch karega (taake button text update ho)
+const fetchUserApplications = useCallback(async () => {
+    try {
+        const res = await fetchWithAuth("/applications");
+        if (res.ok) {
+            const data = await res.json();
+            // Backend se applications ka array set karein
+            setUserApplications(data.applications || []);
+        }
+    } catch (err) {
+        console.error("Failed to fetch user applications:", err);
+    }
+}, [fetchWithAuth]); // <--- Yahan fetchWithAuth add kar dein
+
+useEffect(() => {
+    fetchUserApplications();
+}, [fetchUserApplications]); // Ab ye error nahi dega
+
 
     // Derive category tabs dynamically from loaded programs
     const categories = useMemo(() => {
@@ -401,36 +432,78 @@ function ExplorePage() {
         setIsDetailLoading(false);
     };
 
-    // Opens multi-step wizard — or redirects externally
-    const handleApply = async (programId: number) => {
-        try {
-            // Fetch program detail to check application method + get questions  
-            const res = await fetchWithAuth(`/programs/${programId}`);
-            if (res.ok) {
-                const data = await res.json();
-                const program = data.program;
+  const handleApply = async (programId: number) => {
+    try {
+        const res = await fetchWithAuth(`/programs/${programId}`);
+        if (res.ok) {
+            const data = await res.json();
+            const program = data.program;
 
-                // If external application method, redirect to external URL
-                if (program?.application_method === "external" && program?.external_url) {
-                    window.open(program.external_url, "_blank", "noopener,noreferrer");
-                    return;
-                }
-
-                // Internal: open multi-step wizard
-                const questions = program?.questions || [];
-                setWizardQuestions(questions);
-                setWizardAnswers({});
-                setWizardStep(0);
-                setCvFile(null);
-                setWizardProgramId(programId);
-                setWizardOpen(true);
-            } else {
-                message.error("Could not load program details");
+            if (program?.application_method === "external" && program?.external_url) {
+                // 1. Pehle External Link open karein naye tab mein
+                window.open(program.external_url, "_blank", "noopener,noreferrer");
+                
+                // 2. Phir student se status poochne ke liye popup dikhayein
+                setPendingProgramId(programId);
+                setShowConfirmCard(true); 
+                return;
             }
-        } catch {
-            message.error("Something went wrong.");
+
+            // Internal Wizard logic (Waisa hi rahega)
+            const questions = program?.questions || [];
+            setWizardQuestions(questions);
+            setWizardAnswers({});
+            setWizardStep(0);
+            setCvFile(null);
+            setWizardProgramId(programId);
+            setWizardOpen(true);
         }
-    };
+    } catch (err) {
+        console.error(err);
+        message.error("Something went wrong.");
+    }
+};
+const handleConfirmExternalApply = async () => {
+    try {
+        const res = await fetchWithAuth(`/applications`, {
+            method: 'POST',
+            body: JSON.stringify({
+                program_id: externalProgramId, // Jo state humne handleApply mein set ki thi
+                status: 'applied',             // Status update ho kar applied ho jayega
+                is_external: true
+            }),
+        });
+
+        if (res.ok) {
+            message.success("Application status updated!");
+            setIsStatusModalOpen(false);
+            
+            // Optional: User ki applications dubara fetch karein taake button text update ho jaye
+            fetchUserApplications(); 
+        }
+    } catch (error) {
+        console.error("Failed to update status", error);
+        message.error("Something went wrong.");
+    }
+};
+
+const handleUpdateExternalStatus = async (newStatus: string) => {
+    try {
+        await fetchWithAuth(`/applications/external-status`, {
+            method: 'POST',
+            body: JSON.stringify({
+                program_id: externalProgramId,
+                status: newStatus
+            }),
+        });
+        message.success("Status updated to applied!");
+        setIsStatusModalOpen(false);
+        // Page refresh ya data refetch taake button 'Already Applied' ho jaye
+        router.refresh(); 
+    } catch (err) {
+        message.error("Failed to update status.");
+    }
+};
 
     // Total wizard steps: questions + 1 (CV upload)
     const totalWizardSteps = wizardQuestions.length + 1;
@@ -1014,7 +1087,69 @@ function ExplorePage() {
                     </div>
                 </DialogContent>
             </Dialog>
+        {/* ═══════════ External Application Status Update Card ═══════════ */}
+            <Dialog open={showConfirmCard} onOpenChange={setShowConfirmCard}>
+                <DialogContent className="sm:max-w-[420px] rounded-2xl p-6 border-none shadow-2xl">
+                    <div className="text-center space-y-4">
+                        <div className="mx-auto w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center">
+                            <CheckCircleOutlined className="text-2xl text-[#0047AB]" />
+                        </div>
+                        
+                        <DialogHeader>
+                            <DialogTitle className="text-center text-xl font-bold text-gray-800">Application Status</DialogTitle>
+                            <DialogDescription className="text-center text-gray-500 pt-2 text-md">
+                                Have you applied to the program through the external link?
+                            </DialogDescription>
+                        </DialogHeader>
 
+                        <div className="flex flex-col gap-3 pt-4">
+                            {/* Option 1: Student ne apply kar diya */}
+                            <Button 
+                                className="w-full py-7 bg-[#0047AB] hover:bg-[#003580] text-white rounded-xl text-md font-bold transition-all shadow-md"
+                                onClick={async () => {
+                                    try {
+                                        await fetchWithAuth(`/applications`, {
+                                            method: 'POST',
+                                            body: JSON.stringify({ 
+                                                program_id: pendingProgramId, 
+                                                status: 'applied', // Database column update
+                                                is_external: true  // Boolean nature column
+                                            }),
+                                        });
+                                        setAppliedIds((prev) => new Set(prev).add(pendingProgramId!));
+                                        message.success("Marked as Already Applied!");
+                                        setShowConfirmCard(false);
+                                    } catch (e) { console.error(e); }
+                                }}
+                            >
+                                Yes, I have applied
+                            </Button>
+                            
+                            {/* Option 2: Srf link dekha hai */}
+                            <Button 
+                                variant="outline" 
+                                className="w-full py-7 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-semibold"
+                                onClick={async () => {
+                                    try {
+                                        await fetchWithAuth(`/applications`, {
+                                            method: 'POST',
+                                            body: JSON.stringify({ 
+                                                program_id: pendingProgramId, 
+                                                status: 'viewed', // Status column 'viewed'
+                                                is_external: true 
+                                            }),
+                                        });
+                                        message.info("Status updated to Viewed");
+                                        setShowConfirmCard(false);
+                                    } catch (e) { console.error(e); }
+                                }}
+                            >
+                                No
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
@@ -1050,6 +1185,8 @@ function ProgramCard({
     const isPro = tier.toLowerCase().includes("pro");
     const isFeatured = tier.toLowerCase().includes("featured");
     const isPlatform = program.postedByPlatform || false;
+    const [showConfirmCard, setShowConfirmCard] = useState(false);
+    const [pendingProgramId, setPendingProgramId] = useState<number | null>(null);
     const isPremium = isGrowth || isPro || isFeatured || isPlatform;
 
     // Tier-specific styles
@@ -1231,12 +1368,12 @@ function DetailPanel({
                     {program.title}
                 </h2>
 
-                {/* Institute Name */}
-                <h2 className="text-[16px] font-semibold text-primary/90 leading-snug">
-            {program.institute_name && program.institute_name.trim() !== "" 
-                ? program.institute_name 
-                : "DAKHLA Platform"}
-        </h2>
+            {/* Institute Name */}
+<h2 className="text-[16px] font-semibold text-primary/90 leading-snug">
+  {program.postedByPlatform 
+    ? (program.institute_name || "DAKHLA Platform") 
+    : (program.institution?.name || "DAKHLA Platform")}
+</h2>
 
                 {/* Institution with external link */}
                 {program.postedByPlatform ? (
@@ -1556,5 +1693,6 @@ function DetailPanel({
                 <div className="h-4" />
             </div>
         </div>
+        
     );
 }
