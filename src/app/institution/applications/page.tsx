@@ -289,7 +289,7 @@ export default function InstitutionApplicationsPage() {
                         <Button 
                             variant="outline" 
                             className="rounded-2xl h-[42px] px-4 flex-1 sm:flex-none"
-                            onClick={() => exportToCSV(filteredApplications, "applications.csv")}
+                            onClick={() => exportToCSV(filteredApplications as any, "applications.csv")}
                         >
                             <FileDown className="size-4 mr-2" /> Export
                         </Button>
