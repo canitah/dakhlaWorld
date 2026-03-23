@@ -237,9 +237,12 @@ function SavedCard({
                     </span>
                 )}
                 {item.program?.institution?.city && (
-    <span className="inline-flex items-center gap-1.5 border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
-        <MapPinIcon className="w-3.5 h-3.5" /> {item.program.institution.city}
-    </span>
+   <span className="inline-flex items-center gap-1.5 border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
+    <span className="w-3.5 h-3.5 flex items-center justify-center">
+        <MapPinIcon />
+    </span> 
+    {item.program?.institution?.city}
+</span>
                 )}
             </div>
 
