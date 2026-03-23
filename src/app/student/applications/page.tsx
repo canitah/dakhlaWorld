@@ -484,20 +484,26 @@ export default function StudentApplicationsPage() {
                                     <FileText className="size-4 text-primary" />
                                     <span className="text-sm font-semibold text-foreground">{trackingResult?.application_code}</span>
                                 </div>
-                                <StatusBadge status={trackingResult?.status} />
+                                <StatusBadge status={trackingResult?.status || ""} />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <span className="text-muted-foreground font-medium">Program:</span>
-                                    <p className="text-foreground">{trackingResult.program.title}</p>
+                                    <p className="text-foreground">{trackingResult?.program?.title}</p>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground font-medium">Institution:</span>
-                                    <p className="text-foreground">{trackingResult.program.institution?.name || "DAKHLA Platform"}</p>
+                                    <p className="text-foreground">{trackingResult?.program.institution?.name || "DAKHLA Platform"}</p>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground font-medium">Applied:</span>
-                                    <p className="text-foreground">{new Date(trackingResult.created_at).toLocaleDateString()}</p>
+                                  <p className="text-foreground">
+  {(() => {
+    const dateValue = trackingResult?.created_at;
+    if (!dateValue) return 'N/A';
+    return new Date(dateValue as string | number | Date).toLocaleDateString();
+  })()}
+</p>
                                 </div>
                             </div>
                         </div>
