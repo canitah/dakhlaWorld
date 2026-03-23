@@ -17,6 +17,12 @@ interface SavedItem {
     };
 }
 
+// 1. Define the interface
+interface IconProps {
+  className?: string;
+}
+
+
 /* ── Icons ─────────────────────────────────────────────────── */
 
 const BookmarkFilledIcon = () => (
@@ -214,9 +220,11 @@ function SavedCard({
                     {item.program.title}
                 </h3>
                 <div className="text-[13px] text-muted-foreground leading-snug">
-                    <p>{item.program.institution.name}</p>
-                    {item.program.institution.city && (
-                        <p>{item.program.institution.city}</p>
+                   <p>{item.program?.institution?.name || "DAKHLA Platform"}</p>
+    
+    {/* Safe check for city */}
+    {item.program?.institution?.city && (
+        <p>{item.program.institution.city}</p>
                     )}
                 </div>
             </div>
@@ -228,10 +236,10 @@ function SavedCard({
                         <TagIcon /> {item.program.category}
                     </span>
                 )}
-                {item.program.institution.city && (
-                    <span className="inline-flex items-center gap-1.5 border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
-                        <MapPinIcon /> {item.program.institution.city}
-                    </span>
+                {item.program?.institution?.city && (
+    <span className="inline-flex items-center gap-1.5 border border-border bg-muted/50 rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground whitespace-nowrap">
+        <MapPinIcon className="w-3.5 h-3.5" /> {item.program.institution.city}
+    </span>
                 )}
             </div>
 
