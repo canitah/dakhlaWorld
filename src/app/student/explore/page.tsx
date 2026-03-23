@@ -248,6 +248,9 @@ function ExplorePage() {
     const searchInputRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    const [externalProgramId, setExternalProgramId] = useState<number | string | null>(null);
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+
     // 1. In dono states ko define karein
 const [userApplications, setUserApplications] = useState<any[]>([]);
 
@@ -444,7 +447,7 @@ useEffect(() => {
                 window.open(program.external_url, "_blank", "noopener,noreferrer");
                 
                 // 2. Phir student se status poochne ke liye popup dikhayein
-                setPendingProgramId(programId);
+                setExternalProgramId(programId);
                 setShowConfirmCard(true); 
                 return;
             }
@@ -1476,7 +1479,7 @@ function DetailPanel({
                 <div>
                     <h3 className="text-[17px] font-bold text-foreground mb-0.5">Program details</h3>
                     <p className="text-[13px] text-muted-foreground mb-4">
-                        Here's how this program aligns with your profile.
+                        Here&apos;s how this program aligns with your profile.
                     </p>
 
                     {/* Detail rows */}
