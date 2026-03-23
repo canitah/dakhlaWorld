@@ -54,7 +54,7 @@ export default function StudentApplicationsPage() {
     const [highlightId, setHighlightId] = useState<number | null>(null);
     const [highlightProgram, setHighlightProgram] = useState<string | null>(null);
     const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
-    const highlightRef = useRef<HTMLDivElement | null>(null);
+    const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
