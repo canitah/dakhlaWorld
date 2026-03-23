@@ -482,9 +482,9 @@ export default function StudentApplicationsPage() {
                             <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-2 items-start sm:items-center">
                                 <div className="flex items-center gap-2">
                                     <FileText className="size-4 text-primary" />
-                                    <span className="text-sm font-semibold text-foreground">{trackingResult.application_code}</span>
+                                    <span className="text-sm font-semibold text-foreground">{trackingResult?.application_code}</span>
                                 </div>
-                                <StatusBadge status={trackingResult.status} />
+                                <StatusBadge status={trackingResult?.status} />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                 <div>
