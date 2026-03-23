@@ -626,64 +626,72 @@ export default function StudentApplicationsPage() {
                 </Card>
             )}
 
-            {/* Review Dialog */}
-            <Dialog open={!!reviewApp} onOpenChange={(open) => !open && setReviewApp(null)}>
-                <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-                    <DialogHeader><DialogTitle className="text-lg font-semibold">Application Review</DialogTitle></DialogHeader>
-                    
-                    {reviewApp && (
-                        <div className="space-y-5">
-                            {/* Application Code & Status */}
-                            <div className="flex items-center justify-between">
-                                <Badge variant="outline" className="text-xs font-mono">
-                                    {reviewApp.application_code}
-                                </Badge>
-                                <StatusBadge status={reviewApp.status} />
-                            </div>
+          {/* Review Dialog */}
+    <Dialog open={!!reviewApp} onOpenChange={(open) => !open && setReviewApp(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+                <DialogTitle className="text-lg font-semibold">Application Review</DialogTitle>
+            </DialogHeader>
+            
+            {reviewApp && (
+                <div className="space-y-5">
+                    {/* Application Code & Status */}
+                    <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="text-xs font-mono">
+                            {reviewApp?.application_code}
+                        </Badge>
+                        <StatusBadge status={reviewApp?.status || ""} />
+                    </div>
 
-                            {/* Program Details */}
-                            <div className="p-4 rounded-lg border border-border bg-accent/30 space-y-2">
-                                <h4 className="text-sm font-semibold text-foreground">Program Details</h4>
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <span className="text-muted-foreground text-xs font-medium">Program</span>
-                                        <p className="text-foreground font-medium">{reviewApp.program.title}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground text-xs font-medium">Institution</span>
-                                        <p className="text-foreground">{reviewApp.program.institution?.name || "DAKHLA Platform"}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground text-xs font-medium">Category</span>
-                                        <p className="text-foreground">{reviewApp.program.category || "—"}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground text-xs font-medium">Applied On</span>
-                                        <p className="text-foreground">{new Date(reviewApp.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
-                                    </div>
-                                </div>
+                    {/* Program Details */}
+                    <div className="p-4 rounded-lg border border-border bg-accent/30 space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">Program Details</h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span className="text-muted-foreground text-xs font-medium">Program</span>
+                                <p className="text-foreground font-medium">{reviewApp?.program?.title}</p>
                             </div>
+                            <div>
+                                <span className="text-muted-foreground text-xs font-medium">Institution</span>
+                                <p className="text-foreground">{reviewApp?.program?.institution?.name || "DAKHLA Platform"}</p>
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground text-xs font-medium">Category</span>
+                                <p className="text-foreground">{reviewApp?.program?.category || "—"}</p>
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground text-xs font-medium">Applied On</span>
+                                <p className="text-foreground font-medium">
+  {reviewApp?.created_at 
+    ? new Date(reviewApp!.created_at as any).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) 
+    : "N/A"}
+</p>
+                            </div>
+                        </div>
+                    </div>
 
-                            {/* Submitted Answers */}
-                            {reviewApp.answers && reviewApp.answers.length > 0 ? (
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold text-foreground">Submitted Answers</h4>
-                                    {reviewApp.answers.map((a, idx) => (
-                                        <div key={a.id} className="p-3 rounded-lg border border-border bg-background">
-                                            <p className="text-xs font-semibold text-muted-foreground mb-1">Q{idx + 1}: {a.question.question}</p>
-                                            <p className="text-sm text-foreground whitespace-pre-wrap">{a.answer}</p>
-                                        </div>
-                                    ))}
+                    {/* Submitted Answers */}
+{(reviewApp?.answers as any[])?.length > 0 ? (
+    <div className="space-y-3">
+        <h4 className="text-sm font-semibold text-foreground">Submitted Answers</h4>
+        {(reviewApp?.answers as any[])?.map((a: any, idx: number) => (
+            <div key={a.id || idx} className="p-3 rounded-lg border border-border bg-background">
+                                    <p className="text-xs font-semibold text-muted-foreground mb-1">
+                                        Q{idx + 1}: {a.question?.question || "Question"}
+                                    </p>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap">{a.answer}</p>
                                 </div>
-                            ) : (
-                                <div className="p-4 rounded-lg border border-border bg-accent/30 text-center">
-                                    <p className="text-sm text-muted-foreground">No additional questions were required for this application.</p>
-                                </div>
-                            )}
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-4 rounded-lg border border-border bg-accent/30 text-center">
+                            <p className="text-sm text-muted-foreground">No additional questions were required for this application.</p>
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
-        </DashboardLayout>
+                </div>
+            )}
+        </DialogContent>
+    </Dialog>
+    </DashboardLayout>
     );
 }
