@@ -70,6 +70,15 @@ export default function StudentApplicationsPage() {
     const [filterDateFrom, setFilterDateFrom] = useState("");
     const [filterDateTo, setFilterDateTo] = useState("");
 
+    const clearFilters = () => {
+    setFilterStatus("all");
+    setFilterInstitution("all");
+    setFilterCategory("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    // If you have a search query state not shown here, reset it too
+};
+
     useEffect(() => {
         async function load() {
             const res = await fetchWithAuth("/applications");
