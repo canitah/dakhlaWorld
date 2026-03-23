@@ -318,6 +318,7 @@ interface Application {
     status: string;
     created_at: string;
     program: {
+        institute_name: string;
         title: string;
         institution: { name: string; city: string | null };
     };
