@@ -20,7 +20,11 @@ import {
 import { message } from "antd";
 import {
     Users,
+    Hash,
     GraduationCap,
+    Eye,
+    CheckCircle,
+    XCircle,
     Trophy,
     Calendar,
     Target,
@@ -193,6 +197,7 @@ export default function InstitutionApplicationsPage() {
             result = result.filter(app =>
                 (app.student.full_name || "").toLowerCase().includes(q) ||
                 (app.student.user.email || "").toLowerCase().includes(q) ||
+                (app.application_code || "").toLowerCase().includes(q) ||
                 app.program.title.toLowerCase().includes(q)
             );
         }
@@ -338,24 +343,63 @@ export default function InstitutionApplicationsPage() {
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-lg leading-none">{app.student.full_name || "—"}</h3>
+                                            <div className="flex flex-col gap-3">
+    <span className="text-[13px] font-bold text-foreground tracking-widest px-1">
+        {app.application_code}
+    </span>
+    <h3 className="font-bold text-lg leading-none">
+        {app.student.full_name || "—"}
+    </h3>
+</div>
                                             <StatusBadge status={app.status} />
                                         </div>
                                         <p className="text-sm text-muted-foreground mt-1">{app.student.user.email}</p>
                                     </div>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <Button variant="outline" className="rounded-2xl h-10 px-5 text-sm font-semibold" onClick={() => viewStudentProfile(app.student.id)}>
-                                        View Profile
-                                    </Button>
-                                    {app.status === 'submitted' && (
-                                        <Button className="bg-blue-600 rounded-2xl h-10 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20" 
-                                            onClick={() => handleStatusUpdate(app.id, 'viewed')} 
-                                            disabled={updatingStatus === `${app.id}_viewed`}>
-                                            Mark Viewed
-                                        </Button>
-                                    )}
-                                </div>
+      <div className="flex flex-wrap items-center gap-2 relative z-10">
+    {/* 1. View Profile */}
+    <Button 
+        variant="outline" 
+        className="rounded-2xl h-10 px-5 text-sm font-semibold" 
+        onClick={() => viewStudentProfile(app.student.id)}
+    >
+        View Profile
+    </Button>
+    
+    {/* 2. Mark Viewed */}
+    {app.status === 'submitted' && (
+        <Button 
+            className="bg-blue-600 rounded-2xl h-10 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20" 
+            onClick={() => handleStatusUpdate(app.id, 'viewed')} 
+            disabled={updatingStatus === `${app.id}_viewed`}
+        >
+            Mark Viewed
+        </Button>
+    )}
+
+    {/* 3. Accept Button */}
+    {app.status !== 'accepted' && (
+        <Button 
+            className="bg-emerald-600 hover:bg-emerald-700 rounded-2xl h-10 px-5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20" 
+            onClick={() => handleStatusUpdate(app.id, 'accepted')}
+            disabled={updatingStatus === `${app.id}_accepted`}
+        >
+            <CheckCircle className="size-4 mr-2" /> Accept
+        </Button>
+    )}
+
+    {/* 4. Reject Button */}
+    {app.status !== 'rejected' && (
+        <Button 
+            variant="destructive" 
+            className="rounded-2xl h-10 px-5 text-sm font-semibold shadow-lg shadow-red-500/20" 
+            onClick={() => handleStatusUpdate(app.id, 'rejected')}
+            disabled={updatingStatus === `${app.id}_rejected`}
+        >
+            <XCircle className="size-4 mr-2" /> Reject
+        </Button>
+    )}
+</div>
                             </div>
                             
                             <Separator className="my-5 opacity-50" />

@@ -357,11 +357,13 @@ export default function HomePage() {
 </div>
 
   {/* Filters Section */}
-<div className="mt-6 sm:mt-8 w-full max-w-5xl mx-auto px-3 sm:px-4 relative z-10">
-  {/* Container for scrollable filters */}
-  <div className="w-full overflow-x-auto no-scrollbar touch-pan-x py-1">
-    <div className="flex items-center gap-2 flex-nowrap min-w-max pb-2">
-        
+<div className="mt-6 sm:mt-8 w-full max-w-5xl mx-auto px-3 sm:px-4 relative z-50">
+  {/* Mobile Scrollable Container */}
+  <div className="w-full overflow-x-auto no-scrollbar touch-pan-x 
+       /* Ye padding dropdowns ko jagah degi */
+       pb-[250px] -mb-[250px]"> 
+    
+    <div className="flex items-center gap-2 flex-nowrap min-w-max">
         {/* Pay */}
         <FilterDropdown
           className="shrink-0"
