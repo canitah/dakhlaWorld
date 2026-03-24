@@ -109,7 +109,6 @@ export default function AdminStudentsPage() {
             <div className="flex flex-col gap-4 mb-6">
                 <h1 className="text-xl md:text-2xl font-bold">Manage Students</h1>
 
-                {/* Summary Cards - Mobile optimized grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard title="Total Students" value={students.length} />
                     <StatCard title="With Apps" value={studentsWithApps} />
@@ -118,7 +117,6 @@ export default function AdminStudentsPage() {
                 </div>
             </div>
 
-            {/* Search + Export - Stacked on mobile */}
             <div className="mb-6 flex flex-col md:flex-row items-center gap-3">
                 <div className="relative w-full md:max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -140,7 +138,7 @@ export default function AdminStudentsPage() {
                 </Button>
             </div>
 
-            <Card className="border-none shadow-none md:border md:shadow-sm">
+            <Card className="border-none shadow-none md:border md:shadow-sm bg-transparent">
                 <CardHeader className="px-4 md:px-6">
                     <CardTitle className="text-lg">Students ({filtered.length})</CardTitle>
                 </CardHeader>
@@ -155,7 +153,7 @@ export default function AdminStudentsPage() {
                         </p>
                     ) : (
                         <>
-                            {/* Desktop Table View */}
+                            {/* Desktop Table */}
                             <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
@@ -194,43 +192,47 @@ export default function AdminStudentsPage() {
                                 </table>
                             </div>
 
-                            {/* Mobile Card View */}
+                            {/* Mobile Card View - FIXED: Blue Header, Transparent Body */}
                             <div className="grid grid-cols-1 gap-4 md:hidden">
                                 {filtered.map((student) => (
-                                    <div key={student.id} className="border rounded-xl p-4 space-y-4 bg-white shadow-sm">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-2">
-                                                <div className="bg-blue-50 p-2 rounded-full text-blue-600">
+                                    <div key={student.id} className="border border-border rounded-xl overflow-hidden bg-transparent shadow-sm">
+                                        {/* Blue Header Section */}
+                                        <div className="bg-blue-600 p-4 flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-white/20 p-2 rounded-full text-white">
                                                     <User className="size-4" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-sm">{student.full_name || "—"}</h3>
-                                                    <p className="text-[11px] text-muted-foreground">{student.user.email}</p>
+                                                    <h3 className="font-bold text-sm text-white">{student.full_name || "—"}</h3>
+                                                    <p className="text-[11px] text-blue-100">{student.user.email}</p>
                                                 </div>
                                             </div>
-                                            <Badge variant={student.applications.length > 0 ? "default" : "secondary"} className="text-[10px]">
+                                            <Badge className="bg-white text-blue-600 hover:bg-white text-[10px] border-none">
                                                 {student.applications.length} Apps
                                             </Badge>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2 text-xs border-y py-3">
-                                            <div className="space-y-1">
-                                                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="size-3" /> City</p>
-                                                <p className="font-medium">{student.city || "—"}</p>
+                                        {/* Transparent Body Section */}
+                                        <div className="p-4 space-y-4">
+                                            <div className="grid grid-cols-2 gap-2 text-xs border-y border-border/50 py-3">
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground flex items-center gap-1"><MapPin className="size-3" /> City</p>
+                                                    <p className="font-medium">{student.city || "—"}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground flex items-center gap-1"><GraduationCap className="size-3" /> Field</p>
+                                                    <p className="font-medium truncate">{student.intended_field || "—"}</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <p className="text-muted-foreground flex items-center gap-1"><GraduationCap className="size-3" /> Field</p>
-                                                <p className="font-medium truncate">{student.intended_field || "—"}</p>
-                                            </div>
-                                        </div>
 
-                                        <div className="flex justify-between items-center pt-1">
-                                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                <Calendar className="size-3" /> {new Date(student.user.created_at).toLocaleDateString()}
-                                            </p>
-                                            <Button size="sm" variant="outline" className="h-8 text-xs px-4" onClick={() => viewDetail(student)}>
-                                                View Details
-                                            </Button>
+                                            <div className="flex justify-between items-center">
+                                                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                    <Calendar className="size-3" /> {new Date(student.user.created_at).toLocaleDateString()}
+                                                </p>
+                                                <Button size="sm" variant="outline" className="h-8 text-xs px-4" onClick={() => viewDetail(student)}>
+                                                    View Details
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -240,20 +242,22 @@ export default function AdminStudentsPage() {
                 </CardContent>
             </Card>
 
-            {/* Detail Dialog - Responsive Width */}
+            {/* Detail Dialog - FIXED: Consistent with Theme */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl p-4 md:p-6">
-                    <DialogHeader>
-                        <DialogTitle className="text-lg flex items-center gap-2">
-                            <FileText className="size-5 text-blue-500" /> Student Profile
+                <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl p-0 border-none bg-card text-card-foreground">
+                    {/* Dialog Header Blue */}
+                    <div className="bg-blue-600 p-6 text-white">
+                        <DialogTitle className="text-lg flex items-center gap-2 text-white">
+                            <FileText className="size-5" /> Student Profile
                         </DialogTitle>
-                        <DialogDescription>Overview of registration and academic interests.</DialogDescription>
-                    </DialogHeader>
+                        <DialogDescription className="text-blue-100 mt-1">
+                            Overview of registration and academic interests.
+                        </DialogDescription>
+                    </div>
 
                     {selectedStudent && (
-                        <div className="space-y-6 pt-2">
-                            {/* Profile Info Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 bg-slate-50/50 p-4 rounded-xl border">
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 bg-muted/20 p-4 rounded-xl border border-border">
                                 <DetailItem label="Full Name" value={selectedStudent.full_name} />
                                 <DetailItem label="Email" value={selectedStudent.user.email} />
                                 <DetailItem label="Phone" value={selectedStudent.user.phone} />
@@ -264,23 +268,21 @@ export default function AdminStudentsPage() {
                                 <DetailItem label="Registered" value={new Date(selectedStudent.user.created_at).toLocaleDateString()} />
                             </div>
 
-                            {/* CV Section */}
                             {selectedStudent.cv_url && (
-                                <div className="border-t pt-4">
+                                <div className="border-t border-border pt-4">
                                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Documents</p>
                                     <a
                                         href={selectedStudent.cv_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-all w-full justify-center"
+                                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-lg hover:bg-blue-100 transition-all w-full justify-center"
                                     >
                                         <Eye className="size-4" /> View Full CV / Resume
                                     </a>
                                 </div>
                             )}
 
-                            {/* Applications Section */}
-                            <div className="border-t pt-4">
+                            <div className="border-t border-border pt-4">
                                 <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                                     <Badge variant="outline">{selectedStudent.applications.length}</Badge>
                                     Submitted Applications
@@ -290,14 +292,14 @@ export default function AdminStudentsPage() {
                                 ) : (
                                     <div className="space-y-3">
                                         {selectedStudent.applications.map((app) => (
-                                            <div key={app.id} className="border rounded-xl p-4 bg-white shadow-sm border-l-4 border-l-blue-500">
+                                            <div key={app.id} className="border border-border rounded-xl p-4 bg-muted/10 border-l-4 border-l-blue-500">
                                                 <div className="flex justify-between items-start gap-2">
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-bold text-foreground truncate">{app.program.title}</p>
                                                         <p className="text-xs text-muted-foreground mt-1">
                                                             {app.program.institution?.name || "DAKHLA Platform"}
                                                         </p>
-                                                        <p className="text-[10px] text-muted-foreground mt-1 font-mono uppercase bg-slate-100 inline-block px-1 rounded">
+                                                        <p className="text-[10px] text-muted-foreground mt-1 font-mono uppercase bg-muted px-1 rounded inline-block">
                                                             {app.application_code}
                                                         </p>
                                                     </div>
@@ -321,10 +323,9 @@ export default function AdminStudentsPage() {
     );
 }
 
-// Helper Components
 function StatCard({ title, value }: { title: string; value: number }) {
     return (
-        <Card className="border-none shadow-sm md:border">
+        <Card className="border-none shadow-sm md:border bg-card">
             <CardContent className="pt-4 pb-3 md:pt-5 md:pb-4 px-3 md:px-6">
                 <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider">{title}</p>
                 <p className="text-xl md:text-2xl font-black text-foreground mt-1">{value}</p>

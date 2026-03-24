@@ -6,9 +6,9 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // Input component assume kiya gaya hai
+import { Input } from "@/components/ui/input";
 import { message } from "antd";
-import { Download, ExternalLink, Calendar, CreditCard, Banknote, Building2, Search, X } from "lucide-react";
+import { Download, ExternalLink, Calendar, CreditCard, Banknote, Building2, Search, X, Eye } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 
 interface PaymentRequest {
@@ -50,7 +50,6 @@ export default function AdminPaymentsPage() {
         setIsLoading(false);
     }
 
-    // Client-side search filtering based on Institution Name
     const filteredRequests = useMemo(() => {
         return requests.filter((req) =>
             req.institution.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -79,19 +78,19 @@ export default function AdminPaymentsPage() {
             Date: new Date(r.created_at).toLocaleDateString(),
         }));
         exportToCSV(data, "payments_export");
-        message.success(`Exported ${data.length} payment records`);
+        message.success(`Exported ${data.length} records`);
     };
 
     return (
         <DashboardLayout role="admin">
             <div className="flex flex-col gap-4 mb-6">
                 <h1 className="text-xl md:text-2xl font-bold">Manage Payments</h1>
-{/* Search Bar Section - Chota size aur Left alignment */}
+                
                 <div className="relative w-full max-w-sm mr-auto">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by institution name..."
-                        className="pl-10 pr-10 w-full h-9 text-sm" // h-9 se height thodi kam ho jayegi
+                        placeholder="Search institution..."
+                        className="pl-10 pr-10 w-full h-9 text-sm bg-transparent border-muted-foreground/20"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -112,7 +111,7 @@ export default function AdminPaymentsPage() {
                                 key={s}
                                 variant={filter === s ? "default" : "outline"}
                                 size="sm"
-                                className={`capitalize whitespace-nowrap ${filter === s ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                                className={`capitalize whitespace-nowrap transition-all ${filter === s ? "bg-blue-600 hover:bg-blue-700 shadow-md border-blue-600" : "bg-transparent hover:bg-blue-50/50 dark:hover:bg-blue-900/20"}`}
                                 onClick={() => setFilter(s)}
                             >
                                 {s}
@@ -123,7 +122,7 @@ export default function AdminPaymentsPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        className="gap-2 w-full sm:w-auto justify-center"
+                        className="gap-2 w-full sm:w-auto justify-center bg-transparent border-muted-foreground/20"
                         onClick={exportPayments}
                         disabled={filteredRequests.length === 0}
                     >
@@ -133,7 +132,7 @@ export default function AdminPaymentsPage() {
                 </div>
             </div>
 
-            <Card className="border-none shadow-none md:border md:shadow-sm">
+            <Card className="bg-transparent border-none shadow-none md:border md:shadow-sm dark:bg-black/10">
                 <CardHeader className="px-4 md:px-6">
                     <CardTitle className="text-lg">
                         Payment Requests ({filteredRequests.length})
@@ -158,20 +157,17 @@ export default function AdminPaymentsPage() {
                                             <th className="pb-3 text-sm font-semibold text-muted-foreground">Institution</th>
                                             <th className="pb-3 text-sm font-semibold text-muted-foreground">Plan</th>
                                             <th className="pb-3 text-sm font-semibold text-muted-foreground">Amount</th>
-                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Reference</th>
                                             <th className="pb-3 text-sm font-semibold text-muted-foreground">Screenshot</th>
                                             <th className="pb-3 text-sm font-semibold text-muted-foreground">Status</th>
-                                            <th className="pb-3 text-sm font-semibold text-muted-foreground">Date</th>
                                             <th className="pb-3 text-sm font-semibold text-muted-foreground text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-muted/20">
                                         {filteredRequests.map((req) => (
-                                            <tr key={req.id} className="border-b last:border-0 hover:bg-accent/50">
+                                            <tr key={req.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
                                                 <td className="py-4 text-sm font-medium">{req.institution.name}</td>
                                                 <td className="py-4 text-sm">{req.plan.name}</td>
-                                                <td className="py-4 text-sm font-semibold text-blue-700">PKR {req.plan.price_pkr.toLocaleString()}</td>
-                                                <td className="py-4 text-sm text-muted-foreground font-mono">{req.transaction_ref || "—"}</td>
+                                                <td className="py-4 text-sm font-semibold text-blue-600 dark:text-blue-400">PKR {req.plan.price_pkr.toLocaleString()}</td>
                                                 <td className="py-4 text-sm">
                                                     {req.screenshot_url ? (
                                                         <a href={req.screenshot_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline">
@@ -180,20 +176,13 @@ export default function AdminPaymentsPage() {
                                                     ) : "—"}
                                                 </td>
                                                 <td className="py-4"><StatusBadge status={req.status} /></td>
-                                                <td className="py-4 text-sm text-muted-foreground">
-                                                    {new Date(req.created_at).toLocaleDateString()}
-                                                </td>
                                                 <td className="py-4">
                                                     <div className="flex justify-end gap-2">
                                                         {req.status !== "approved" && (
-                                                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8" onClick={() => handleVerify(req.id, "approved")}>
-                                                                Approve
-                                                            </Button>
+                                                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8" onClick={() => handleVerify(req.id, "approved")}>Approve</Button>
                                                         )}
                                                         {req.status !== "rejected" && (
-                                                            <Button size="sm" variant="destructive" className="h-8" onClick={() => handleVerify(req.id, "rejected")}>
-                                                                Reject
-                                                            </Button>
+                                                            <Button size="sm" variant="destructive" className="h-8" onClick={() => handleVerify(req.id, "rejected")}>Reject</Button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -206,64 +195,70 @@ export default function AdminPaymentsPage() {
                             {/* --- Mobile View (Cards) --- */}
                             <div className="grid grid-cols-1 gap-4 md:hidden">
                                 {filteredRequests.map((req) => (
-                                    <div key={req.id} className="border rounded-xl p-4 space-y-4 bg-white shadow-sm">
-                                        <div className="flex justify-between items-start">
+                                    <div 
+                                        key={req.id} 
+                                        className="border rounded-xl overflow-hidden bg-white dark:bg-black/40 hover:border-blue-400 transition-all cursor-pointer shadow-sm active:scale-[0.99]"
+                                        onClick={() => req.screenshot_url && window.open(req.screenshot_url, '_blank')}
+                                    >
+                                        {/* Institution Header - Blue Theme */}
+                                        <div className="bg-blue-50 dark:bg-black px-4 py-3 border-b border-blue-100 dark:border-blue-900/50 flex justify-between items-center">
                                             <div className="flex items-center gap-2">
-                                                <Building2 className="size-4 text-blue-600" />
-                                                <h3 className="font-bold text-sm text-gray-900">{req.institution.name}</h3>
+                                                <div className="p-1.5 bg-blue-600 rounded-lg">
+                                                    <Building2 className="size-3.5 text-white" />
+                                                </div>
+                                                <h3 className="font-bold text-sm text-blue-900 dark:text-blue-100">{req.institution.name}</h3>
                                             </div>
                                             <StatusBadge status={req.status} />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs border-y py-3">
-                                            <div className="space-y-1">
-                                                <p className="text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" /> Plan</p>
-                                                <p className="font-medium text-foreground">{req.plan.name}</p>
+                                        <div className="p-4 space-y-4">
+                                            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" /> Plan</p>
+                                                    <p className="font-medium">{req.plan.name}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground flex items-center gap-1"><Banknote className="size-3" /> Amount</p>
+                                                    <p className="font-bold text-blue-600 dark:text-blue-400">PKR {req.plan.price_pkr.toLocaleString()}</p>
+                                                </div>
+                                                <div className="space-y-1 col-span-2 border-t pt-2">
+                                                    <p className="text-muted-foreground flex items-center gap-1"><Calendar className="size-3" /> Date</p>
+                                                    <p className="text-foreground">{new Date(req.created_at).toLocaleDateString()}</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <p className="text-muted-foreground flex items-center gap-1"><Banknote className="size-3" /> Amount</p>
-                                                <p className="font-bold text-blue-700">PKR {req.plan.price_pkr.toLocaleString()}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-muted-foreground">Reference</p>
-                                                <p className="font-mono text-[10px] break-all">{req.transaction_ref || "—"}</p>
-                                            </div>
-                                            <div className="space-y-1 text-right sm:text-left">
-                                                <p className="text-muted-foreground flex items-center justify-end sm:justify-start gap-1"><Calendar className="size-3" /> Date</p>
-                                                <p className="text-foreground">{new Date(req.created_at).toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
 
-                                        <div className="flex flex-col gap-2">
-                                            {req.screenshot_url && (
-                                                <a 
-                                                    href={req.screenshot_url} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium border rounded-md hover:bg-gray-50 text-blue-600"
-                                                >
-                                                    <ExternalLink className="size-3" /> View Screenshot
-                                                </a>
-                                            )}
-                                            
-                                            <div className="flex gap-2">
-                                                {req.status !== "approved" && (
+                                            <div className="flex flex-col gap-2">
+                                                {/* View Screenshot Button - explicitly added back */}
+                                                {req.screenshot_url && (
                                                     <Button 
-                                                        className="flex-1 bg-emerald-600 h-9 text-xs" 
-                                                        onClick={() => handleVerify(req.id, "approved")}
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="w-full h-9 text-xs gap-2 border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400"
+                                                        onClick={(e) => { e.stopPropagation(); window.open(req.screenshot_url!, '_blank'); }}
                                                     >
-                                                        Approve
+                                                        <Eye className="size-3.5" /> View Screenshot
                                                     </Button>
                                                 )}
-                                                {req.status !== "rejected" && (
-                                                    <Button 
-                                                        variant="destructive" 
-                                                        className="flex-1 h-9 text-xs" 
-                                                        onClick={() => handleVerify(req.id, "rejected")}
-                                                    >
-                                                        Reject
-                                                    </Button>
-                                                )}
+                                                
+                                                <div className="flex gap-2">
+                                                    {req.status !== "approved" && (
+                                                        <Button 
+                                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-9 text-xs" 
+                                                            onClick={(e) => { e.stopPropagation(); handleVerify(req.id, "approved"); }}
+                                                        >
+                                                            Approve
+                                                        </Button>
+                                                    )}
+                                                    {req.status !== "rejected" && (
+                                                        <Button 
+                                                            variant="destructive" 
+                                                            className="flex-1 h-9 text-xs" 
+                                                            onClick={(e) => { e.stopPropagation(); handleVerify(req.id, "rejected"); }}
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

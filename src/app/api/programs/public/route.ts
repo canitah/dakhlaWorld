@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getPlanRank } from "@/lib/plan-utils";
 
-// GET /api/programs/public — Public endpoint for homepage program listings
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -17,55 +16,58 @@ export async function GET(request: Request) {
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "20");
 
-        const where: Record<string, unknown> = {
+        // 1. Core Logic: Approved Institutions OR Admin Posted
+        const where: any = {
             is_active: true,
-            institution: { status: "approved" },
+            OR: [
+                { institution: { status: "approved" } },
+                { posted_by_admin: true }
+            ]
         };
 
+        // 2. Search Logic
         if (search) {
-            where.OR = [
-                { title: { contains: search, mode: "insensitive" } },
-                { institution: { name: { contains: search, mode: "insensitive" } } },
-                { study_field: { contains: search, mode: "insensitive" } },
+            where.AND = [
+                {
+                    OR: [
+                        { title: { contains: search, mode: "insensitive" } },
+                        { institute_name: { contains: search, mode: "insensitive" } },
+                        { study_field: { contains: search, mode: "insensitive" } },
+                    ]
+                }
             ];
         }
 
         if (category) where.category = category;
-
-        // Build institution filter
-        const instFilter: Record<string, unknown> = { status: "approved" };
-        if (city) instFilter.city = city;
-        if (company) instFilter.name = company;
-        if (city || company) where.institution = instFilter;
-
         if (scheduleType) where.schedule_type = scheduleType;
 
-        if (feeMin !== null || feeMax !== null) {
-            const feeFilter: Record<string, number> = {};
-            if (feeMin !== null) feeFilter.gte = feeMin;
-            if (feeMax !== null) feeFilter.lte = feeMax;
-            where.fee = feeFilter;
+        // 3. City/Company filters (Strictly for approved institutions)
+        if (city || company) {
+            where.institution = {
+                status: "approved",
+                ...(city && { city: { contains: city, mode: "insensitive" } }),
+                ...(company && { name: { contains: company, mode: "insensitive" } })
+            };
         }
 
-        // Date posted filter
+        if (feeMin !== null || feeMax !== null) {
+            where.fee = {
+                ...(feeMin !== null && { gte: feeMin }),
+                ...(feeMax !== null && { lte: feeMax })
+            };
+        }
+
         if (datePosted) {
             const now = new Date();
             let sinceDate: Date | null = null;
-            if (datePosted === "today") {
-                sinceDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            } else if (datePosted === "3days") {
-                sinceDate = new Date(now.getTime() - 3 * 86400000);
-            } else if (datePosted === "7days") {
-                sinceDate = new Date(now.getTime() - 7 * 86400000);
-            } else if (datePosted === "14days") {
-                sinceDate = new Date(now.getTime() - 14 * 86400000);
-            }
-            if (sinceDate) {
-                where.created_at = { gte: sinceDate };
-            }
+            if (datePosted === "today") sinceDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            else if (datePosted === "3days") sinceDate = new Date(now.getTime() - 3 * 86400000);
+            else if (datePosted === "7days") sinceDate = new Date(now.getTime() - 7 * 86400000);
+            else if (datePosted === "14days") sinceDate = new Date(now.getTime() - 14 * 86400000);
+            if (sinceDate) where.created_at = { gte: sinceDate };
         }
 
-        const [allPrograms, total] = await Promise.all([
+        const [allProgramsRaw, total] = await Promise.all([
             prisma.program.findMany({
                 where,
                 include: {
@@ -91,27 +93,25 @@ export async function GET(request: Request) {
             prisma.program.count({ where }),
         ]);
 
-        // Sort by plan rank then by date
-        const sorted = allPrograms.sort((a: any, b: any) => {
-            const rankA = getPlanRank(a.institution.payment_requests[0]?.plan?.name);
-            const rankB = getPlanRank(b.institution.payment_requests[0]?.plan?.name);
+        // 4. Safe Sorting
+        const sorted = allProgramsRaw.sort((a: any, b: any) => {
+            const rankA = a.institution?.payment_requests?.[0]?.plan?.name 
+                ? getPlanRank(a.institution.payment_requests[0].plan.name) 
+                : (a.posted_by_admin ? 10 : 0);
+            const rankB = b.institution?.payment_requests?.[0]?.plan?.name 
+                ? getPlanRank(b.institution.payment_requests[0].plan.name) 
+                : (b.posted_by_admin ? 10 : 0);
+            
             if (rankB !== rankA) return rankB - rankA;
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
         const paginated = sorted.slice((page - 1) * limit, page * limit);
 
-        // Get filter options
-        const [categories, cities, scheduleTypes, institutions] = await Promise.all([
-            prisma.program.findMany({ where: { is_active: true, institution: { status: "approved" } }, select: { category: true }, distinct: ["category"] }),
-            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { city: true }, distinct: ["city"] }),
-            prisma.program.findMany({ where: { is_active: true, institution: { status: "approved" } }, select: { schedule_type: true }, distinct: ["schedule_type"] }),
-            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { name: true }, orderBy: { name: "asc" } }),
-        ]);
-
         const programs = paginated.map((p: any) => ({
             id: p.id,
             title: p.title,
+            institute_name: p.institute_name || null, // For frontend display
             description: p.description,
             category: p.category,
             duration: p.duration,
@@ -119,12 +119,9 @@ export async function GET(request: Request) {
             fee: p.fee,
             schedule_type: p.schedule_type,
             study_field: p.study_field,
-            eligibility: p.eligibility,
-            application_method: p.application_method,
-            external_url: p.external_url,
-            program_code: p.program_code,
             created_at: p.created_at,
-            institution: {
+            postedByPlatform: p.posted_by_admin || !p.institution,
+            institution: p.institution ? {
                 id: p.institution.id,
                 name: p.institution.name,
                 city: p.institution.city,
@@ -132,22 +129,39 @@ export async function GET(request: Request) {
                 profilePicture: p.institution.profile_picture_url,
                 uniqueId: p.institution.user?.unique_id || String(p.institution.id),
                 planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
+            } : {
+                id: 0,
+                name: "DAKHLA Platform",
+                city: "Online/Global",
+                category: "Official",
+                profilePicture: null,
+                uniqueId: "admin",
+                planTier: "Premium"
             },
-            applicants: p._count.applications,
+            applicants: p._count?.applications || 0,
         }));
+
+        // 5. FETCH ALL FILTERS DATA (Fix for .map error)
+        const [categoriesData, citiesData, institutionsData, scheduleTypesData] = await Promise.all([
+            prisma.program.findMany({ where: { is_active: true }, select: { category: true }, distinct: ["category"] }),
+            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { city: true }, distinct: ["city"] }),
+            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { name: true }, orderBy: { name: "asc" } }),
+            prisma.program.findMany({ where: { is_active: true }, select: { schedule_type: true }, distinct: ["schedule_type"] }),
+        ]);
 
         return NextResponse.json({
             programs,
             filters: {
-                categories: categories.map(c => c.category).filter(Boolean),
-                cities: cities.map(c => c.city).filter(Boolean),
-                scheduleTypes: scheduleTypes.map(s => s.schedule_type).filter(Boolean),
-                companies: institutions.map(i => i.name).filter(Boolean),
+                categories: categoriesData.map(c => c.category).filter(Boolean),
+                cities: citiesData.map(c => c.city).filter(Boolean),
+                companies: institutionsData.map(i => i.name).filter(Boolean),
+                scheduleTypes: scheduleTypesData.map(s => s.schedule_type).filter(Boolean),
             },
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
+
     } catch (error) {
-        console.error("Public programs error:", error);
+        console.error("Public API Error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

@@ -30,6 +30,7 @@ import {
 interface Program {
   id: number;
   title: string;
+  institute_name?: string | null; // For platform-posted programs
   category: string | null;
   duration: string | null;
   deadline: string | null;
@@ -169,12 +170,17 @@ export default function HomePage() {
 
   // Data
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [initialFilters, setInitialFilters] = useState<Filters>({
-    categories: [],
-    cities: [],
-    scheduleTypes: [],
-    companies: [],
-  });
+  const [initialFilters, setInitialFilters] = useState<{
+  categories: string[];
+  cities: string[];
+  companies: string[];
+  scheduleTypes: string[]; // <--- Ye line lazmi add karein
+}>({
+  categories: [],
+  cities: [],
+  companies: [],
+  scheduleTypes: [], // <--- Default empty array
+});
   const [isLoading, setIsLoading] = useState(true);
   const [totalResults, setTotalResults] = useState(0);
 
@@ -270,16 +276,19 @@ export default function HomePage() {
     setAppliedLocation(locationQuery);
   }
 
-  // Sort
+ // Sort (API se filtered data mil chuka hai, bas yahan sort kar rahe hain)
   const sortedPrograms = useMemo(() => {
+    // [...programs] use karne se original array kharab nahi hoti
+    const data = [...programs]; 
+    
     if (sortBy === "date") {
-      return [...programs].sort(
+      return data.sort(
         (a, b) =>
           new Date(b.created_at).getTime() -
           new Date(a.created_at).getTime()
       );
     }
-    return programs;
+    return data;
   }, [programs, sortBy]);
 
   const hasActiveFilters =
@@ -348,9 +357,10 @@ export default function HomePage() {
 </div>
 
   {/* Filters Section */}
-<div className="mt-6 sm:mt-8 w-full max-w-5xl mx-auto px-3 sm:px-4 relative overflow-visible z-10">
-  <div className="flex gap-2">
-    <div className="flex items-center gap-2 overflow-visible no-scrollbar">
+<div className="mt-6 sm:mt-8 w-full max-w-5xl mx-auto px-3 sm:px-4 relative z-10">
+  {/* Container for scrollable filters */}
+  <div className="w-full overflow-x-auto no-scrollbar touch-pan-x py-1">
+    <div className="flex items-center gap-2 flex-nowrap min-w-max pb-2">
         
         {/* Pay */}
         <FilterDropdown
@@ -638,11 +648,11 @@ export default function HomePage() {
                       {program.title}
                     </h3>
 
-                    <p className="text-xs sm:text-[13px] text-muted-foreground mb-0.5">
-                      {program.postedByPlatform
-                        ? "DAKHLA Platform"
-                        : program.institution.name}
-                    </p>
+                   <p className="text-xs sm:text-[13px] text-muted-foreground mb-0.5">
+  {program.postedByPlatform
+    ? (program.institute_name || "DAKHLA Platform")
+    : (program.institution?.name || "DAKHLA Platform")}
+</p>
 
                     {!program.postedByPlatform &&
                       program.institution.city && (
@@ -698,19 +708,26 @@ export default function HomePage() {
                   ← Back to results
                 </button>
 
-                {selectedProgram ? (
+              {selectedProgram ? (
                   <div className="bg-card border border-border rounded-lg md:sticky md:top-[60px] md:max-h-[calc(100vh-240px)] overflow-visible md:overflow-y-auto">
                     {/* Header */}
                     <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-border">
                       <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1">
                         {selectedProgram.title}
                       </h2>
+
+                      {/* Institute Name & Badge Logic */}
                       {selectedProgram.postedByPlatform ? (
-                        <p className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
-                            ✦ Posted by DAKHLA Platform
-                          </span>
-                        </p>
+                        <>
+                          <p className="text-sm text-muted-foreground font-medium mb-1">
+                            {selectedProgram.institute_name || "DAKHLA Platform"}
+                          </p>
+                          <div className="mb-2">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+                              ✦ Posted by DAKHLA Platform
+                            </span>
+                          </div>
+                        </>
                       ) : (
                         <>
                           <p
@@ -731,6 +748,8 @@ export default function HomePage() {
                           )}
                         </>
                       )}
+
+                      {/* Fee & Schedule */}
                       {selectedProgram.fee !== null && (
                         <p className="text-sm text-foreground font-medium mb-4">
                           {formatFee(selectedProgram.fee)}
@@ -738,7 +757,6 @@ export default function HomePage() {
                             ` · ${selectedProgram.schedule_type}`}
                         </p>
                       )}
-
                       {/* Actions */}
                       <div className="flex items-center gap-2">
                         <Button
