@@ -75,7 +75,7 @@ export const institutionLinks: SidebarLink[] = [
         ),
     },
     {
-        label: "My Programs",
+        label: "Post Programs",
         href: "/institution/programs",
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,6 +83,15 @@ export const institutionLinks: SidebarLink[] = [
             </svg>
         ),
     },
+     {
+    label: "Explore Programs",
+    href: "/institution/explore",
+    icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
+    </svg>
+    ),
+},
     {
         label: "Applications",
         href: "/institution/applications",
@@ -123,7 +132,7 @@ export const adminLinks: SidebarLink[] = [
         ),
     },
     {
-        label: "Programs",
+        label: "Post Programs",
         href: "/admin/programs",
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,6 +140,15 @@ export const adminLinks: SidebarLink[] = [
             </svg>
         ),
     },
+    {
+    label: "Explore Programs",
+    href: "/admin/explore",
+    icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
+    </svg>
+    ),
+},
     {
         label: "Institutions",
         href: "/admin/institutions",

@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, CheckCircle2, Copy, X } from "lucide-react";
+type Props = {
+  role: "student" | "admin" | "institution";
+};
 
 /* ─────────────────────────── Types ─────────────────────────── */
 
@@ -197,7 +200,7 @@ function isNewProgram(createdAt: string): boolean {
     return Date.now() - new Date(createdAt).getTime() < twoDaysMs;
 }
 
-function ExplorePage() {
+export default function ExploreProgramView({ role }: Props) {
     const { fetchWithAuth } = useApi();
     const router = useRouter();
     const [urlProgramCode, setUrlProgramCode] = useState<string | null>(null);
@@ -594,7 +597,7 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
     };
 
     return (
-        <DashboardLayout role="student">
+        <DashboardLayout role="institution">
 
             {/* ── Page title + search bar ── */}
             <div className="mb-6">
@@ -790,10 +793,8 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
                                         key={program.id}
                                         program={program}
                                         isSelected={selectedId === program.id}
-                                        isSaved={savedIds.has(program.id)}
                                         studentPrefs={studentPrefs}
                                         onClick={() => viewProgramDetail(program.program_code || String(program.id))}
-                                        onSave={(e) => { e.stopPropagation(); handleSave(program.id); }}
                                     />
                                 ))}
                             </div>
@@ -870,12 +871,10 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
                         /* ── Detail Content ── */
                         <DetailPanel
                             program={selectedProgram}
-                            isSaved={savedIds.has(selectedProgram.id)}
                             isApplied={appliedIds.has(selectedProgram.id)}
                             isApplying={applyingId === selectedProgram.id}
                             studentPrefs={studentPrefs}
                             onApply={handleApply}
-                            onSave={handleSave}
                             onInstitutionClick={(uid: string) => { router.push(`/student/institution/${uid}`); }}
                         />
                     )}
@@ -1157,30 +1156,25 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
     );
 }
 
-export default function ExplorePageWrapper() {
-    return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-9 w-9 border-b-2 border-primary" /></div>}>
-            <ExplorePage />
-        </Suspense>
-    );
+export function ExplorePageWrapper({ role }: { role?: "student" | "admin" | "institute" }) {
+  return (
+    <Suspense fallback={<div>Loading…</div>}>
+      <ExploreProgramView role="institution" />
+    </Suspense>
+  );
 }
-
 /* ─────────────── Left Panel Card ──────────────────────────── */
 
 function ProgramCard({
     program,
     isSelected,
-    isSaved,
     studentPrefs,
     onClick,
-    onSave,
 }: {
     program: Program;
     isSelected: boolean;
-    isSaved: boolean;
     studentPrefs: StudentPrefs | null;
     onClick: () => void;
-    onSave: (e: React.MouseEvent) => void;
 }) {
     const matches = getMatches(program, studentPrefs);
     const tier = program.institution.planTier || "Starter";
@@ -1256,16 +1250,7 @@ function ProgramCard({
                         </span>
                     )}
                 </div>
-                <button
-                    onClick={onSave}
-                    className={`p-1 rounded transition-colors cursor-pointer ${isSaved
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        }`}
-                    aria-label={isSaved ? "Unsave program" : "Save program"}
-                >
-                    <BookmarkIcon filled={isSaved} />
-                </button>
+                
             </div>
 
             {/* Row 2: Title */}
@@ -1342,28 +1327,24 @@ function ProgramCard({
 
 function DetailPanel({
     program,
-    isSaved,
     isApplied,
     isApplying,
     studentPrefs,
     onApply,
-    onSave,
     onInstitutionClick,
 }: {
     program: ProgramDetail;
-    isSaved: boolean;
     isApplied: boolean;
     isApplying: boolean;
     studentPrefs: StudentPrefs | null;
     onApply: (id: number) => void;
-    onSave: (id: number) => void;
     onInstitutionClick: (uniqueId: string) => void;
 }) {
     const matches = getMatches(program, studentPrefs);
     return (
         <div className="w-full flex flex-col">
 
-              {/* ── Top section: title, institution, meta ── */}
+            {/* ── Top section: title, institution, meta ── */}
             <div className="relative px-6 pt-6 pb-5 border-b border-border">
 
                 {/* 2. Badge ko absolute position di hai */}
@@ -1456,17 +1437,7 @@ function DetailPanel({
                         </AntButton>
                     )}
 
-                    {/* Bookmark icon button — filled when saved */}
-                    <button
-                        onClick={() => onSave(program.id)}
-                        aria-label={isSaved ? "Unsave" : "Save"}
-                        className={`h-10 w-10 flex items-center justify-center rounded-full border transition-all cursor-pointer ${isSaved
-                            ? "border-primary text-primary bg-primary/10"
-                            : "border-border bg-muted/50 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/10"
-                            }`}
-                    >
-                        <BookmarkIcon filled={isSaved} />
-                    </button>
+                    
                 </div>
             </div>
 
