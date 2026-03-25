@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Modal, Form, Input as AntInput, Select as AntSelect, message } from "antd";
-import { ExclamationCircleFilled, BookOutlined, TagOutlined, ClockCircleOutlined, BankOutlined } from "@ant-design/icons";
+import { Modal, Form, Input as AntInput, Select as AntSelect, DatePicker as AntDatePicker, Button as AntButton, message } from "antd";
+import { ExclamationCircleFilled, BookOutlined, TagOutlined, ClockCircleOutlined, BankOutlined, CalendarOutlined, LinkOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
     Plus,
     Pencil,
@@ -22,7 +22,18 @@ import {
     DollarSign,
     Power,
     X,
+    Lock,
+    Clock,
+    Calendar,
+    AlertTriangle,
+    ExternalLink,
+    GraduationCap,
+    ClipboardCheck,
+    ChevronRight,
+    MessageSquare,
+    FileText,
 } from "lucide-react";
+import dayjs from "dayjs";
 
 interface ProgramQuestion {
     id?: number;
@@ -81,6 +92,7 @@ export default function AdminProgramsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formState, setFormState] = useState(emptyProgram);
+    const [form, setForm] = useState(emptyProgram);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
     const [formQuestions, setFormQuestions] = useState<ProgramQuestion[]>([]);
@@ -256,7 +268,22 @@ export default function AdminProgramsPage() {
                                     {editingId ? "Edit Program" : "Create New Program"}
                                 </DialogTitle>
                             </DialogHeader>
-                            <Form layout="vertical" onFinish={handleSubmit} requiredMark="optional" disabled={isSubmitting} className="mt-2">
+                            <Form
+                                                        layout="vertical"
+                                                        onFinish={handleSubmit}
+                                                        requiredMark="optional"
+                                                        disabled={isSubmitting}
+                                                        className="mt-2"
+                                                        fields={[
+                                                            { name: "title", value: formState.title },
+                                                            { name: "category", value: formState.category },
+                                                            { name: "duration", value: formState.duration },
+                                                            { name: "eligibility", value: formState.eligibility },
+                                                            { name: "deadline", value: formState.deadline ? dayjs(formState.deadline) : null },
+                                                            { name: "application_method", value: formState.application_method },
+                                                            ...(formState.application_method === "external" ? [{ name: "external_url", value: formState.external_url }] : []),
+                                                        ]}
+                                                    >
                                 <Form.Item label={<span className="font-medium">Program Title</span>} rules={[{ required: true }]}>
                                     <AntInput prefix={<BookOutlined />} placeholder="e.g., BS Computer Science" size="large" value={formState.title} onChange={(e) => setFormState({ ...formState, title: e.target.value })} />
                                 </Form.Item>
@@ -285,9 +312,122 @@ export default function AdminProgramsPage() {
                                 <Form.Item label="Description">
                                     <AntInput.TextArea rows={4} value={formState.description} onChange={(e) => setFormState({ ...formState, description: e.target.value })} style={{ resize: "none" }} />
                                 </Form.Item>
-                                <Button type="submit" disabled={isSubmitting} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
-                                    {editingId ? "Update Program" : "Create Program"}
-                                </Button>
+                                <div className="grid grid-cols-2 gap-4"> 
+                                <Form.Item
+                                    name="deadline"
+                                    label={<span className="font-medium">Deadline</span>}
+                                >
+                                    <AntDatePicker
+                                        suffixIcon={<CalendarOutlined />}
+                                        placeholder="Select deadline"
+                                        size="large"
+                                        className="w-full"
+                                        format="YYYY-MM-DD"
+                                        onChange={(_date, dateString) => setFormState({ ...formState, deadline: dateString as string })}
+                                        getPopupContainer={(trigger) => trigger.parentElement || document.body}
+                                    />
+                                </Form.Item>
+
+                                <Form.Item
+                                    name="application_method"
+                                    label={<span className="font-medium">Application Method</span>}
+                                >
+                                    <AntSelect
+                                        size="large"
+                                        onChange={(value) => setForm({ ...form, application_method: value })}
+                                        getPopupContainer={(trigger) => trigger.parentElement || document.body}
+                                        options={[
+                                            { value: "internal", label: "Internal (via GAP)" },
+                                            { value: "external", label: "External URL" },
+                                        ]}
+                                    />
+                                </Form.Item>
+                            </div>
+
+                            {form.application_method === "external" && (
+                                <Form.Item
+                                    name="external_url"
+                                    label={<span className="font-medium">External URL</span>}
+                                >
+                                    <AntInput
+                                        prefix={<LinkOutlined className="text-gray-400" />}
+                                        placeholder="https://apply.example.com"
+                                        size="large"
+                                        onChange={(e) => setForm({ ...form, external_url: e.target.value })}
+                                    />
+                                </Form.Item>
+                            )}
+
+                            {/* ── Custom Questions Section ── */}
+                            <div className="border border-border rounded-xl p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm flex items-center gap-2">
+                                        <MessageSquare className="size-4 text-blue-500" />
+                                        Application Questions
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormQuestions([...formQuestions, { question: "", is_required: true }])}
+                                        className="text-xs text-blue-600 hover:underline cursor-pointer font-medium"
+                                    >
+                                        + Add Question
+                                    </button>
+                                </div>
+                                {formQuestions.length === 0 && (
+                                    <p className="text-xs text-muted-foreground">No custom questions. Students will only submit their CV when applying.</p>
+                                )}
+                                {formQuestions.map((q, i) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                        <AntInput
+                                            placeholder={`Question ${i + 1}`}
+                                            value={q.question}
+                                            onChange={(e) => {
+                                                const updated = [...formQuestions];
+                                                updated[i] = { ...updated[i], question: e.target.value };
+                                                setFormQuestions(updated);
+                                            }}
+                                            className="flex-1"
+                                        />
+                                        <label className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap mt-1.5 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={q.is_required}
+                                                onChange={(e) => {
+                                                    const updated = [...formQuestions];
+                                                    updated[i] = { ...updated[i], is_required: e.target.checked };
+                                                    setFormQuestions(updated);
+                                                }}
+                                            />
+                                            Required
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormQuestions(formQuestions.filter((_, j) => j !== i))}
+                                            className="p-1 text-red-400 hover:text-red-600 cursor-pointer mt-0.5"
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <Form.Item className="mb-0 pt-2">
+                                <AntButton
+                                    type="primary"
+                                    htmlType="submit"
+                                    loading={isSubmitting}
+                                    icon={isSubmitting ? undefined : (editingId ? <EditOutlined /> : <PlusOutlined />)}
+                                    size="large"
+                                    block
+                                    className="h-12 font-semibold text-[15px]"
+                                    style={{ background: "#2563eb", borderColor: "transparent" }}
+                                >
+                                    {isSubmitting
+                                        ? (editingId ? "Updating..." : "Creating...")
+                                        : (editingId ? "Update Program" : "Create Program")
+                                    }
+                                </AntButton>
+                            </Form.Item>
                             </Form>
                         </DialogContent>
                     </Dialog>

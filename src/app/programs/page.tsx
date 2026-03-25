@@ -682,7 +682,7 @@ export default function HomePage() {
                     {program.postedByPlatform ? (
                       <div className="absolute top-3 right-3">
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
-                          ✦ Posted by DAKHLA
+                          ✦ DAKHLA
                         </span>
                       </div>
                     ) : program.institution.planTier
@@ -775,7 +775,7 @@ export default function HomePage() {
                           </p>
                           <div className="mb-2">
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
-                              ✦ Posted by DAKHLA Platform
+                              ✦ DAKHLA
                             </span>
                           </div>
                         </>
