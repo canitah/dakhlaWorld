@@ -334,7 +334,7 @@ export default function AdminProgramsPage() {
                                 >
                                     <AntSelect
                                         size="large"
-                                        onChange={(value) => setForm({ ...form, application_method: value })}
+                                        onChange={(value) => setFormState({ ...formState, application_method: value })}
                                         getPopupContainer={(trigger) => trigger.parentElement || document.body}
                                         options={[
                                             { value: "internal", label: "Internal (via GAP)" },
@@ -344,7 +344,7 @@ export default function AdminProgramsPage() {
                                 </Form.Item>
                             </div>
 
-                            {form.application_method === "external" && (
+                            {formState.application_method === "external" && (
                                 <Form.Item
                                     name="external_url"
                                     label={<span className="font-medium">External URL</span>}
@@ -353,7 +353,7 @@ export default function AdminProgramsPage() {
                                         prefix={<LinkOutlined className="text-gray-400" />}
                                         placeholder="https://apply.example.com"
                                         size="large"
-                                        onChange={(e) => setForm({ ...form, external_url: e.target.value })}
+                                        onChange={(e) => setFormState({ ...formState, external_url: e.target.value })}
                                     />
                                 </Form.Item>
                             )}

@@ -35,6 +35,7 @@ interface Program {
   category: string | null;
   duration: string | null;
   deadline: string | null;
+  description: string | null;
   fee: number | null;
   schedule_type: string | null;
   study_field: string | null;
@@ -761,26 +762,30 @@ export default function HomePage() {
 
               {selectedProgram ? (
                   <div className="bg-card border border-border rounded-lg md:sticky md:top-[60px] md:max-h-[calc(100vh-240px)] overflow-visible md:overflow-y-auto">
-                    {/* Header */}
-                    <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-border">
-                      <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1">
-                        {selectedProgram.title}
-                      </h2>
+                   {/* Header - Added 'relative' and 'pr-16' for badge space */}
+<div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-border relative">
+  
+  {/* ✦ DAKHLA Badge - Positioned Absolute */}
+  {selectedProgram.postedByPlatform && (
+    <div className="absolute top-4 right-4 sm:top-5 sm:right-6">
+      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+        ✦ DAKHLA
+      </span>
+    </div>
+  )}
 
-                      {/* Institute Name & Badge Logic */}
-                      {selectedProgram.postedByPlatform ? (
-                        <>
-                          <p className="text-sm text-muted-foreground font-medium mb-1">
-                            {selectedProgram.institute_name || "DAKHLA Platform"}
-                          </p>
-                          <div className="mb-2">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
-                              ✦ DAKHLA
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
+  {/* Title - Added padding-right (pr-16) to avoid badge overlap */}
+  <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1 pr-16">
+    {selectedProgram.title}
+  </h2>
+
+  {/* Institute Name & Logic */}
+  {selectedProgram.postedByPlatform ? (
+    <p className="text-sm text-muted-foreground font-medium mb-1">
+      {selectedProgram.institute_name || "DAKHLA Platform"}
+    </p>
+  ) : (
+    <>
                           <p
                             className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
                             onClick={() =>
@@ -800,16 +805,8 @@ export default function HomePage() {
                         </>
                       )}
 
-                      {/* Fee & Schedule */}
-                      {selectedProgram.fee !== null && (
-                        <p className="text-sm text-foreground font-medium mb-4">
-                          {formatFee(selectedProgram.fee)}
-                          {selectedProgram.schedule_type &&
-                            ` · ${selectedProgram.schedule_type}`}
-                        </p>
-                      )}
                       {/* Actions */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mt-2">
                         <Button
                           className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 sm:px-6 h-10 rounded-full shadow-sm"
                           onClick={() => router.push("/signup?role=student")}
@@ -830,7 +827,7 @@ export default function HomePage() {
                       <h3 className="text-base font-bold text-foreground mb-4">
                         Program details
                       </h3>
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {selectedProgram.program_code && (
                           <DetailRow
                             icon={<Hash />}
@@ -953,6 +950,24 @@ export default function HomePage() {
                           }
                         />
                       </div>
+                      
+
+                      {/* Program Description - Block Alignment Fix */}
+{selectedProgram.description && (
+  <div className="mt-8 pt-8 border-t border-gray-100 w-full block text-left" style={{ textAlign: 'left', alignItems: 'flex-start' }}>
+    <div className="flex items-center justify-start gap-2 mb-4 w-full">
+      <h3 className="text-lg font-bold text-gray-900">
+        Program Description
+      </h3>
+    </div>
+    
+    <div className="w-full text-left flex justify-start">
+      <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm sm:text-base w-full text-left" style={{ textAlign: 'left' }}>
+        {selectedProgram.description}
+      </p>
+    </div>
+  </div>
+)}
                     </div>
                   </div>
                 ) : (
