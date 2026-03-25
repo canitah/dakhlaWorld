@@ -24,6 +24,7 @@ import {
   Tag,
   Hash,
   Link2,
+  SlidersHorizontal,
 } from "lucide-react";
 
 /* ─────────────── Types ─────────────── */
@@ -182,6 +183,7 @@ export default function HomePage() {
   scheduleTypes: [], // <--- Default empty array
 });
   const [isLoading, setIsLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false); // Ye filter toggle ke liye
   const [totalResults, setTotalResults] = useState(0);
 
   // Search
@@ -315,8 +317,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
   
-  {/* Search bar (ORIGINAL STYLE RESTORED) */}
-<div className="mt-6 sm:mt-8 w-full max-w-5xl mx-auto px-3 sm:px-4">
+ {/* Search bar */}
+<div className="mt-6 sm:mt-8 mb-4 sm:mb-6 w-full max-w-5xl mx-auto px-3 sm:px-4">
   <form
     onSubmit={handleSearch}
     className="flex items-center bg-white rounded-lg overflow-hidden shadow-lg"
@@ -347,17 +349,64 @@ export default function HomePage() {
 
     {/* Button */}
     <Button
-      type="submit"
-      className="h-12 sm:h-52px px-5 sm:px-7 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-none rounded-r-lg shrink-0"
-    >
-      <Search className="w-4 h-4 sm:hidden" />
-      <span className="hidden sm:inline">Find Programs</span>
-    </Button>
-  </form>
-</div>
+  type="submit"
+  className="h-10 w-10 sm:h-11 sm:w-11 m-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shrink-0 flex items-center justify-center p-0"
+>
+  <Search className="w-5 h-5" />
+</Button>
+          
+        </form>
 
-  {/* Filters Section */}
-<div className="mt-6 sm:mt-8 w-full max-w-5xl mx-auto px-3 sm:px-4 relative z-50">
+<div className="h-6 w-full invisible"></div>
+
+ {/* Filters Section */}
+{showFilters && (
+  <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 relative z-[60] pt-12 sm:pt-16">
+  <div className="w-full overflow-x-auto no-scrollbar touch-pan-x">
+    <div className="flex items-center gap-3 flex-nowrap min-w-max p-1">
+              <h3 className="font-bold text-lg">Filter Programs</h3>
+              <button onClick={() => setShowFilters(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Category</label>
+                <select className="w-full p-2 rounded-md border bg-background text-sm" value={activeCategory} onChange={(e) => setActiveCategory(e.target.value)}>
+                  <option value="">All Categories</option>
+                  {initialFilters.categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* City */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">City</label>
+                <select className="w-full p-2 rounded-md border bg-background text-sm" value={appliedLocation} onChange={(e) => setAppliedLocation(e.target.value)}>
+                  <option value="">All Cities</option>
+                  {initialFilters.cities.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Fee */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Fee Range</label>
+                <select className="w-full p-2 rounded-md border bg-background text-sm" onChange={(e) => {
+                  const range = FEE_RANGES.find(r => r.label === e.target.value);
+                  setActiveFeeRange(range || null);
+                }}>
+                  <option value="">Any Price</option>
+                  {FEE_RANGES.map(r => <option key={r.label} value={r.label}>{r.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={clearFilters}>Reset All</Button>
+              <Button size="sm" className="bg-blue-600 text-white" onClick={() => setShowFilters(false)}>Show Results</Button>
+            </div>
+          </div>
+        </div>
+      )}
   {/* Mobile Scrollable Container */}
   <div className="w-full overflow-x-auto no-scrollbar touch-pan-x 
        /* Ye padding dropdowns ko jagah degi */
