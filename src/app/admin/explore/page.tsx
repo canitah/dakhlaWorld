@@ -7,7 +7,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Button as AntButton, message } from "antd";
-import { CheckCircleOutlined, LoadingOutlined, SendOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, EditOutlined, LoadingOutlined, SendOutlined } from "@ant-design/icons";
 import {
     Dialog,
     DialogContent,
@@ -1421,6 +1421,7 @@ function DetailPanel({
                             Deadline Expired
                         </AntButton>
                     ) : (
+                        <div className="flex flex-col gap-2"> {/* Buttons ko wrap karne ke liye */}
                         <AntButton
                             type="primary"
                             icon={isApplying ? <LoadingOutlined /> : <SendOutlined />}
@@ -1432,6 +1433,22 @@ function DetailPanel({
                         >
                             {isApplying ? "Applying..." : "Apply now"}
                         </AntButton>
+
+                        {/* Naya Edit Button yahan aayega */}
+                            <AntButton
+                                type="default"
+                                icon={<EditOutlined />}
+                                onClick={() => window.location.href = `/admin/edit-program/${program.id}`}
+                                size="large"
+                                shape="round"
+                                className="font-bold text-sm bg-amber-500 text-white border-none hover:bg-amber-600"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                Edit Program
+                            </AntButton>
+
+
+                        </div>
                     )}
 
                     

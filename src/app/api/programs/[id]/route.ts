@@ -85,3 +85,41 @@ export async function GET(
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
+
+// --- PATCH: Admin Edit Logic (Sirf ye hissa add karen) ---
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const body = await request.json();
+
+        // Check if ID is numeric or a code
+        let whereCondition: any = { program_code: id };
+        const numericId = parseInt(id, 10);
+        if (!isNaN(numericId)) {
+            whereCondition = { id: numericId };
+        }
+
+        const updatedProgram = await prisma.program.update({
+            where: whereCondition,
+            data: {
+                title: body.title,
+                category: body.category,
+                duration: body.duration,
+                fee: body.fee,
+                description: body.description,
+                eligibility: body.eligibility,
+                study_field: body.study_field,
+                is_active: body.is_active,
+                deadline: body.deadline ? new Date(body.deadline) : null,
+            },
+        });
+
+        return NextResponse.json({ message: "Updated", updatedProgram });
+    } catch (error) {
+        console.error("Update error:", error);
+        return NextResponse.json({ error: "Failed to update" }, { status: 500 });
+    }
+}
