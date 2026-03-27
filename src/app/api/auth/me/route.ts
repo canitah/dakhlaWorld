@@ -29,6 +29,20 @@ export async function GET(request: Request) {
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
+// ✅ NEW: Blocked User Check
+        if (user.status === "blocked") {
+            const response = NextResponse.json(
+                { error: "Your account is blocked. Contact admin." },
+                { status: 403 }
+            );
+
+            // 🍪 Cookies clear karein takay session khatam ho jaye
+            response.cookies.delete("access_token");
+            // Agar aapka refresh token cookie ka naam 'refresh_token' hai toh wo bhi delete karein
+            response.cookies.set("access_token", "", { expires: new Date(0) }); 
+
+            return response;
+        }
 
         return NextResponse.json({ user });
     } catch (error) {

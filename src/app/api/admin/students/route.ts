@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         const students = await prisma.studentProfile.findMany({
             include: {
                 user: {
-                    select: { email: true, phone: true, created_at: true },
+                    select: { email: true, phone: true, created_at: true, status: true }
                 },
                 applications: {
                     include: {

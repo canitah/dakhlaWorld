@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner"; // Toast import karein
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { setAuth, setLoading, logout } = useAuthStore();
@@ -21,6 +22,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const meRes = await fetch("/api/auth/me", {
                         headers: { Authorization: `Bearer ${accessToken}` },
                     });
+
+                    // 🚨 CHECK: Agar status 403 (Blocked) hai
+                    if (meRes.status === 403) {
+                        toast.error("Your account has been blocked. Please contact admin.");
+                        logout(); // Ye store se user clear kar dega
+                        router.push("/login");
+                        return;
+                    }
 
                     if (meRes.ok) {
                         const { user } = await meRes.json();
@@ -42,8 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 logout();
-            } catch {
+            } catch (error) {
+                console.error("Auth init error:", error);
                 logout();
+            } finally {
+                setLoading(false); // Ensure loading is turned off
             }
         }
 

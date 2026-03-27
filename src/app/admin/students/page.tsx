@@ -27,6 +27,7 @@ interface StudentApp {
 
 interface Student {
     id: number;
+    user_id: number;
     full_name: string | null;
     city: string | null;
     student_type: string | null;
@@ -35,43 +36,79 @@ interface Student {
     cv_url: string | null;
     created_at: string;
     user: {
+        id: number;
         email: string | null;
         phone: string | null;
+        status: string;
         created_at: string;
     };
     applications: StudentApp[];
 }
 
+const EditableDetailItem = ({ label, value, isEditing, onChange }: any) => (
+  <div className="flex flex-col gap-1">
+    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
+    {isEditing ? (
+      <input 
+        className="text-sm font-medium border-b border-blue-400 outline-none bg-transparent w-full pb-0.5 focus:border-blue-600 transition-colors"
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    ) : (
+      <p className="text-sm font-medium text-foreground">{value || "—"}</p>
+    )}
+  </div>
+);
+
 export default function AdminStudentsPage() {
     const { fetchWithAuth } = useApi();
+    const [isEditing, setIsEditing] = useState(false);
+    const [updateSuccess, setUpdateSuccess] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [students, setStudents] = useState<Student[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-    useEffect(() => {
-        loadStudents();
-    }, []);
 
-    async function loadStudents() {
-        setIsLoading(true);
-        try {
-            const res = await fetchWithAuth("/admin/students");
-            if (res.ok) {
-                const data = await res.json();
-                setStudents(data.students || []);
-            }
-        } catch {
-            message.error("Failed to load students");
+   // 1. Pehle Function define karein (Error Fix karne ke liye)
+async function loadStudents() {
+    setIsLoading(true);
+    try {
+        const res = await fetchWithAuth("/admin/students");
+        if (res.ok) {
+            const data = await res.json();
+            // Backend response ke mutabiq data set karein
+            setStudents(data.students || []);
         }
+    } catch (error) {
+        // Aapka original error message
+        message.error("Failed to load students");
+        console.error("Load Error:", error);
+    } finally {
         setIsLoading(false);
     }
+}
 
-    const viewDetail = (student: Student) => {
-        setSelectedStudent(student);
-        setIsDetailOpen(true);
-    };
+// 2. Phir useEffect jo function ko call karega
+useEffect(() => {
+    loadStudents();
+}, []);
+
+// 3. View Detail function
+const viewDetail = (student: Student) => {
+    setSelectedStudent(student);
+    setIsDetailOpen(true);
+};
+
+    const openEditModal = (student: Student) => {
+    console.log("Opening Modal for:", student.full_name); // Check karein console mein
+    // Spread operator use karein taakay naya object reference banay
+    setEditingStudent({ ...student }); 
+    setIsEditOpen(true);
+};
 
     const filtered = students.filter((s) => {
         if (!search.trim()) return true;
@@ -87,6 +124,101 @@ export default function AdminStudentsPage() {
     const totalApps = students.reduce((sum, s) => sum + s.applications.length, 0);
     const studentsWithApps = students.filter((s) => s.applications.length > 0).length;
 
+    
+
+    const handleToggleBlock = async (userId: number, currentStatus: string) => {
+    const newStatus = currentStatus === "blocked" ? "active" : "blocked";
+    try {
+        const res = await fetch(`/api/admin/users/${userId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (res.ok) {
+            message.success(`User ${newStatus === "blocked" ? "blocked" : "unblocked"} successfully`);
+            loadStudents(); // List ko refresh karne ke liye
+        }
+    } catch (error) {
+        message.error("Failed to update status");
+    }
+};
+const handleUpdate = async (student: any) => {
+    const profileId = student.id;
+
+    if (!profileId) {
+        console.error("Profile ID missing");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/admin/manage-students/${profileId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                full_name: student.full_name,
+                city: student.city,
+                phone: student.user?.phone,
+                student_type: student.student_type,
+                education_level: student.education_level,
+                intended_field: student.intended_field,
+            }),
+        });
+
+        if (res.ok) {
+            // Success state on karein
+            setUpdateSuccess(true);
+            setIsEditing(false);
+            loadStudents();
+
+            // 3 seconds baad success message khud hi gayab ho jaye
+            setTimeout(() => {
+                setUpdateSuccess(false);
+            }, 3000);
+
+        } else {
+            const data = await res.json();
+            console.error(`Error: ${data.error}`);
+        }
+    } catch (e) {
+        console.error("Update Error:", e);
+    }
+};
+const toggleStudentStatus = async (student: any) => {
+    if (!student) return;
+
+    const currentStatus = student.user?.status; 
+    const newStatus = currentStatus === 'blocked' ? 'active' : 'blocked';
+    
+    // ✅ UI instant update
+    setStudents(prev => prev.map(s => 
+        s.id === student.id 
+        ? { ...s, user: { ...s.user, status: newStatus } } 
+        : s
+    ));
+
+    try {
+        const res = await fetch(`/api/admin/manage-students/${student.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user: {   // ✅ FIXED
+                    status: newStatus
+                }
+            }),
+        });
+
+        if (!res.ok) {
+            message.error("Database update failed");
+            loadStudents(); 
+        } else {
+            message.success(`Student ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        loadStudents();
+    }
+};
     const exportStudents = () => {
         const data = filtered.map((s) => ({
             Name: s.full_name || "—",
@@ -184,7 +316,21 @@ export default function AdminStudentsPage() {
                                                     {new Date(student.user.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="py-4 text-right">
+                                                    <div className="flex justify-end gap-2">
                                                     <Button size="sm" variant="outline" onClick={() => viewDetail(student)}>View</Button>
+                                                 
+
+        {/* Naya Block/Unblock Button */}
+      <Button 
+        type="button"
+        variant={student.user?.status === 'blocked' ? "default" : "destructive"} 
+        size="sm" 
+        className="font-bold min-w-[85px]"
+        onClick={() => toggleStudentStatus(student)}
+    >
+        {student.user?.status === 'blocked' ? "Unblock" : "Block"}
+    </Button>
+        </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -232,6 +378,16 @@ export default function AdminStudentsPage() {
                                                 <Button size="sm" variant="outline" className="h-8 text-xs px-4" onClick={() => viewDetail(student)}>
                                                     View Details
                                                 </Button>
+                                                {/* MOBILE BLOCK/UNBLOCK BUTTON */}
+                        <Button 
+                            type="button"
+                            variant={student.user?.status === 'blocked' ? "default" : "destructive"} 
+                            size="sm" 
+                            className="h-9 text-xs font-bold"
+                            onClick={() => toggleStudentStatus(student)}
+                        >
+                            {student.user?.status === 'blocked' ? "Unblock" : "Block"}
+                        </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -245,80 +401,203 @@ export default function AdminStudentsPage() {
             {/* Detail Dialog - FIXED: Consistent with Theme */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl p-0 border-none bg-card text-card-foreground">
-                    {/* Dialog Header Blue */}
-                    <div className="bg-blue-600 p-6 text-white">
-                        <DialogTitle className="text-lg flex items-center gap-2 text-white">
-                            <FileText className="size-5" /> Student Profile
-                        </DialogTitle>
-                        <DialogDescription className="text-blue-100 mt-1">
-                            Overview of registration and academic interests.
-                        </DialogDescription>
-                    </div>
+    {/* Dialog Header Blue */}
+    <div className="bg-blue-600 p-6 text-white relative">
+        <DialogTitle className="text-lg flex items-center gap-2 text-white">
+            <FileText className="size-5" /> Student Profile
+        </DialogTitle>
+        <DialogDescription className="text-blue-100 mt-1">
+            Overview of registration and academic interests.
+        </DialogDescription>
+        
+        {/* Edit Toggle Button */}
+        <Button 
+            size="sm" 
+            variant="secondary" 
+            className="absolute top-6 right-12 h-8 text-xs font-bold"
+            onClick={() => setIsEditing(!isEditing)}
+        >
+            {isEditing ? "Cancel" : "Edit Profile"}
+        </Button>
+    </div>
 
-                    {selectedStudent && (
-                        <div className="p-6 space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 bg-muted/20 p-4 rounded-xl border border-border">
-                                <DetailItem label="Full Name" value={selectedStudent.full_name} />
-                                <DetailItem label="Email" value={selectedStudent.user.email} />
-                                <DetailItem label="Phone" value={selectedStudent.user.phone} />
-                                <DetailItem label="City" value={selectedStudent.city} />
-                                <DetailItem label="Student Type" value={selectedStudent.student_type} />
-                                <DetailItem label="Education" value={selectedStudent.education_level} />
-                                <DetailItem label="Intended Field" value={selectedStudent.intended_field} />
-                                <DetailItem label="Registered" value={new Date(selectedStudent.user.created_at).toLocaleDateString()} />
-                            </div>
+    {selectedStudent && (
+        <div className="p-6 space-y-6">
+            {/* Success Notification Banner */}
+        {updateSuccess && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-3 rounded-lg flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-sm font-bold">Profile updated successfully!</p>
+            </div>
+        )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 bg-muted/20 p-4 rounded-xl border border-border">
+                
+                {/* Editable Fields using your layout */}
+                <EditableDetailItem 
+                    label="Full Name" 
+                    value={selectedStudent.full_name} 
+                    isEditing={isEditing}
+                    onChange={(val) => setSelectedStudent({...selectedStudent, full_name: val})}
+                />
+                
+                <DetailItem label="Email" value={selectedStudent.user.email} /> {/* Email usually fixed */}
+                
+                <EditableDetailItem 
+                    label="Phone" 
+                    value={selectedStudent.user.phone} 
+                    isEditing={isEditing}
+                    onChange={(val) => setSelectedStudent({...selectedStudent, user: {...selectedStudent.user, phone: val}})}
+                />
 
-                            {selectedStudent.cv_url && (
-                                <div className="border-t border-border pt-4">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Documents</p>
-                                    <a
-                                        href={selectedStudent.cv_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-lg hover:bg-blue-100 transition-all w-full justify-center"
-                                    >
-                                        <Eye className="size-4" /> View Full CV / Resume
-                                    </a>
-                                </div>
-                            )}
+                <EditableDetailItem 
+                    label="City" 
+                    value={selectedStudent.city} 
+                    isEditing={isEditing}
+                    onChange={(val) => setSelectedStudent({...selectedStudent, city: val})}
+                />
 
-                            <div className="border-t border-border pt-4">
-                                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                                    <Badge variant="outline">{selectedStudent.applications.length}</Badge>
-                                    Submitted Applications
-                                </h4>
-                                {selectedStudent.applications.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground italic">No applications submitted yet.</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {selectedStudent.applications.map((app) => (
-                                            <div key={app.id} className="border border-border rounded-xl p-4 bg-muted/10 border-l-4 border-l-blue-500">
-                                                <div className="flex justify-between items-start gap-2">
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-foreground truncate">{app.program.title}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            {app.program.institution?.name || "DAKHLA Platform"}
-                                                        </p>
-                                                        <p className="text-[10px] text-muted-foreground mt-1 font-mono uppercase bg-muted px-1 rounded inline-block">
-                                                            {app.application_code}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right shrink-0">
-                                                        <StatusBadge status={app.status} />
-                                                        <p className="text-[10px] text-muted-foreground mt-2">
-                                                            {new Date(app.created_at).toLocaleDateString()}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                <EditableDetailItem 
+                    label="Student Type" 
+                    value={selectedStudent.student_type} 
+                    isEditing={isEditing}
+                    onChange={(val) => setSelectedStudent({...selectedStudent, student_type: val})}
+                />
+
+                <EditableDetailItem 
+                    label="Education" 
+                    value={selectedStudent.education_level} 
+                    isEditing={isEditing}
+                    onChange={(val) => setSelectedStudent({...selectedStudent, education_level: val})}
+                />
+
+                <EditableDetailItem 
+                    label="Intended Field" 
+                    value={selectedStudent.intended_field} 
+                    isEditing={isEditing}
+                    onChange={(val) => setSelectedStudent({...selectedStudent, intended_field: val})}
+                />
+
+                <DetailItem label="Registered" value={new Date(selectedStudent.user.created_at).toLocaleDateString()} />
+            </div>
+
+            {/* Save Changes Button - Only shows when editing */}
+            {isEditing && (
+                <Button 
+    className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg py-6 rounded-xl font-bold"
+    onClick={() => {
+        // Debugging: Browser console (F12) mein check karein
+        console.log("Selected Student Object:", selectedStudent);
+        
+        // Agar 'id' missing hai lekin 'user_id' hai, to hum usay use kar sakte hain
+        const targetId = selectedStudent.id || selectedStudent.user_id;
+        
+        if (!targetId) {
+            alert("Error: No ID found for this student!");
+            return;
+        }
+        
+        handleUpdate({ ...selectedStudent, id: targetId });
+    }}
+>
+    Update Profile
+</Button>
+            )}
+
+            {/* Documents Section - Original */}
+            {selectedStudent.cv_url && (
+                <div className="border-t border-border pt-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Documents</p>
+                    <a
+                        href={selectedStudent.cv_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-lg hover:bg-blue-100 transition-all w-full justify-center"
+                    >
+                        <Eye className="size-4" /> View Full CV / Resume
+                    </a>
+                </div>
+            )}
+
+            {/* Applications Section - Original */}
+            <div className="border-t border-border pt-4">
+                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                    <Badge variant="outline">{selectedStudent.applications.length}</Badge>
+                    Submitted Applications
+                </h4>
+                {selectedStudent.applications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">No applications submitted yet.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {selectedStudent.applications.map((app) => (
+                            <div key={app.id} className="border border-border rounded-xl p-4 bg-muted/10 border-l-4 border-l-blue-500">
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-foreground truncate">{app.program.title}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {app.program.institution?.name || "DAKHLA Platform"}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground mt-1 font-mono uppercase bg-muted px-1 rounded inline-block">
+                                            {app.application_code}
+                                        </p>
                                     </div>
-                                )}
+                                    <div className="text-right shrink-0">
+                                        <StatusBadge status={app.status} />
+                                        <p className="text-[10px] text-muted-foreground mt-2">
+                                            {new Date(app.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </DialogContent>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    )}
+</DialogContent>
             </Dialog>
+
+                    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+    <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+            <DialogTitle>Edit Student Profile</DialogTitle>
+{/* Debug line */}
+<p className="text-xs text-red-500">ID: {editingStudent?.id} - Name: {editingStudent?.full_name}</p>
+        </DialogHeader>
+        
+        {editingStudent && (
+            <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                    <label className="text-sm font-medium">Full Name</label>
+                    <Input 
+                        value={editingStudent.full_name || ""} 
+                        onChange={(e) => setEditingStudent({...editingStudent, full_name: e.target.value})}
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <label className="text-sm font-medium">City</label>
+                    <Input 
+                        value={editingStudent.city || ""} 
+                        onChange={(e) => setEditingStudent({...editingStudent, city: e.target.value})}
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <label className="text-sm font-medium">Field of Interest</label>
+                    <Input 
+                        value={editingStudent.intended_field || ""} 
+                        onChange={(e) => setEditingStudent({...editingStudent, intended_field: e.target.value})}
+                    />
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-4">
+                    <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+                    <Button onClick={() => handleUpdate(editingStudent)}>Save Changes</Button>
+                </div>
+            </div>
+        )}
+    </DialogContent>
+</Dialog>
+
         </DashboardLayout>
     );
 }

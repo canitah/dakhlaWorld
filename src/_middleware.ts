@@ -25,9 +25,13 @@ const publicPaths = [
 ];
 
 function isPublicPath(pathname: string): boolean {
-    return publicPaths.some(
-        (p) => pathname === p || pathname.startsWith(`${p}/`)
-    );
+    return publicPaths.some((p) => {
+        // Agar public path sirf "/" hai, toh exact match check karein
+        if (p === "/") return pathname === "/";
+        
+        // Baqi paths ke liye exact match ya prefix match (e.g., /programs/123)
+        return pathname === p || pathname.startsWith(`${p}/`);
+    });
 }
 
 export async function middleware(request: NextRequest) {
@@ -80,9 +84,14 @@ export async function middleware(request: NextRequest) {
         const matchedPrefix = dashboardPrefixes.find((p) => pathname.startsWith(p));
 
         if (matchedPrefix) {
-            const requiredRole = matchedPrefix.slice(1);
-            if (role !== requiredRole) {
-                return NextResponse.redirect(new URL(`/${role}`, request.url));
+        const requiredRole = matchedPrefix.replace("/", ""); // e.g., "admin"
+        if (role !== requiredRole) {
+        console.warn(`🚨 Access Denied! Role [${role}] tried to access [${pathname}]`);
+        
+        // Usey uske apne dashboard ke root par bhej dein
+        // Example: Admin student page kholega toh /admin par chala jayega
+        const redirectUrl = new URL(`/${role}`, request.url);
+        return NextResponse.redirect(redirectUrl);
             }
         }
 
@@ -97,5 +106,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+    // Ye matcher ab har cheez ko pakray ga siwaye static files ke
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

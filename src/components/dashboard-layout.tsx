@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useSidebar } from "@/store/sidebar-store";
@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { Tooltip } from "antd";
 import { PlanBadgeCompact } from "@/components/plan-badge";
 import { ThemeLogo } from "@/components/theme-logo";
+import { useAuthStore } from "@/store/auth-store";
 
 interface SidebarLink {
     label: string;
@@ -418,6 +419,28 @@ export function DashboardLayout({
     children: React.ReactNode;
 }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
+    const { user } = useAuthStore(); // 1. Ye add karein
+    const router = useRouter();               // 2. Ye add karein
+    const pathname = usePathname();           // 3. Ye add karein
+
+    // 4. Ye validation logic add karein
+    useEffect(() => {
+        if (user) {
+            const currentPathRole = pathname.split("/")[1]; // URL se role nikalna
+            const dashboardRoles = ["admin", "student", "institution"];
+
+            // Agar Admin student ke page par ho (role mismatch)
+            if (dashboardRoles.includes(currentPathRole) && user.role !== currentPathRole) {
+                router.replace(`/${user.role}`); // Wapis uske sahi portal bhej do
+            }
+        }
+    }, [user, pathname, router]);
+
+    // 5. Jab tak verify ho raha ho, content na dikhayein (Optional but recommended)
+    const currentPathRole = pathname.split("/")[1];
+    if (user && user.role !== currentPathRole && ["admin", "student", "institution"].includes(currentPathRole)) {
+        return <div className="h-screen flex items-center justify-center">Verifying access...</div>;
+    }
 
     return (
         <div className="min-h-screen bg-background">

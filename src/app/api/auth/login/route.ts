@@ -78,9 +78,9 @@ export async function POST(request: Request) {
         }
 
         // Check if account is suspended
-        if (user.status === "suspended") {
+        if (user.status === "blocked") {
             return NextResponse.json(
-                { error: "Your account has been suspended" },
+                { error: "Your account has been blocked" },
                 { status: 403 }
             );
         }
