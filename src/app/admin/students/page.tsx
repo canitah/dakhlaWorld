@@ -437,7 +437,7 @@ const toggleStudentStatus = async (student: any) => {
                     label="Full Name" 
                     value={selectedStudent.full_name} 
                     isEditing={isEditing}
-                    onChange={(val) => setSelectedStudent({...selectedStudent, full_name: val})}
+                    onChange={(val: any) => setSelectedStudent({...selectedStudent, full_name: val})}
                 />
                 
                 <DetailItem label="Email" value={selectedStudent.user.email} /> {/* Email usually fixed */}
@@ -446,35 +446,35 @@ const toggleStudentStatus = async (student: any) => {
                     label="Phone" 
                     value={selectedStudent.user.phone} 
                     isEditing={isEditing}
-                    onChange={(val) => setSelectedStudent({...selectedStudent, user: {...selectedStudent.user, phone: val}})}
+                    onChange={(val: any) => setSelectedStudent({...selectedStudent, user: {...selectedStudent.user, phone: val}})}
                 />
 
                 <EditableDetailItem 
                     label="City" 
                     value={selectedStudent.city} 
                     isEditing={isEditing}
-                    onChange={(val) => setSelectedStudent({...selectedStudent, city: val})}
+                    onChange={(val: any) => setSelectedStudent({...selectedStudent, city: val})}
                 />
 
                 <EditableDetailItem 
                     label="Student Type" 
                     value={selectedStudent.student_type} 
                     isEditing={isEditing}
-                    onChange={(val) => setSelectedStudent({...selectedStudent, student_type: val})}
+                    onChange={(val: any) => setSelectedStudent({...selectedStudent, student_type: val})}
                 />
 
                 <EditableDetailItem 
                     label="Education" 
                     value={selectedStudent.education_level} 
                     isEditing={isEditing}
-                    onChange={(val) => setSelectedStudent({...selectedStudent, education_level: val})}
+                    onChange={(val: any) => setSelectedStudent({...selectedStudent, education_level: val})}
                 />
 
                 <EditableDetailItem 
                     label="Intended Field" 
                     value={selectedStudent.intended_field} 
                     isEditing={isEditing}
-                    onChange={(val) => setSelectedStudent({...selectedStudent, intended_field: val})}
+                    onChange={(val: any) => setSelectedStudent({...selectedStudent, intended_field: val})}
                 />
 
                 <DetailItem label="Registered" value={new Date(selectedStudent.user.created_at).toLocaleDateString()} />
