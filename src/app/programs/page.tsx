@@ -142,7 +142,7 @@ function FilterDropdown({
         onClick={toggle}
         className={`inline-flex items-center gap-1.5 h-8 px-3 text-xs sm:text-sm font-medium rounded-full border transition-colors whitespace-nowrap ${
           isActive
-            ? "bg-blue-600 text-white border-blue-600"
+            ? "bg-[#008cff] text-white border-[008cff]"
             : "bg-white text-gray-900 border-gray-300 hover:bg-gray-100 hover:border-gray-400 dark:bg-white/10 dark:text-white dark:border-white/30 dark:hover:bg-white/20 dark:hover:border-white/50 backdrop-blur-sm"
         }`}
       >
@@ -351,7 +351,7 @@ export default function HomePage() {
     {/* Button */}
     <Button
   type="submit"
-  className="h-10 w-10 sm:h-11 sm:w-11 m-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shrink-0 flex items-center justify-center p-0"
+  className="h-10 w-10 sm:h-11 sm:w-11 m-1 bg-[#008cff] hover:bg-[#0066cc] text-white rounded-lg shrink-0 flex items-center justify-center p-0"
 >
   <Search className="w-5 h-5" />
 </Button>
@@ -403,7 +403,7 @@ export default function HomePage() {
 
             <div className="mt-6 flex justify-end gap-3 border-t pt-4">
               <Button variant="ghost" size="sm" onClick={clearFilters}>Reset All</Button>
-              <Button size="sm" className="bg-blue-600 text-white" onClick={() => setShowFilters(false)}>Show Results</Button>
+              <Button size="sm" className="bg-[#008cff] text-white" onClick={() => setShowFilters(false)}>Show Results</Button>
             </div>
           </div>
         </div>
@@ -429,7 +429,7 @@ export default function HomePage() {
               <button
                 key={range.label}
                 onClick={() => setActiveFeeRange(activeFeeRange?.label === range.label ? null : range)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${activeFeeRange?.label === range.label ? "text-blue-600 font-semibold" : ""}`}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${activeFeeRange?.label === range.label ? "text-[#008cff] font-semibold" : ""}`}
               >
                 {range.label}
               </button>
@@ -452,7 +452,7 @@ export default function HomePage() {
               <button
                 key={name}
                 onClick={() => setActiveCompany(activeCompany === name ? "" : name)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent truncate ${activeCompany === name ? "text-blue-600 font-semibold" : ""}`}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent truncate ${activeCompany === name ? "text-[#008cff] font-semibold" : ""}`}
               >
                 {name}
               </button>
@@ -475,7 +475,7 @@ export default function HomePage() {
               <button
                 key={st}
                 onClick={() => setActiveSchedule(activeSchedule === st ? "" : st)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${activeSchedule === st ? "text-blue-600 font-semibold" : ""}`}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${activeSchedule === st ? "text-[#008cff] font-semibold" : ""}`}
               >
                 {st}
               </button>
@@ -498,7 +498,7 @@ export default function HomePage() {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(activeCategory === cat ? "" : cat)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${activeCategory === cat ? "text-blue-600 font-semibold" : ""}`}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${activeCategory === cat ? "text-[#008cff] font-semibold" : ""}`}
               >
                 {cat}
               </button>
@@ -528,7 +528,7 @@ export default function HomePage() {
                   setLocationQuery(next);
                   setAppliedLocation(next);
                 }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${appliedLocation === city ? "text-blue-600 font-semibold" : ""}`}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-accent ${appliedLocation === city ? "text-[#008cff] font-semibold" : ""}`}
               >
                 {city}
               </button>
@@ -552,7 +552,7 @@ export default function HomePage() {
                 <button
                   key={opt.value}
                   onClick={() => setActiveDatePosted(activeDatePosted === opt.value ? "" : opt.value)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${activeDatePosted === opt.value ? "text-blue-600 font-semibold" : ""}`}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors ${activeDatePosted === opt.value ? "text-[#008cff] font-semibold" : ""}`}
                 >
                   {opt.label}
                 </button>
@@ -583,14 +583,14 @@ export default function HomePage() {
               {appliedLocation ? (
                 <span>
                   Programs in{" "}
-                  <span className="text-blue-600 font-medium">
+                  <span className="text-[#008cff] font-medium">
                     {appliedLocation}
                   </span>
                 </span>
               ) : activeCompany ? (
                 <span>
                   Programs by{" "}
-                  <span className="text-blue-600 font-medium">
+                  <span className="text-[#008cff] font-medium">
                     {activeCompany}
                   </span>
                 </span>
@@ -611,7 +611,7 @@ export default function HomePage() {
                   onClick={() => setSortBy("relevance")}
                   className={`font-medium px-1 ${
                     sortBy === "relevance"
-                      ? "text-blue-600 underline underline-offset-4"
+                      ? "text-[#008cff] underline underline-offset-4"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -622,7 +622,7 @@ export default function HomePage() {
                   onClick={() => setSortBy("date")}
                   className={`font-medium px-1 ${
                     sortBy === "date"
-                      ? "text-blue-600 underline underline-offset-4"
+                      ? "text-[#008cff] underline underline-offset-4"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -634,7 +634,7 @@ export default function HomePage() {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#008cff]" />
             </div>
           ) : programs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
@@ -675,14 +675,14 @@ export default function HomePage() {
                     }}
                     className={`group relative bg-card rounded-lg border p-3 sm:p-4 cursor-pointer transition-all duration-150 hover:shadow-md ${
                       selectedProgram?.id === program.id
-                        ? "border-blue-500 shadow-md ring-1 ring-blue-500/30"
+                        ? "border-[#008cff] shadow-md ring-1 ring-blue-500/30"
                         : "border-border hover:border-blue-300"
                     }`}
                   >
                     {/* Badge for featured or platform */}
                     {program.postedByPlatform ? (
                       <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-100 dark:bg-blue-500/15 text-[#008cff] dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
                           ✦ DAKHLA
                         </span>
                       </div>
@@ -696,7 +696,7 @@ export default function HomePage() {
                       </div>
                     ) : null}
 
-                    <h3 className="text-sm sm:text-[15px] font-bold text-foreground leading-snug mb-1 pr-16 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-sm sm:text-[15px] font-bold text-foreground leading-snug mb-1 pr-16 group-hover:text-[#008cff] transition-colors">
                       {program.title}
                     </h3>
 
@@ -754,7 +754,7 @@ export default function HomePage() {
               >
                 {/* Mobile back */}
                 <button
-                  className="md:hidden flex items-center gap-2 text-sm font-medium text-blue-600 mb-3 cursor-pointer"
+                  className="md:hidden flex items-center gap-2 text-sm font-medium text-[#008cff] mb-3 cursor-pointer"
                   onClick={() => setMobileView("list")}
                 >
                   ← Back to results
@@ -768,7 +768,7 @@ export default function HomePage() {
   {/* ✦ DAKHLA Badge - Positioned Absolute */}
   {selectedProgram.postedByPlatform && (
     <div className="absolute top-4 right-4 sm:top-5 sm:right-6">
-      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
+      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-blue-100 dark:bg-blue-500/15 text-[#008cff] dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-500/30">
         ✦ DAKHLA
       </span>
     </div>
@@ -787,7 +787,7 @@ export default function HomePage() {
   ) : (
     <>
                           <p
-                            className="text-sm text-blue-600 font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
+                            className="text-sm text-[#008cff] font-medium flex items-center gap-1.5 mb-0.5 cursor-pointer hover:underline"
                             onClick={() =>
                               router.push(
                                 `/institution-detail/${selectedProgram.institution.uniqueId}`
@@ -808,13 +808,13 @@ export default function HomePage() {
                       {/* Actions */}
                       <div className="flex items-center gap-2 mt-2">
                         <Button
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 sm:px-6 h-10 rounded-full shadow-sm"
+                          className="bg-[#008cff] hover:bg-[#0066cc] text-white font-bold text-sm px-5 sm:px-6 h-10 rounded-full shadow-sm"
                           onClick={() => router.push("/signup?role=student")}
                         >
                           Apply now
                         </Button>
                         <button
-                          className="h-10 w-10 flex items-center justify-center rounded-full border border-border hover:border-blue-400 transition-colors text-muted-foreground hover:text-blue-600"
+                          className="h-10 w-10 flex items-center justify-center rounded-full border border-border hover:border-[#006eff] transition-colors text-muted-foreground hover:text-[#008cff]"
                           onClick={() => router.push("/login")}
                         >
                           <Bookmark className="w-4 h-4" />
@@ -904,7 +904,7 @@ export default function HomePage() {
                                   href={selectedProgram.external_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline break-all"
+                                  className="text-sm text-[#008cff] hover:underline break-all"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {selectedProgram.external_url}
@@ -954,15 +954,15 @@ export default function HomePage() {
 
                       {/* Program Description - Block Alignment Fix */}
 {selectedProgram.description && (
-  <div className="mt-8 pt-8 border-t border-gray-100 w-full block text-left" style={{ textAlign: 'left', alignItems: 'flex-start' }}>
+  <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-800 w-full block text-left">
     <div className="flex items-center justify-start gap-2 mb-4 w-full">
-      <h3 className="text-lg font-bold text-gray-900">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
         Program Description
       </h3>
     </div>
     
     <div className="w-full text-left flex justify-start">
-      <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm sm:text-base w-full text-left" style={{ textAlign: 'left' }}>
+      <p className="dark:text-slate-300 leading-relaxed whitespace-pre-line text-sm sm:text-base w-full text-left" style={{ textAlign: 'left' }}>
         {selectedProgram.description}
       </p>
     </div>
@@ -1001,21 +1001,9 @@ export default function HomePage() {
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <Link
               href="/terms"
-              className="hover:text-blue-600 transition-colors"
+              className="hover:text-[#008cff] transition-colors"
             >
-              Terms
-            </Link>
-            <Link
-              href="/privacy"
-              className="hover:text-blue-600 transition-colors"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/help"
-              className="hover:text-blue-600 transition-colors"
-            >
-              Help
+              Terms & Conditions
             </Link>
           </div>
         </div>

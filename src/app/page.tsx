@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import Trustbar from "@/components/Trustbar";
 import { Button } from "@/components/ui/button";
 import { ThemeLogo } from "@/components/theme-logo";
 import {
@@ -275,7 +276,7 @@ export default function HomePage() {
               <nav className="hidden sm:flex items-center gap-1">
                 <Link
                   href="/"
-                  className="px-3 py-1.5 text-sm font-semibold text-foreground border-b-2 border-blue-600"
+                  className="px-3 py-1.5 text-sm font-semibold text-foreground border-b-2 border-[#008cff] border-opacity-0 hover:border-opacity-100 transition-colors"
                 >
                   Home
                 </Link>
@@ -341,7 +342,7 @@ export default function HomePage() {
             </div>
             {/* Sidebar nav */}
             <nav className="flex-1 py-3 px-3 space-y-1">
-              <Link href="/" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-[#008cff] bg-blue-50 dark:bg-blue-500/10 rounded-lg" onClick={() => setMobileMenuOpen(false)}>
                 Home
               </Link>
               <Link href="/signup?role=institution" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent rounded-lg" onClick={() => setMobileMenuOpen(false)}>
@@ -409,7 +410,7 @@ export default function HomePage() {
 
           <Button
             type="submit"
-            className="h-14 sm:h-[56px] px-5 sm:px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold sm:font-semibold shrink-0 rounded-none transition-all active:scale-95"
+            className="h-14 sm:h-[56px] px-5 sm:px-8 bg-[#008cff] hover:bg-[#0066cc] text-white font-bold sm:font-semibold shrink-0 rounded-none transition-all active:scale-95"
           >
             <Search className="w-6 h-6 sm:hidden" />
             <span className="hidden sm:inline text-sm">Find Programs</span>
@@ -455,6 +456,9 @@ export default function HomePage() {
 </section>
 
 
+      {/* ═══════════ TRUSTBAR CAROUSEL ═══════════ */}
+      <Trustbar /> 
+
       {/* ═══════════ TESTIMONIALS CAROUSEL ═══════════ */}
       <TestimonialsSection />
 
@@ -466,9 +470,7 @@ export default function HomePage() {
             <span className="text-xs text-muted-foreground">© 2026 dakhla. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link href="/terms" className="hover:text-blue-600 transition-colors">Terms</Link>
-            <Link href="/privacy" className="hover:text-blue-600 transition-colors">Privacy</Link>
-            <Link href="/help" className="hover:text-blue-600 transition-colors">Help</Link>
+            <Link href="/terms" className="hover:text-[#008cff] transition-colors">Terms & Conditions</Link>
           </div>
         </div>
       </footer>
@@ -571,7 +573,7 @@ function TestimonialsSection() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-semibold mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[#008cff] dark:text-blue-400 text-sm font-semibold mb-4">
             <Star className="w-4 h-4 fill-current" />
             What Students Say
           </div>
@@ -591,7 +593,7 @@ function TestimonialsSection() {
                 key={i}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/80 backdrop-blur-sm text-sm font-medium text-muted-foreground shrink-0"
               >
-                <Quote className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <Quote className="w-3.5 h-3.5 text-[#008cff] shrink-0" />
                 {q}
               </span>
             ))}
@@ -605,7 +607,7 @@ function TestimonialsSection() {
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${activeTab === tab.value
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                ? "bg-[#008cff] text-white shadow-md shadow-blue-600/20"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-blue-300"
                 }`}
             >
@@ -628,7 +630,7 @@ function TestimonialsSection() {
               {/* Quote icon */}
               <div className="relative mb-5">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 flex items-center justify-center ring-1 ring-blue-500/10">
-                  <Quote className="w-6 h-6 text-blue-500" />
+                  <Quote className="w-6 h-6 text-[#008cff]" />
                 </div>
               </div>
 
@@ -669,7 +671,7 @@ function TestimonialsSection() {
                   key={i}
                   onClick={() => setCurrentSlide(i)}
                   className={`h-2.5 rounded-full transition-all duration-300 ${currentSlide === i
-                    ? "w-8 bg-blue-600"
+                    ? "w-8 bg-[#008cff]"
                     : "w-2.5 bg-border hover:bg-muted-foreground/50"
                     }`}
                 />

@@ -545,9 +545,9 @@ export function Navbar() {
     if (!showDashboardNav) {
         const landingLinks = [
             { label: "Home", href: "/" },
-            { label: "About", href: "#about" },
-            { label: "Programs", href: "#programs" },
-            { label: "Contact", href: "#contact" },
+            { label: "About", href: "/about" },
+            { label: "Programs", href: "/programs" },
+            { label: "Contact", href: "/contact" },
         ];
 
         return (
@@ -605,7 +605,7 @@ export function Navbar() {
                             </Button>
 
                             {/* Get Started CTA — desktop only */}
-                            <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full px-6 h-9 text-sm shadow-md shadow-blue-600/20 hidden md:inline-flex">
+                            <Button asChild className="bg-[#008cff] hover:bg-[#0066cc] text-white font-semibold rounded-full px-6 h-9 text-sm shadow-md shadow-[#008cff]/20 hidden md:inline-flex">
                                 <Link href="/signup">Get Started</Link>
                             </Button>
 

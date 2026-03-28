@@ -211,7 +211,7 @@ export default function LoginPage() {
                         <ThemeLogo className="h-16 w-auto object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
-                    <p className="text-muted-foreground">Sign in to your dakhla. account</p>
+                    <p className="text-muted-foreground">Sign in to your Dakhla account</p>
                 </div>
 
                 <Card className="border border-border shadow-sm">
@@ -260,7 +260,7 @@ export default function LoginPage() {
                                     </Label>
                                     <Link
                                         href="/forgot-password"
-                                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                                        className="text-sm text-[#008cff] hover:text-[#0066cc] hover:underline font-medium"
                                     >
                                         Forgot password?
                                     </Link>
@@ -309,7 +309,7 @@ export default function LoginPage() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 h-11 text-base font-medium shadow-sm"
+                                className="w-full bg-[#008cff] hover:bg-[#0066cc] h-11 text-base font-medium shadow-sm"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
@@ -346,7 +346,7 @@ export default function LoginPage() {
                                 Don&apos;t have an account?{" "}
                                 <Link
                                     href="/signup"
-                                    className="text-blue-600 font-semibold hover:text-blue-700 hover:underline"
+                                    className="text-[#008cff] font-semibold hover:text-[#0066cc] hover:underline"
                                 >
                                     Sign up
                                 </Link>

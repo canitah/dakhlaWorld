@@ -702,7 +702,7 @@ function SignupForm() {
                         <ThemeLogo className="h-16 w-auto object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-foreground mb-2">Create Account</h1>
-                    <p className="text-muted-foreground">Join dakhla. and start your journey</p>
+                    <p className="text-muted-foreground">Join Dakhla and start your journey.</p>
                 </div>
 
                 <Card className="border border-border shadow-sm">
@@ -717,7 +717,7 @@ function SignupForm() {
                                     <button
                                         type="button"
                                         className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all cursor-pointer ${formData.role === "student"
-                                            ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                            ? "border-[#008cff] bg-[#008cff]/10 text-[#008cff] dark:text-[#0066cc]"
                                             : "border-border bg-card text-foreground hover:border-muted-foreground"
                                             }`}
                                         onClick={() =>
@@ -742,7 +742,7 @@ function SignupForm() {
                                     <button
                                         type="button"
                                         className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 transition-all cursor-pointer ${formData.role === "institution"
-                                            ? "border-blue-600 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                            ? "border-[#008cff] bg-[#008cff]/10 text-[#008cff] dark:text-[#0066cc]"
                                             : "border-border bg-card text-foreground hover:border-muted-foreground"
                                             }`}
                                         onClick={() =>
@@ -945,7 +945,7 @@ function SignupForm() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 h-11 text-base font-medium shadow-sm"
+                                className="w-full bg-[#008cff] hover:bg-[#0066cc] h-11 text-base font-medium shadow-sm"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
@@ -982,7 +982,7 @@ function SignupForm() {
                                 Already have an account?{" "}
                                 <Link
                                     href="/login"
-                                    className="text-blue-600 font-semibold hover:text-blue-700 hover:underline"
+                                    className="text-[#008cff] font-semibold hover:text-[#0066cc] hover:underline"
                                 >
                                     Sign in
                                 </Link>
@@ -992,11 +992,11 @@ function SignupForm() {
                         <div className="mt-6 pt-6 border-t border-border">
                             <p className="text-xs text-center text-muted-foreground">
                                 By creating an account, you agree to our{" "}
-                                <Link href="/terms" className="text-blue-600 hover:underline">
+                                <Link href="/terms" className="text-[#008cff] hover:underline">
                                     Terms of Service
                                 </Link>{" "}
                                 and{" "}
-                                <Link href="/privacy" className="text-blue-600 hover:underline">
+                                <Link href="/privacy" className="text-[#008cff] hover:underline">
                                     Privacy Policy
                                 </Link>
                             </p>
