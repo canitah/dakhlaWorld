@@ -101,7 +101,7 @@ export default function AdminProgramsPage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const filteredPrograms = useMemo((): Program[] => {
-        return programs.filter((p) => {
+        return programs.filter((p: Program) => {
             const searchLower = searchQuery.toLowerCase();
             return (
                 p.title.toLowerCase().includes(searchLower) ||
@@ -508,7 +508,11 @@ const handleDuplicate = async (program: any) => {
                 <div className="flex flex-col md:flex-row gap-5 items-start">
                     <div className="hidden md:block w-[420px] shrink-0 space-y-4">
                         {filteredPrograms.map((p) => (
-                            <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={selectedProgram?.id === p.id} onDuplicate={handleDuplicate}   />
+                            <ProgramCard key={(p as Program).id} 
+        program={p as Program} 
+        onClick={() => selectProgram(p as Program)} 
+        isSelected={(selectedProgram as Program | null)?.id === (p as Program).id} 
+        onDuplicate={handleDuplicate}  />
                         ))}
                     </div>
                     <ProgramDetailPanel program={selectedProgram} onClose={() => selectProgram(null)} onEdit={handleEdit} onDelete={handleDeleteRequest} onToggleActive={handleToggleActive} />
@@ -516,7 +520,7 @@ const handleDuplicate = async (program: any) => {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {filteredPrograms.map((p) => (
-                        <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={selectedProgram?.id === p.id} onDuplicate={handleDuplicate}   />
+                        <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={(selectedProgram as Program | null)?.id === (p as Program).id} onDuplicate={handleDuplicate}   />
                     ))}
                 </div>
             )}

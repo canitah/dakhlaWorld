@@ -74,7 +74,7 @@ export default function ContactPage() {
                 <ContactDetail 
                   icon={<Phone className="w-5 h-5" />} 
                   title="Call Us" 
-                  value="+92 3441284568" 
+                  value="+92 3032941917" 
                 />
                 <ContactDetail 
                   icon={<Mail className="w-5 h-5" />} 
@@ -112,7 +112,7 @@ export default function ContactPage() {
                 </div>
               </div>
               <a 
-                href="https://wa.me/923390090529" 
+                href="https://wa.me/923032941917" 
                 target="_blank"
                 className="inline-flex items-center justify-center w-full bg-[#008cff] hover:bg-[#0066cc] text-white font-bold py-3 px-6 rounded-xl transition-colors gap-2"
               >

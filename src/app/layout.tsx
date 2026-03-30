@@ -27,7 +27,7 @@ export default function RootLayout({
       {/* WhatsApp Floating Button - Smaller Size */}
       <body className={`${inter.className} antialiased`}>
         <a
-  href="https://wa.me/923390090529?text=Assalam-o-Alaikum! I have a query regarding Dakhla.world" 
+  href="https://wa.me/923032941917?text=Assalam-o-Alaikum! I have a query regarding Dakhla.world" 
   target="_blank"
   rel="noopener noreferrer"
   className="fixed bottom-6 right-6 bg-[#008cff] text-white p-3 rounded-full shadow-lg hover:scale-110 transition-all z-[9999] flex items-center justify-center group"
