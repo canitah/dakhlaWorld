@@ -248,7 +248,7 @@ function ExplorePage() {
     const searchInputRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [externalProgramId, setExternalProgramId] = useState<number | string | null>(null);
+    const [externalProgramId, setExternalProgramId] = useState<number | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
 
     // 1. In dono states ko define karein
@@ -472,7 +472,7 @@ const handleConfirmExternalApply = async () => {
             method: 'POST',
             body: JSON.stringify({
                 program_id: externalProgramId, // Jo state humne handleApply mein set ki thi
-                status: 'applied',             // Status update ho kar applied ho jayega
+                status: 'submitted',             // Status update ho kar submitted ho jayega
                 is_external: true
             }),
         });
@@ -1111,16 +1111,30 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
                                 className="w-full py-7 bg-[#0047AB] hover:bg-[#003580] text-white rounded-xl text-md font-bold transition-all shadow-md"
                                 onClick={async () => {
                                     try {
-                                        await fetchWithAuth(`/applications`, {
+                                        const res = await fetchWithAuth(`/applications`, {
                                             method: 'POST',
                                             body: JSON.stringify({ 
-                                                program_id: pendingProgramId, 
-                                                status: 'applied', // Database column update
+                                                program_id: externalProgramId,
+                                                status: 'submitted', // Database column update
                                                 is_external: true  // Boolean nature column
                                             }),
                                         });
-                                        setAppliedIds((prev) => new Set(prev).add(pendingProgramId!));
-                                        message.success("Marked as Already Applied!");
+                                        const data = await res.json(); // 👈 response le lo
+
+                                        // ✅ applied state update
+                                        setAppliedIds((prev) => new Set(prev).add(externalProgramId!));
+
+                                        // ✅ program title set karo
+                                        const progTitle =
+                                            programs.find(p => p.id === externalProgramId)?.title || 
+                                            selectedProgram?.title || "";
+
+                                        // ✅ modal ke liye data set karo
+                                        setSuccessProgramTitle(progTitle);
+                                        setSuccessAppCode(data.application?.application_code || ""); // optional
+                                        setSuccessModalOpen(true);
+
+                                        // ❌ popup band karo
                                         setShowConfirmCard(false);
                                     } catch (e) { console.error(e); }
                                 }}
@@ -1133,19 +1147,38 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
                                 variant="outline" 
                                 className="w-full py-7 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-semibold"
                                 onClick={async () => {
-                                    try {
-                                        await fetchWithAuth(`/applications`, {
-                                            method: 'POST',
-                                            body: JSON.stringify({ 
-                                                program_id: pendingProgramId, 
-                                                status: 'viewed', // Status column 'viewed'
-                                                is_external: true 
-                                            }),
-                                        });
-                                        message.info("Status updated to Viewed");
-                                        setShowConfirmCard(false);
-                                    } catch (e) { console.error(e); }
-                                }}
+    try {
+        const res = await fetchWithAuth(`/applications`, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                program_id: externalProgramId, 
+                status: 'submitted', // Status update to 'submitted' for external applications
+                is_external: true
+            }),
+        });
+
+        const data = await res.json(); // ✅ ab res defined hai
+
+        // ✅ applied state update
+        setAppliedIds((prev) => new Set(prev).add(externalProgramId!));
+
+        // ✅ program title
+        const progTitle =
+            programs.find(p => p.id === externalProgramId)?.title || 
+            selectedProgram?.title || "";
+
+        // ✅ success modal
+        setSuccessProgramTitle(progTitle);
+        setSuccessAppCode(data.application?.application_code || "");
+        setSuccessModalOpen(true);
+
+        // ❌ popup close
+        setShowConfirmCard(false);
+
+    } catch (e) { 
+        console.error(e); 
+    }
+}}
                             >
                                 No
                             </Button>
@@ -1189,7 +1222,6 @@ function ProgramCard({
     const isFeatured = tier.toLowerCase().includes("featured");
     const isPlatform = program.postedByPlatform || false;
     const [showConfirmCard, setShowConfirmCard] = useState(false);
-    const [pendingProgramId, setPendingProgramId] = useState<number | null>(null);
     const isPremium = isGrowth || isPro || isFeatured || isPlatform;
 
     // Tier-specific styles

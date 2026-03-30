@@ -417,7 +417,7 @@ export default function HomePage() {
         {/* Pay */}
         <FilterDropdown
           className="shrink-0"
-          label={activeFeeRange ? activeFeeRange.label : "Pay"}
+          label={activeFeeRange ? activeFeeRange.label : "Fee"}
           icon={<DollarSign className="w-3.5 h-3.5" />}
           isActive={!!activeFeeRange}
         >
@@ -440,13 +440,13 @@ export default function HomePage() {
         {/* Company */}
         <FilterDropdown
           className="shrink-0"
-          label={activeCompany || "Company"}
+          label={activeCompany || "Institute"}
           icon={<Building2 className="w-3.5 h-3.5" />}
           isActive={!!activeCompany}
         >
           <div className="pointer-events-auto">
             <button onClick={() => setActiveCompany("")} className="w-full text-left px-4 py-2 text-sm hover:bg-accent">
-              All Companies
+              All Institutes
             </button>
             {initialFilters.companies.map((name: string) => (
               <button

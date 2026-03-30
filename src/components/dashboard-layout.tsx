@@ -239,7 +239,7 @@ export function Sidebar({
 
     // Role-specific accent colors
     const accentConfig = role === "admin"
-        ? { gradient: "from-violet-600 to-indigo-600", bg: "bg-violet-500", text: "text-violet-600 dark:text-violet-400", activeBg: "bg-violet-500/10 dark:bg-violet-500/15", ring: "ring-violet-500/20" }
+        ? { gradient: "from-blue-600 to-blue-600", bg: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", activeBg: "bg-blue-500/10 dark:bg-blue-500/15", ring: "ring-blue-500/20" }
         : role === "institution"
             ? { gradient: "from-blue-600 to-cyan-600", bg: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", activeBg: "bg-blue-500/10 dark:bg-blue-500/15", ring: "ring-blue-500/20" }
             : { gradient: "from-blue-600 to-indigo-600", bg: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", activeBg: "bg-blue-500/10 dark:bg-blue-500/15", ring: "ring-blue-500/20" };

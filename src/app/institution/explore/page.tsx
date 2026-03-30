@@ -1423,19 +1423,7 @@ function DetailPanel({
                         >
                             Deadline Expired
                         </AntButton>
-                    ) : (
-                        <AntButton
-                            type="primary"
-                            icon={isApplying ? <LoadingOutlined /> : <SendOutlined />}
-                            loading={isApplying}
-                            onClick={() => onApply(program.id)}
-                            size="large"
-                            shape="round"
-                            className="font-bold text-sm shadow-sm"
-                        >
-                            {isApplying ? "Applying..." : "Apply now"}
-                        </AntButton>
-                    )}
+                    ) : null}
 
                     
                 </div>

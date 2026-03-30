@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -158,7 +158,11 @@ function FilterDropdown({
 export default function HomePage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-
+  const mounted = useSyncExternalStore(
+  (subscribe) => () => {},
+  () => true, // Client par true hoga
+  () => false // Server par false hoga
+);
   // Data
   const [programs, setPrograms] = useState<Program[]>([]);
   const [initialFilters, setInitialFilters] = useState<Filters>({ categories: [], cities: [], scheduleTypes: [], companies: [] });
@@ -300,12 +304,16 @@ export default function HomePage() {
               </Link>
               {/* Theme toggle */}
               <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-                title="Toggle theme"
-              >
-                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
+  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+  className="p-2 rounded-full border border-border bg-card hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+  title="Toggle theme"
+>
+  {mounted ? (
+    theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />
+  ) : (
+    <div className="w-4 h-4" aria-hidden="true" />
+  )}
+</button>
               {/* Mobile menu toggle */}
               <button
                 className="sm:hidden p-1.5 rounded-md hover:bg-accent"

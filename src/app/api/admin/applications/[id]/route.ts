@@ -17,7 +17,9 @@ export async function PUT(
 
         const { id } = await params;
         const body = await request.json();
-        const parsed = applicationStatusSchema.safeParse(body);
+        const parsed = applicationStatusSchema.safeParse({
+    status: body.status,
+});
 
         if (!parsed.success) {
             return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -42,9 +44,21 @@ export async function PUT(
         }
 
         const updated = await prisma.application.update({
-            where: { id: parseInt(id) },
-            data: { status: parsed.data.status },
-        });
+    where: { id: parseInt(id) },
+    data: {
+        status: parsed.data.status,
+
+        // ✅ update student fields if provided
+        student: body.student
+            ? {
+                update: {
+                    full_name: body.student.full_name,
+                    city: body.student.city,
+                },
+            }
+            : undefined,
+    },
+});
 
         const newStatus = parsed.data.status;
 

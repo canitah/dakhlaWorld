@@ -32,6 +32,7 @@ import {
     ChevronRight,
     MessageSquare,
     FileText,
+    Copy,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -91,6 +92,7 @@ export default function AdminProgramsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
     const [formState, setFormState] = useState(emptyProgram);
     const [form, setForm] = useState(emptyProgram);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,7 +100,7 @@ export default function AdminProgramsPage() {
     const [formQuestions, setFormQuestions] = useState<ProgramQuestion[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
 
-    const filteredPrograms = useMemo(() => {
+    const filteredPrograms = useMemo((): Program[] => {
         return programs.filter((p) => {
             const searchLower = searchQuery.toLowerCase();
             return (
@@ -141,32 +143,83 @@ export default function AdminProgramsPage() {
     }
 
     const handleSubmit = async () => {
-        setIsSubmitting(true);
-        const url = editingId ? `/admin/programs/${editingId}` : "/admin/programs";
-        const method = editingId ? "PUT" : "POST";
-        try {
-            const res = await fetchWithAuth(url, {
-                method,
-                body: JSON.stringify({ ...formState, questions: formQuestions }),
-            });
-            if (res.ok) {
-                message.success(editingId ? "Program updated successfully!" : "Program created successfully!");
-                setIsDialogOpen(false);
-                setEditingId(null);
-                setFormState(emptyProgram);
-                setFormQuestions([]);
-                loadPrograms();
-            } else {
-                const data = await res.json();
-                message.error(data.error);
-            }
-        } catch {
-            message.error("Something went wrong. Please try again.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+    setIsSubmitting(true);
 
+    const isEdit = !!editingId;
+
+    const url = isEdit
+        ? `/admin/programs/${editingId}`
+        : "/admin/programs";
+
+    const method = isEdit ? "PUT" : "POST";
+
+    console.log("Submitting:", { isEdit, url, method });
+
+    try {
+        const res = await fetchWithAuth(url, {
+            method,
+            body: JSON.stringify({
+                ...formState,
+                questions: formQuestions,
+            }),
+        });
+
+        if (res.ok) {
+            message.success(
+                isEdit
+                    ? "Program updated successfully!"
+                    : "Program created successfully!"
+            );
+
+            setIsDialogOpen(false);
+            setEditingId(null);
+            setFormState(emptyProgram);
+            setFormQuestions([]);
+            loadPrograms();
+        } else {
+            const data = await res.json();
+            message.error(data.error);
+        }
+    } catch {
+        message.error("Something went wrong. Please try again.");
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+
+const handleDuplicate = async (program: any) => {
+  if (!program) return; // 👈 Safety check
+  try {
+    const cleanedProgram = { ...program };
+    delete cleanedProgram.id;
+    delete cleanedProgram.created_at;
+    delete cleanedProgram.updated_at;
+    delete cleanedProgram.slug;
+    delete cleanedProgram.applications;
+    delete cleanedProgram.students;
+    delete cleanedProgram._count; // Clean extra count data if present
+
+    cleanedProgram.title = program.title + " (Copy)";
+
+    const res = await fetchWithAuth("/admin/programs", {
+      method: "POST",
+      body: JSON.stringify({
+        ...cleanedProgram,
+        questions: program.questions || [],
+      }),
+    });
+
+    if (res.ok) {
+      message.success("Program duplicated successfully 🚀");
+      loadPrograms();
+    } else {
+      const data = await res.json();
+      message.error(data.error || "Failed to duplicate program");
+    }
+  } catch (err) {
+    message.error("Something went wrong");
+  }
+};
     const handleEdit = (program: Program) => {
         setEditingId(program.id);
         setFormState({
@@ -455,7 +508,7 @@ export default function AdminProgramsPage() {
                 <div className="flex flex-col md:flex-row gap-5 items-start">
                     <div className="hidden md:block w-[420px] shrink-0 space-y-4">
                         {filteredPrograms.map((p) => (
-                            <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={selectedProgram.id === p.id} />
+                            <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={selectedProgram?.id === p.id} onDuplicate={handleDuplicate}   />
                         ))}
                     </div>
                     <ProgramDetailPanel program={selectedProgram} onClose={() => selectProgram(null)} onEdit={handleEdit} onDelete={handleDeleteRequest} onToggleActive={handleToggleActive} />
@@ -463,7 +516,7 @@ export default function AdminProgramsPage() {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {filteredPrograms.map((p) => (
-                        <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} />
+                        <ProgramCard key={p.id} program={p} onClick={() => selectProgram(p)} isSelected={selectedProgram?.id === p.id} onDuplicate={handleDuplicate}   />
                     ))}
                 </div>
             )}
@@ -471,7 +524,17 @@ export default function AdminProgramsPage() {
     );
 }
 
-function ProgramCard({ program, onClick, isSelected }: { program: Program; onClick: () => void; isSelected?: boolean }) {
+function ProgramCard({
+  program,
+  onClick,
+  isSelected,
+  onDuplicate, // 👈 NEW PROP
+}: {
+  program: Program;
+  onClick: () => void;
+  isSelected?: boolean;
+  onDuplicate: (program: Program) => void; // 👈 TYPE
+}) {
     return (
         <Card className={`overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer ${isSelected ? "ring-2 ring-blue-500/50 border-blue-500" : ""}`} onClick={onClick}>
             <CardContent className="p-5">
@@ -488,12 +551,25 @@ function ProgramCard({ program, onClick, isSelected }: { program: Program; onCli
                 <Separator className="mb-3" />
                 <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs"><Users className="size-3 mr-1" />{program._count.applications} Applicants</Badge>
-                    <div className="text-xs text-muted-foreground">{new Date(program.created_at).toLocaleDateString()}</div>
+                              {/* ✅ FIXED BUTTON */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // ❗ card click trigger na ho
+              onDuplicate(program);
+            }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+            bg-purple-50 text-purple-600 hover:bg-purple-100 transition-all"
+          >
+            <Copy className="size-3" />
+            Duplicate
+          </button>
+                    <div className="text-xs text-muted-foreground">{new Date(program.created_at).toLocaleDateString()} </div>
                 </div>
             </CardContent>
         </Card>
     );
 }
+
 
 function ProgramDetailPanel({ program, onClose, onEdit, onDelete, onToggleActive }: any) {
     return (
@@ -521,6 +597,7 @@ function ProgramDetailPanel({ program, onClose, onEdit, onDelete, onToggleActive
                     <Button variant="outline" className={program.is_active ? "text-amber-600" : "text-emerald-600"} onClick={() => onToggleActive(program)}>
                         <Power className="size-4 mr-2" /> {program.is_active ? "Deactivate" : "Activate"}
                     </Button>
+                  
                     <Button variant="outline" className="text-red-500" onClick={() => onDelete(program.id)}><Trash2 className="size-4 mr-2" /> Delete</Button>
                 </div>
             </CardContent>

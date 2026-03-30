@@ -158,33 +158,56 @@ export default function AdminApplicationsPage() {
         });
     }
 
-    async function handleSaveChanges() {
-        if (!editedApp) return;
-        setUpdatingId(editedApp.id);
-        try {
-            const res = await fetchWithAuth(`/admin/applications/${editedApp.id}`, {
-                method: "PUT",
-                body: JSON.stringify({
-                    student: editedApp.student,
-                    program: editedApp.program,
-                    status: editedApp.status,
-                }),
-            });
-            if (res.ok) {
-                message.success("Application updated successfully");
-                setReviewApp(editedApp);
-                setEditMode(false);
-                loadApplications();
-            } else {
-                const data = await res.json();
-                message.error(data.error || "Failed to save changes");
-            }
-        } catch {
-            message.error("Something went wrong");
-        } finally {
-            setUpdatingId(null);
+   async function handleSaveChanges() {
+    if (!editedApp) return;
+
+    // ✅ allowed statuses
+    const validStatuses = ["submitted", "viewed", "accepted", "rejected"];
+
+    // ✅ fix invalid status (like "applied")
+    const safeStatus = validStatuses.includes(editedApp.status)
+        ? editedApp.status
+        : "submitted";
+
+    console.log("ORIGINAL STATUS:", editedApp.status);
+    console.log("SAFE STATUS BEING SENT:", safeStatus);
+
+    setUpdatingId(editedApp.id);
+
+    try {
+        const res = await fetchWithAuth(`/admin/applications/${editedApp.id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+                student: editedApp.student,
+                program: editedApp.program,
+                status: safeStatus, // ✅ FIXED
+            }),
+        });
+
+        if (res.ok) {
+            message.success("Application updated successfully");
+
+            // ✅ UI bhi sync karo safe status ke sath
+            const updatedApp = {
+                ...editedApp,
+                status: safeStatus,
+            };
+
+            setReviewApp(updatedApp);
+            setEditedApp(updatedApp);
+            setEditMode(false);
+
+            loadApplications();
+        } else {
+            const data = await res.json();
+            message.error(data.error || "Failed to save changes");
         }
+    } catch {
+        message.error("Something went wrong");
+    } finally {
+        setUpdatingId(null);
     }
+}
 
     return (
         <DashboardLayout role="admin">
@@ -269,12 +292,48 @@ export default function AdminApplicationsPage() {
                                                 <td className="py-4"><StatusBadge status={app.status} /></td>
                                                 <td className="py-4 text-sm text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</td>
                                                 <td className="py-4">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button onClick={() => { setReviewApp(app); setEditedApp(app); setEditMode(false); if(app.status === "submitted") handleUpdateStatus(app.id, "viewed"); }} className="text-blue-600 hover:underline text-xs flex items-center gap-1"><Eye className="size-3" /> View</button>
-                                                        <button onClick={() => { setReviewApp(app); setEditedApp(app); setEditMode(true); }} className="text-gray-600 hover:underline text-xs flex items-center gap-1"><Edit3 className="size-3" /> Edit</button>
-                                                        {app.status !== "accepted" && <button onClick={() => confirmStatusChange(app.id, "accepted")} className="text-emerald-600 hover:underline text-xs flex items-center gap-1"><CheckCircle className="size-3" /> Accept</button>}
-                                                        {app.status !== "rejected" && <button onClick={() => confirmStatusChange(app.id, "rejected")} className="text-red-600 hover:underline text-xs flex items-center gap-1"><XCircle className="size-3" /> Reject</button>}
-                                                    </div>
+                                                    <div className="flex gap-2 justify-end">
+    
+    {/* View */}
+    <button
+        onClick={() => {
+            setReviewApp(app);
+            setEditedApp(app);
+            setEditMode(false);
+            if (app.status === "submitted") handleUpdateStatus(app.id, "viewed");
+        }}
+        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+        bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
+    >
+        <Eye className="size-3" />
+        View
+    </button>
+
+    {/* Accept */}
+    {app.status !== "accepted" && (
+        <button
+            onClick={() => confirmStatusChange(app.id, "accepted")}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+            bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all"
+        >
+            <CheckCircle className="size-3" />
+            Accept
+        </button>
+    )}
+
+    {/* Reject */}
+    {app.status !== "rejected" && (
+        <button
+            onClick={() => confirmStatusChange(app.id, "rejected")}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+            bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+        >
+            <XCircle className="size-3" />
+            Reject
+        </button>
+    )}
+
+</div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -316,9 +375,6 @@ export default function AdminApplicationsPage() {
                                             <Button variant="outline" size="sm" className="flex-1 h-9 text-xs" onClick={() => { setReviewApp(app); setEditedApp(app); setEditMode(false); if(app.status === "submitted") handleUpdateStatus(app.id, "viewed"); }}>
                                                 <Eye className="size-3 mr-1" /> View
                                             </Button>
-                                            <Button variant="outline" size="sm" className="flex-1 h-9 text-xs" onClick={() => { setReviewApp(app); setEditedApp(app); setEditMode(true); }}>
-                                                <Edit3 className="size-3 mr-1" /> Edit
-                                            </Button>
                                             <div className="w-full flex gap-2">
                                                 {app.status !== "accepted" && (
                                                     <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-9 text-xs text-white" onClick={() => confirmStatusChange(app.id, "accepted")}>
@@ -356,6 +412,17 @@ export default function AdminApplicationsPage() {
                             <FileText className="size-5 text-blue-500" />
                             {editMode ? "Edit Application" : "Application Review"}
                         </DialogTitle>
+                        {/* ✅ NEW EDIT BUTTON */}
+                        {!editMode && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditMode(true)}
+                                className="flex items-center gap-1"
+                            >
+                                <Edit3 className="size-3" /> Edit
+                            </Button>
+                        )}
                     </DialogHeader>
                     {reviewApp && editedApp && (
                         <div className="space-y-6 pt-2">
@@ -430,11 +497,28 @@ export default function AdminApplicationsPage() {
                             )}
 
                             <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t sticky bottom-0 bg-background pb-2">
-                                {editMode ? (
-                                    <Button className="w-full bg-blue-600 hover:bg-blue-700 h-10 text-white" disabled={updatingId === editedApp.id} onClick={handleSaveChanges}>
+                               {editMode ? (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto flex-1 h-10"
+                                        onClick={() => {
+                                            setEditMode(false);
+                                            setEditedApp(reviewApp); // reset changes
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+
+                                    <Button
+                                        className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto flex-1 h-10"
+                                        disabled={updatingId === editedApp.id}
+                                        onClick={handleSaveChanges}
+                                    >
                                         Save Changes
                                     </Button>
-                                ) : (
+                                </>
+                            ) : (
                                     <>
                                         {reviewApp.status !== "accepted" && (
                                             <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-10 text-white" disabled={updatingId === reviewApp.id} onClick={() => confirmStatusChange(reviewApp.id, "accepted")}>
