@@ -98,9 +98,13 @@ export default function InstitutionProfilePage() {
               <Button variant="outline" onClick={() => { setIsEditing(false); setEditData(profile); }}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} loading={isSaving} className="bg-green-600 hover:bg-green-700 text-white">
-                Save Changes
-              </Button>
+              <Button 
+  onClick={handleSave} 
+  disabled={isSaving} // 'loading' ki jagah 'disabled' use karein
+  className="bg-green-600 hover:bg-green-700 text-white"
+>
+  {isSaving ? "Saving..." : "Save Changes"} 
+</Button>
             </div>
           )}
         </div>
