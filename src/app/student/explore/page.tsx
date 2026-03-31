@@ -1144,44 +1144,16 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
                             
                             {/* Option 2: Srf link dekha hai */}
                             <Button 
-                                variant="outline" 
-                                className="w-full py-7 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-semibold"
-                                onClick={async () => {
-    try {
-        const res = await fetchWithAuth(`/applications`, {
-            method: 'POST',
-            body: JSON.stringify({ 
-                program_id: externalProgramId, 
-                status: 'submitted', // Status update to 'submitted' for external applications
-                is_external: true
-            }),
-        });
-
-        const data = await res.json(); // ✅ ab res defined hai
-
-        // ✅ applied state update
-        setAppliedIds((prev) => new Set(prev).add(externalProgramId!));
-
-        // ✅ program title
-        const progTitle =
-            programs.find(p => p.id === externalProgramId)?.title || 
-            selectedProgram?.title || "";
-
-        // ✅ success modal
-        setSuccessProgramTitle(progTitle);
-        setSuccessAppCode(data.application?.application_code || "");
-        setSuccessModalOpen(true);
-
-        // ❌ popup close
+    variant="outline" 
+    className="w-full py-7 ..."
+    onClick={() => {
+        // ✅ Sirf card band karein, Database mein kuch save NA karein
         setShowConfirmCard(false);
-
-    } catch (e) { 
-        console.error(e); 
-    }
-}}
-                            >
-                                No
-                            </Button>
+        // Agar aap chahti hain ke modal band ho jaye to wo bhi yahan add kar sakti hain
+    }}
+>
+    No, I'll do it later
+</Button>
                         </div>
                     </div>
                 </DialogContent>
