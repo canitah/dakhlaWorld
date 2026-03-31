@@ -1022,21 +1022,21 @@ const handleUpdateExternalStatus = async (newStatus: string) => {
                             ) : (
                                 <div className="flex gap-3 flex-1">
                                     <Button
-                                        variant="outline"
-                                        className="flex-1 h-11"
-                                        disabled={isSubmittingApp}
-                                        onClick={() => { setCvFile(null); submitApplication(); }}
-                                    >
-                                        {cvFile ? "Skip CV" : "Submit"} {!cvFile && "Application"}
-                                    </Button>
+                variant="outline"
+                className="flex-1 h-11"
+                disabled={isSubmittingApp}
+                onClick={() => submitApplication()}
+            >
+                {cvFile ? "Skip CV & Submit" : "Submit Application"}
+            </Button>
                                     {cvFile && (
                                         <Button
-                                            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
-                                            disabled={isSubmittingApp}
-                                            onClick={submitApplication}
-                                        >
-                                            {isSubmittingApp ? "Submitting..." : "Upload & Apply"}
-                                        </Button>
+                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+                    disabled={isSubmittingApp}
+                    onClick={() => submitApplication()}
+                >
+                    {isSubmittingApp ? "Submitting..." : "Upload & Apply"}
+                </Button>
                                     )}
                                 </div>
                             )}
