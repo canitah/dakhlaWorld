@@ -372,14 +372,18 @@ export default function HomePage() {
   muted
   loop
   playsInline
-  // Poster ki width bhi 1280px rakhein taake wo jaldi load ho
-  poster="https://res.cloudinary.com/dtc5kaawh/video/upload/f_auto,q_auto,w_1280/v1776236125/banner_q0cnev.jpg"
-  className="absolute inset-0 w-full h-full object-cover"
+  // Mobile ke liye choti poster image
+  poster="https://res.cloudinary.com/dtc5kaawh/video/upload/f_auto,q_auto,w_600/v1776236125/banner_q0cnev.jpg"
+  className="absolute inset-0 w-full h-full object-cover object-center"
 >
-  {/* Source ki width bhi 1280px taake video file size 1-2MB tak aa jaye */}
+  {/* Mobile optimized source (Small width) */}
+  <source 
+    src="https://res.cloudinary.com/dtc5kaawh/video/upload/f_auto,q_auto,w_600/v1776236125/banner_q0cnev.mp4" 
+    media="(max-width: 767px)"
+  />
+  {/* Desktop optimized source (Medium width) */}
   <source 
     src="https://res.cloudinary.com/dtc5kaawh/video/upload/f_auto,q_auto,w_1280/v1776236125/banner_q0cnev.mp4" 
-    type="video/mp4" 
   />
 </video>
     
