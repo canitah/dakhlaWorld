@@ -368,14 +368,20 @@ export default function HomePage() {
 <section className="relative w-full overflow-hidden bg-black">
   <div className="relative min-h-[580px] sm:min-h-[480px] md:min-h-[560px] lg:min-h-[640px] xl:min-h-[700px] flex flex-col justify-center">
     <video
-      autoPlay
-      muted
-      loop
-      playsInline
-      src="/banner.mp4"
-      aria-label="dakhla – Global Admissions Platform"
-      className="absolute inset-0 w-full h-full object-cover object-center"
-    />
+  autoPlay
+  muted
+  loop
+  playsInline
+  // Poster ki width bhi 1280px rakhein taake wo jaldi load ho
+  poster="https://res.cloudinary.com/dtc5kaawh/video/upload/f_auto,q_auto,w_1280/v1776236125/banner_q0cnev.jpg"
+  className="absolute inset-0 w-full h-full object-cover"
+>
+  {/* Source ki width bhi 1280px taake video file size 1-2MB tak aa jaye */}
+  <source 
+    src="https://res.cloudinary.com/dtc5kaawh/video/upload/f_auto,q_auto,w_1280/v1776236125/banner_q0cnev.mp4" 
+    type="video/mp4" 
+  />
+</video>
     
     {/* Dark cinematic overlay */}
     <div className="absolute inset-0 bg-black/40" />
