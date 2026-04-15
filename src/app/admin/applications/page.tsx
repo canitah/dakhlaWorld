@@ -44,7 +44,12 @@ interface Application {
     };
     program: {
         title: string;
-        institution: { name: string } | null;
+        posted_by_admin: boolean; // 👈 Ye add karein check karne ke liye
+        institute_name: string | null; // 👈 Admin posts ke liye ye zaroori hai
+        institution: { 
+            name: string; 
+            // Agar aapko aur fields chahiye to yahan add kar sakti hain
+        } | null;
     };
     answers?: {
         id: number;
@@ -269,76 +274,91 @@ export default function AdminApplicationsPage() {
                         <>
                             {/* --- Desktop View --- */}
                             <div className="hidden md:block overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b text-left">
-                                            <th className="pb-3 text-xs font-semibold uppercase text-muted-foreground">Code</th>
-                                            <th className="pb-3 text-xs font-semibold uppercase text-muted-foreground">Student</th>
-                                            <th className="pb-3 text-xs font-semibold uppercase text-muted-foreground">Program</th>
-                                            <th className="pb-3 text-xs font-semibold uppercase text-muted-foreground">Status</th>
-                                            <th className="pb-3 text-xs font-semibold uppercase text-muted-foreground">Date</th>
-                                            <th className="pb-3 text-xs font-semibold uppercase text-muted-foreground text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredApplications.map((app) => (
-                                            <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
-                                                <td className="py-4"><Badge variant="outline" className="font-mono text-[10px]">{app.application_code}</Badge></td>
-                                                <td className="py-4">
-                                                    <div className="text-sm font-medium">{app.student.full_name || "—"}</div>
-                                                    <div className="text-xs text-muted-foreground">{app.student.user.email}</div>
-                                                </td>
-                                                <td className="py-4 text-sm">{app.program.title}</td>
-                                                <td className="py-4"><StatusBadge status={app.status} /></td>
-                                                <td className="py-4 text-sm text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</td>
-                                                <td className="py-4">
-                                                    <div className="flex gap-2 justify-end">
-    
-    {/* View */}
-    <button
-        onClick={() => {
-            setReviewApp(app);
-            setEditedApp(app);
-            setEditMode(false);
-            if (app.status === "submitted") handleUpdateStatus(app.id, "viewed");
-        }}
-        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
-        bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
-    >
-        <Eye className="size-3" />
-        View
-    </button>
+                               <table className="w-full">
+    <thead className="bg-muted/50">
+    <tr className="text-left border-b">
+        <th className="px-4 py-3 text-xs font-semibold uppercase w-[100px]">Code</th>
+        <th className="px-4 py-3 text-xs font-semibold uppercase w-[200px]">Student</th>
+        <th className="px-4 py-3 text-xs font-semibold uppercase w-[200px]">Program</th>
+        {/* Naya Column Width */}
+        <th className="px-4 py-3 text-xs font-semibold uppercase w-[200px]">Institution</th>
+        <th className="px-4 py-3 text-xs font-semibold uppercase w-[120px]">Status</th>
+        <th className="px-4 py-3 text-xs font-semibold uppercase w-[120px]">Date</th>
+        <th className="px-4 py-3 text-xs font-semibold uppercase text-right">Actions</th>
+    </tr>
+</thead>
+    <tbody>
+        {filteredApplications.map((app) => (
+            <tr key={app.id} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
+                <td className="py-4">
+                    <Badge variant="outline" className="font-mono text-[10px]">{app.application_code}</Badge>
+                </td>
+                <td className="py-4">
+                    <div className="text-sm font-medium">{app.student.full_name || "—"}</div>
+                    <div className="text-xs text-muted-foreground">{app.student.user.email}</div>
+                </td>
+                <td className="py-4 text-sm font-medium">{app.program.title}</td>
 
-    {/* Accept */}
-    {app.status !== "accepted" && (
-        <button
-            onClick={() => confirmStatusChange(app.id, "accepted")}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
-            bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all"
-        >
-            <CheckCircle className="size-3" />
-            Accept
-        </button>
-    )}
+                {/* 2. Naya Data Cell (td) with Logic */}
+                <td className="py-4 text-sm">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">
+                            {app.program.posted_by_admin 
+                                ? (app.program.institute_name || "DAKHLA Platform") 
+                                : (app.program.institution?.name || "N/A")
+                            }
+                        </span>
+                    </div>
+                </td>
 
-    {/* Reject */}
-    {app.status !== "rejected" && (
-        <button
-            onClick={() => confirmStatusChange(app.id, "rejected")}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
-            bg-red-50 text-red-600 hover:bg-red-100 transition-all"
-        >
-            <XCircle className="size-3" />
-            Reject
-        </button>
-    )}
+                <td className="py-4"><StatusBadge status={app.status} /></td>
+                <td className="py-4 text-sm text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</td>
+                <td className="py-4">
+                    <div className="flex gap-2 justify-end">
+                        {/* View */}
+                        <button
+                            onClick={() => {
+                                setReviewApp(app);
+                                setEditedApp(app);
+                                setEditMode(false);
+                                if (app.status === "submitted") handleUpdateStatus(app.id, "viewed");
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+                            bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
+                        >
+                            <Eye className="size-3" />
+                            View
+                        </button>
 
-</div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                        {/* Accept */}
+                        {app.status !== "accepted" && (
+                            <button
+                                onClick={() => confirmStatusChange(app.id, "accepted")}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+                                bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all"
+                            >
+                                <CheckCircle className="size-3" />
+                                Accept
+                            </button>
+                        )}
+
+                        {/* Reject */}
+                        {app.status !== "rejected" && (
+                            <button
+                                onClick={() => confirmStatusChange(app.id, "rejected")}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium 
+                                bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                            >
+                                <XCircle className="size-3" />
+                                Reject
+                            </button>
+                        )}
+                    </div>
+                </td>
+            </tr>
+        ))}
+    </tbody>
+</table>
                             </div>
 
                             {/* --- Mobile View (Cards) --- */}
@@ -474,10 +494,15 @@ export default function AdminApplicationsPage() {
                                             <p className="text-[10px] text-muted-foreground uppercase font-semibold">Applied Program</p>
                                             <p className="text-sm font-bold">{editedApp.program.title}</p>
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Institution</p>
-                                            <p className="text-sm flex items-center gap-1"><Building2 className="size-3" /> {editedApp.program.institution?.name || "DAKHLA Platform"}</p>
-                                        </div>
+                                      <div className="flex items-center gap-2">
+  <Building2 className="size-4 text-[#008cff]" />
+  <p className="text-sm font-semibold text-foreground">
+    {reviewApp.program.posted_by_admin 
+      ? (reviewApp.program.institute_name || "DAKHLA Platform") 
+      : (reviewApp.program.institution?.name || "N/A")
+    }
+  </p>
+</div>
                                     </div>
                                 </div>
                             </div>

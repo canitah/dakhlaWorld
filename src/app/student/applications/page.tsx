@@ -24,6 +24,8 @@ interface Application {
     program: {
         title: string;
         category: string | null;
+        posted_by_admin: boolean;      // 👈 Add this
+        institute_name: string | null; // 👈 Add this
         institution: { name: string; city: string | null } | null;
     };
     answers?: {
@@ -110,22 +112,36 @@ export default function StudentApplicationsPage() {
         }
     }, [highlightId, highlightProgram, applications]);
 
-    const handleTrack = async () => {
-        if (!trackingCode.trim()) return;
-        setIsTracking(true);
-        setTrackingError(null);
-        setTrackingResult(null);
-        try {
-            const res = await fetchWithAuth(`/applications/track?code=${encodeURIComponent(trackingCode.trim())}`);
-            const data = await res.json();
-            if (res.ok) setTrackingResult(data.application);
-            else setTrackingError(data.error || "Application not found");
-        } catch {
-            setTrackingError("Failed to track application");
-        } finally {
-            setIsTracking(false);
+   const handleTrack = () => {
+    const query = trackingCode.trim().toLowerCase();
+    if (!query) return;
+
+    setIsTracking(true);
+    setTrackingError(null);
+    setTrackingResult(null);
+
+    // Thora delay (optional) taake "Tracking..." state nazar aaye
+    setTimeout(() => {
+        const found = applications.find(app => {
+            const appCode = app.application_code.toLowerCase();
+            const progTitle = app.program.title.toLowerCase();
+            
+            // Institution Name logic (External aur Internal dono ke liye)
+            const instName = app.program.posted_by_admin 
+                ? (app.program.institute_name?.toLowerCase() || "dakhla platform")
+                : (app.program.institution?.name?.toLowerCase() || "");
+
+            return appCode.includes(query) || progTitle.includes(query) || instName.includes(query);
+        });
+
+        if (found) {
+            setTrackingResult(found);
+        } else {
+            setTrackingError("No application found with this code, program, or institution.");
         }
-    };
+        setIsTracking(false);
+    }, 500); 
+};
 
     const statuses = useMemo(() => Array.from(new Set(applications.map(a => a.status))).sort(), [applications]);
     const institutions = useMemo(() => Array.from(new Set(applications.map(a => a.program.institution?.name || "DAKHLA Platform"))).sort(), [applications]);
@@ -317,77 +333,120 @@ export default function StudentApplicationsPage() {
                             </div>
                         </div>
 
-                        {/* Desktop Table */}
-                        <div className="hidden md:block overflow-hidden rounded-xl border border-slate-200 bg-white dark:bg-slate-900 shadow-sm">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200">
-                                    <tr>
-                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Code</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Program & Institution</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Category</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-slate-500">Status</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-slate-500 text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {filtered.map((app) => (
-                                        <tr 
-                                            key={app.id} 
-                                            ref={app.id === activeHighlight ? highlightRef as any : undefined}
-                                            className={`hover:bg-blue-50/30 transition-all ${app.id === activeHighlight ? "bg-blue-50 ring-1 ring-inset ring-blue-500" : ""}`}
-                                        >
-                                            <td className="p-4 font-mono text-xs font-semibold text-blue-600">{app.application_code}</td>
-                                            <td className="p-4">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{app.program.title}</p>
-                                                <p className="text-[11px] text-muted-foreground">{app.program.institution?.name || "DAKHLA Platform"}</p>
-                                            </td>
-                                            <td className="p-4"><Badge variant="secondary" className="font-normal text-[10px]">{app.program.category || "—"}</Badge></td>
-                                            <td className="p-4"><StatusBadge status={app.status} /></td>
-                                            <td className="p-4 text-right">
-                                                <button onClick={() => setReviewApp(app)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors inline-flex"><Eye className="size-4" /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                      {/* Desktop Table */}
+<div className="hidden md:block overflow-hidden rounded-xl border border-slate-200 bg-white dark:bg-slate-900 shadow-sm">
+    <table className="w-full text-left border-collapse">
+        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200">
+            <tr>
+                {/* Fixed widths for better alignment */}
+                <th className="p-4 text-xs font-bold uppercase text-slate-500 w-[120px]">Code</th>
+                <th className="p-4 text-xs font-bold uppercase text-slate-500">Program & Institution</th>
+                <th className="p-4 text-xs font-bold uppercase text-slate-500 w-[150px]">Category</th>
+                <th className="p-4 text-xs font-bold uppercase text-slate-500 w-[130px]">Status</th>
+                <th className="p-4 text-xs font-bold uppercase text-slate-500 text-right w-[100px]">Action</th>
+            </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+            {filtered.map((app) => (
+                <tr 
+                    key={app.id} 
+                    ref={app.id === activeHighlight ? highlightRef as any : undefined}
+                    className={`hover:bg-blue-50/30 transition-all ${app.id === activeHighlight ? "bg-blue-50 ring-1 ring-inset ring-blue-500" : ""}`}
+                >
+                    <td className="p-4 font-mono text-xs font-semibold text-blue-600">
+                        {app.application_code}
+                    </td>
+                    
+                    <td className="p-4">
+                        <div className="flex flex-col max-w-[300px]">
+                            {/* Program Title */}
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={app.program.title}>
+                                {app.program.title}
+                            </p>
+                            
+                            {/* Institution Logic Fix */}
+                            <p className="text-[11px] text-muted-foreground truncate" 
+                               title={app.program.posted_by_admin ? (app.program.institute_name || "DAKHLA Platform") : (app.program.institution?.name || "N/A")}>
+                                {app.program.posted_by_admin 
+                                    ? (app.program.institute_name || "DAKHLA Platform") 
+                                    : (app.program.institution?.name || "N/A")
+                                }
+                            </p>
+                        </div>
+                    </td>
+
+                    <td className="p-4">
+                        <Badge variant="secondary" className="font-normal text-[10px] truncate max-w-[120px]">
+                            {app.program.category || "—"}
+                        </Badge>
+                    </td>
+
+                    <td className="p-4">
+                        <StatusBadge status={app.status} />
+                    </td>
+
+                    <td className="p-4 text-right">
+                        <button 
+                            onClick={() => setReviewApp(app)} 
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors inline-flex"
+                        >
+                            <Eye className="size-4" />
+                        </button>
+                    </td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
                         </div>
 
-                        {/* Mobile List Layout (Visible only on small screens) */}
-                        <div className="md:hidden grid grid-cols-1 gap-4">
-                            {filtered.map((app) => (
-                                <div 
-                                    key={app.id}
-                                    ref={app.id === activeHighlight ? highlightRef as any : undefined}
-                                    className={`p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden ${app.id === activeHighlight ? "ring-2 ring-blue-500 bg-blue-50/50 animate-pulse" : ""}`}
-                                >
-                                    <div className="flex justify-between items-start mb-3">
-                                        <span className="text-[10px] font-bold font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{app.application_code}</span>
-                                        <StatusBadge status={app.status} />
-                                    </div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white mb-1 leading-snug">{app.program.title}</h3>
-                                    <p className="text-xs text-muted-foreground mb-4">{app.program.institution?.name || "DAKHLA Platform"}</p>
-                                    
-                                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                                        <div className="flex gap-4">
-                                            <div>
-                                                <p className="text-[10px] uppercase text-slate-400 font-bold">Category</p>
-                                                <p className="text-xs font-medium">{app.program.category || "General"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] uppercase text-slate-400 font-bold">Applied Date</p>
-                                                <p className="text-xs font-medium">{new Date(app.created_at).toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => setReviewApp(app)}
-                                            className="bg-blue-600 text-white size-9 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200"
-                                        >
-                                            <Eye className="size-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                       {/* Mobile List Layout (Visible only on small screens) */}
+<div className="md:hidden grid grid-cols-1 gap-4">
+    {filtered.map((app) => (
+        <div 
+            key={app.id}
+            ref={app.id === activeHighlight ? highlightRef as any : undefined}
+            className={`p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden ${app.id === activeHighlight ? "ring-2 ring-blue-500 bg-blue-50/50 animate-pulse" : ""}`}
+        >
+            <div className="flex justify-between items-start mb-3">
+                <span className="text-[10px] font-bold font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{app.application_code}</span>
+                <StatusBadge status={app.status} />
+            </div>
+
+            <h3 className="font-bold text-slate-900 dark:text-white mb-1 leading-snug line-clamp-1">
+                {app.program.title}
+            </h3>
+
+            {/* Institution Logic Fix for Mobile */}
+            <p className="text-xs text-muted-foreground mb-4 truncate">
+                {app.program.posted_by_admin 
+                    ? (app.program.institute_name || "DAKHLA Platform") 
+                    : (app.program.institution?.name || "N/A")
+                }
+            </p>
+            
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <div className="flex gap-4">
+                    <div>
+                        <p className="text-[10px] uppercase text-slate-400 font-bold">Category</p>
+                        <p className="text-xs font-medium truncate max-w-[80px]">
+                            {app.program.category || "General"}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-[10px] uppercase text-slate-400 font-bold">Applied Date</p>
+                        <p className="text-xs font-medium">{new Date(app.created_at).toLocaleDateString()}</p>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => setReviewApp(app)}
+                    className="bg-blue-600 text-white size-9 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200"
+                >
+                    <Eye className="size-4" />
+                </button>
+            </div>
+        </div>
+    ))}
+</div>
                     </div>
                 )}
 
@@ -397,15 +456,16 @@ export default function StudentApplicationsPage() {
                         {reviewApp && (
                             <>
                                 <div className="p-6 bg-blue-600 text-white relative">
-                                    <button 
-                                        onClick={() => setReviewApp(null)}
-                                        className="absolute top-4 right-4 text-white/70 hover:text-white"
-                                    >
-                                        <X className="size-5" />
-                                    </button>
+                                    
                                     <Badge className="bg-white/20 text-white border-none mb-2">{reviewApp.application_code}</Badge>
                                     <DialogTitle className="text-xl md:text-2xl font-bold leading-tight">{reviewApp.program.title}</DialogTitle>
-                                    <p className="text-blue-100 text-sm mt-1">{reviewApp.program.institution?.name || "DAKHLA Global Platform"}</p>
+                                   {/* Updated Institution Logic */}
+<p className="text-blue-100 text-sm mt-1">
+    {reviewApp.program.posted_by_admin 
+        ? (reviewApp.program.institute_name || "DAKHLA Global Platform") 
+        : (reviewApp.program.institution?.name || "N/A")
+    }
+</p>
                                 </div>
                                 <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto bg-white dark:bg-slate-950">
                                     <div className="grid grid-cols-2 gap-4">
@@ -470,21 +530,21 @@ export default function StudentApplicationsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                        <Input
-                            placeholder="Enter code (APP-XXXXXXXX) or program name"
-                            value={trackingCode}
-                            onChange={(e) => setTrackingCode(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleTrack()}
-                            className="flex-1 min-w-[200px]"
-                        />
-                        <button
-                            onClick={handleTrack}
-                            disabled={isTracking || !trackingCode.trim()}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
-                        >
-                            {isTracking ? "Tracking..." : "Track"}
-                        </button>
-                    </div>
+            <Input
+                placeholder="Search by Code, Program, or Institution name..."
+                value={trackingCode}
+                onChange={(e) => setTrackingCode(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleTrack()}
+                className="flex-1 min-w-[200px]"
+            />
+            <button
+                onClick={handleTrack}
+                disabled={isTracking || !trackingCode.trim()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 cursor-pointer transition-colors"
+            >
+                {isTracking ? "Searching..." : "Track"}
+            </button>
+        </div>
 
                     {trackingResult && (
                        <div className="mt-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 relative z-10">
