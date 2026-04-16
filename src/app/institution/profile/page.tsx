@@ -53,26 +53,28 @@ export default function InstitutionProfilePage() {
   }
 
   const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const res = await fetchWithAuth("/institutions/profile", {
-        method: "PUT", // Apne API route ke mutabiq check karlein (PUT ya PATCH)
-        body: JSON.stringify(editData),
-      });
+  setIsSaving(true);
+  try {
+    const res = await fetchWithAuth("/institutions/profile", {
+      method: "PUT",
+      body: JSON.stringify(editData),
+    });
 
-      if (res.ok) {
-        setProfile(editData);
-        setIsEditing(false);
-        message.success("Profile updated successfully!");
-      } else {
-        message.error("Failed to update profile");
-      }
-    } catch (error) {
-      message.error("Something went wrong");
-    } finally {
-      setIsSaving(false);
+    if (res.ok) {
+      setProfile(editData);
+      setIsEditing(false);
+      message.success("Profile updated successfully!");
+    } else {
+      // Error ki detail dekhne ke liye:
+      const errorData = await res.json();
+      message.error(errorData.message || "Failed to update profile");
     }
-  };
+  } catch (error) {
+    message.error("Network error: Check your connection");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   if (isLoading) {
     return (
@@ -114,9 +116,12 @@ export default function InstitutionProfilePage() {
           <ProfilePictureCropper
             currentImageUrl={profile.profile_picture_url}
             onUploadSuccess={(url) => {
-              setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
-              setProfilePicture(url);
-            }}
+  // Dono states update karein taake UI aur Form sync rahein
+  setProfile((prev) => prev ? { ...prev, profile_picture_url: url } : prev);
+  setEditData((prev) => prev ? { ...prev, profile_picture_url: url } : prev); // Ye line lazmi add karein
+  setProfilePicture(url);
+  message.success("Picture uploaded! Don't forget to save changes.");
+}}
           />
         </div>
 

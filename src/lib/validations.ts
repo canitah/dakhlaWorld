@@ -72,13 +72,17 @@ export const studentProfileSchema = z.object({
     ),
 });
 
-// ─── Institution Profile ─────────────────────────────────
+// ─── Institution Profile (Updated) ─────────────────────────
 export const institutionProfileSchema = z.object({
     name: z.string().min(2).max(200),
-    category: z.string().max(100).optional(),
-    city: z.string().max(100).optional(),
-    description: z.string().max(3000).optional(),
-    contact_email: z.string().email().optional(),
+    category: z.string().max(100).optional().nullable(), // nullable add kiya safety ke liye
+    city: z.string().max(100).optional().nullable(),
+    description: z.string().max(3000).optional().nullable(),
+    contact_email: z.string().email().optional().nullable(),
+    
+    // 1. Ye line laazmi add karein (Isi ki wajah se error aa raha tha)
+    profile_picture_url: z.string().url().optional().nullable().or(z.literal("")),
+    
     linkedin_url: z.string().url().optional().nullable().or(z.literal("")),
     facebook_url: z.string().url().optional().nullable().or(z.literal("")),
     instagram_url: z.string().url().optional().nullable().or(z.literal("")),
