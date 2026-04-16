@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useSearchParams } from 'next/navigation';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -168,6 +169,7 @@ function FilterDropdown({
 /* ─────────────── Main Page ─────────────── */
 export default function HomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
 
   // Data
@@ -176,16 +178,20 @@ export default function HomePage() {
   categories: string[];
   cities: string[];
   companies: string[];
-  scheduleTypes: string[]; // <--- Ye line lazmi add karein
+  scheduleTypes: string[];
 }>({
   categories: [],
   cities: [],
   companies: [],
-  scheduleTypes: [], // <--- Default empty array
+  scheduleTypes: [],
 });
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false); // Ye filter toggle ke liye
   const [totalResults, setTotalResults] = useState(0);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 12; // Ek page par kitne dikhane hain
 
   // Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -214,18 +220,34 @@ export default function HomePage() {
   // Sort
   const [sortBy, setSortBy] = useState<"relevance" | "date">("relevance");
 
-  /* ─── Reactive fetch ─── */
+  // 1. URL Sync Effect: Jab user homepage ki pills par click karke yahan aaye
   useEffect(() => {
+    const cat = searchParams.get('category');
+    if (cat && cat !== activeCategory) {
+      setActiveCategory(cat);
+    }
+  }, [searchParams]);
+
+  // 2. Reactive Fetch Effect
+  useEffect(() => {
+    let isMounted = true;
+
     async function fetchPrograms() {
       setIsLoading(true);
       try {
         const params = new URLSearchParams();
+
+        // Pagination Params (Ye lazmi hain)
+      params.set("page", currentPage.toString());
+      params.set("limit", PAGE_SIZE.toString());
+
         if (appliedSearch) params.set("search", appliedSearch);
         if (appliedLocation) params.set("city", appliedLocation);
         if (activeCategory) params.set("category", activeCategory);
         if (activeSchedule) params.set("schedule_type", activeSchedule);
         if (activeCompany) params.set("company", activeCompany);
         if (activeDatePosted) params.set("date_posted", activeDatePosted);
+        
         if (activeFeeRange) {
           params.set("fee_min", String(activeFeeRange.min));
           if (activeFeeRange.max !== null)
@@ -234,36 +256,39 @@ export default function HomePage() {
         params.set("limit", "50");
 
         const res = await fetch(`/api/programs/public?${params.toString()}`);
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const data = await res.json();
-          setPrograms(data.programs || []);
-          if (
-            initialFilters.categories.length === 0 &&
-            initialFilters.companies.length === 0
-          ) {
-            setInitialFilters(
-              data.filters || {
-                categories: [],
-                cities: [],
-                scheduleTypes: [],
-                companies: [],
-              }
-            );
+          
+         setPrograms(data.programs || []);
+        setTotalResults(data.pagination?.total || 0);
+        setTotalPages(data.pagination?.totalPages || 1); // API se total pages lein
+
+          // Sirf pehli baar filters set karein agar empty hon
+          if (initialFilters.categories.length === 0) {
+            setInitialFilters(data.filters || {
+              categories: [],
+              cities: [],
+              scheduleTypes: [],
+              companies: [],
+            });
           }
-          setTotalResults(data.pagination?.total || 0);
+
           if (data.programs?.length > 0) {
-            setSelectedProgram(data.programs[0]);
-          } else {
-            setSelectedProgram(null);
-          }
+          setSelectedProgram(data.programs[0]);
         }
-      } catch {
-        /* ignore */
+        }
+      } catch (err) {
+        console.error("Fetch Error:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
     }
+
     fetchPrograms();
+
+    return () => { isMounted = false; };
   }, [
+    currentPage,
     appliedSearch,
     appliedLocation,
     activeCategory,
@@ -271,6 +296,7 @@ export default function HomePage() {
     activeCompany,
     activeDatePosted,
     activeFeeRange,
+    initialFilters,
   ]);
 
   function handleSearch(e?: React.FormEvent) {
@@ -279,20 +305,17 @@ export default function HomePage() {
     setAppliedLocation(locationQuery);
   }
 
- // Sort (API se filtered data mil chuka hai, bas yahan sort kar rahe hain)
-  const sortedPrograms = useMemo(() => {
-    // [...programs] use karne se original array kharab nahi hoti
-    const data = [...programs]; 
-    
-    if (sortBy === "date") {
-      return data.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() -
-          new Date(a.created_at).getTime()
-      );
-    }
-    return data;
-  }, [programs, sortBy]);
+ const sortedPrograms = useMemo(() => {
+  // Agar backend se data limit mein aa raha hai, toh ye array 12 se zyada nahi hogi
+  const data = [...programs]; 
+  
+  if (sortBy === "date") {
+    return data.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }
+  return data;
+}, [programs, sortBy]);
 
   const hasActiveFilters =
     activeCategory ||
@@ -745,6 +768,8 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
+
+              
 
               {/* ── Right: Detail Panel ── */}
               <div

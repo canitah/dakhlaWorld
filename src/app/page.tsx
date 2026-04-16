@@ -390,47 +390,34 @@ export default function HomePage() {
         for your future
       </h1>
 
-      {/* Search bar */}
-      <div className="mt-8 sm:mt-10 max-w-[720px]">
-        <form onSubmit={handleSearch} className="flex items-center bg-white rounded-xl sm:rounded-lg overflow-hidden shadow-2xl">
-          <div className="flex items-center gap-2 flex-1 px-4 h-14 sm:h-[56px]">
-            <Search className="w-5 h-5 text-gray-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search programs, institutions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-base sm:text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
-            />
-          </div>
-          
-          {/* Location - Hidden on mobile to keep search bar clean */}
-          <div className="hidden md:flex items-center gap-2 border-l border-gray-200 px-4 h-[56px] w-44">
-            <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="City"
-              value={locationQuery}
-              onChange={(e) => setLocationQuery(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 min-w-0"
-            />
-          </div>
+      {/* Search Buttons */}
+      <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center gap-4">
+  {/* Find Programs Button (Ab Outline Style mein) */}
+  <Button
+    onClick={handleSearch}
+    variant="outline"
+    className="w-full sm:w-auto h-14 px-8 border-2 border-[#008cff] text-[#008cff] hover:bg-[#008cff] hover:text-white font-bold rounded-xl transition-all active:scale-95 shadow-md"
+  >
+    Student / Find Programs
+  </Button>
 
-          <Button
-            type="submit"
-            className="h-14 sm:h-[56px] px-5 sm:px-8 bg-[#008cff] hover:bg-[#0066cc] text-white font-bold sm:font-semibold shrink-0 rounded-none transition-all active:scale-95"
-          >
-            <Search className="w-6 h-6 sm:hidden" />
-            <span className="hidden sm:inline text-sm">Find Programs</span>
-          </Button>
-        </form>
-      </div>
+  {/* Post Program Button */}
+  <Button
+    asChild
+    variant="outline"
+    className="w-full sm:w-auto h-14 px-8 border-2 border-[#008cff] text-[#008cff] hover:bg-[#008cff] hover:text-white font-bold rounded-xl transition-all active:scale-95 shadow-md"
+  >
+    <Link href="/signup?role=institution">
+      Institution / Post Program
+    </Link>
+  </Button>
+</div>
 
       {/* Popular category pills */}
       <div className="mt-6 flex flex-wrap items-center gap-2 max-w-[720px]">
         <span className="text-sm text-white/80 font-medium w-full mb-1 sm:w-auto sm:mb-0">Popular:</span>
         <div className="flex flex-wrap gap-2">
-          {["Computer Science", "Engineering", "Pre-Primary", "Culinary"].map((cat) => (
+          {["Computer & IT", "Engineering", "Business", "Social Sciences"].map((cat) => (
             <button
               key={cat}
               onClick={() => router.push(`/programs?category=${encodeURIComponent(cat)}`)}

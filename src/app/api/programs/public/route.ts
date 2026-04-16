@@ -13,10 +13,11 @@ export async function GET(request: Request) {
         const datePosted = searchParams.get("date_posted") || "";
         const feeMin = searchParams.get("fee_min") ? parseInt(searchParams.get("fee_min")!) : null;
         const feeMax = searchParams.get("fee_max") ? parseInt(searchParams.get("fee_max")!) : null;
+        
+        // Pagination: default limit ko 10-12 rakhein fast loading ke liye
         const page = parseInt(searchParams.get("page") || "1");
-        const limit = parseInt(searchParams.get("limit") || "20");
+        const limit = parseInt(searchParams.get("limit") || "12");
 
-        // 1. Core Logic: Approved Institutions OR Admin Posted
         const where: any = {
             is_active: true,
             OR: [
@@ -25,23 +26,19 @@ export async function GET(request: Request) {
             ]
         };
 
-        // 2. Search Logic
         if (search) {
-            where.AND = [
-                {
-                    OR: [
-                        { title: { contains: search, mode: "insensitive" } },
-                        { institute_name: { contains: search, mode: "insensitive" } },
-                        { study_field: { contains: search, mode: "insensitive" } },
-                    ]
-                }
-            ];
+            where.AND = [{
+                OR: [
+                    { title: { contains: search, mode: "insensitive" } },
+                    { institute_name: { contains: search, mode: "insensitive" } },
+                    { study_field: { contains: search, mode: "insensitive" } },
+                ]
+            }];
         }
 
         if (category) where.category = category;
         if (scheduleType) where.schedule_type = scheduleType;
 
-        // 3. City/Company filters (Strictly for approved institutions)
         if (city || company) {
             where.institution = {
                 status: "approved",
@@ -67,7 +64,10 @@ export async function GET(request: Request) {
             if (sinceDate) where.created_at = { gte: sinceDate };
         }
 
-        const [allProgramsRaw, total] = await Promise.all([
+        // OPTIMIZATION: Sirf programs fetch karein, filters ko tabhi fetch karein jab page 1 ho
+        const fetchFilters = page === 1;
+
+        const [allProgramsRaw, total, ...filterResults] = await Promise.all([
             prisma.program.findMany({
                 where,
                 include: {
@@ -89,11 +89,20 @@ export async function GET(request: Request) {
                     },
                     _count: { select: { applications: true } },
                 },
+                // Note: Agar sorting platform level par hai toh take/skip use nahi kar sakte,
+                // par data ka weight kam karne ke liye select use kiya ja sakta hai.
             }),
             prisma.program.count({ where }),
+            // Filters data: Sirf tab fetch hoga jab page 1 ho
+            ...(fetchFilters ? [
+                prisma.program.findMany({ where: { is_active: true }, select: { category: true }, distinct: ["category"] }),
+                prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { city: true }, distinct: ["city"] }),
+                prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { name: true }, take: 50, orderBy: { name: "asc" } }),
+                prisma.program.findMany({ where: { is_active: true }, select: { schedule_type: true }, distinct: ["schedule_type"] }),
+            ] : [])
         ]);
 
-        // 4. Safe Sorting
+        // Safe Sorting logic (same as before)
         const sorted = allProgramsRaw.sort((a: any, b: any) => {
             const rankA = a.institution?.payment_requests?.[0]?.plan?.name 
                 ? getPlanRank(a.institution.payment_requests[0].plan.name) 
@@ -111,8 +120,7 @@ export async function GET(request: Request) {
         const programs = paginated.map((p: any) => ({
             id: p.id,
             title: p.title,
-            institute_name: p.institute_name || null, // For frontend display
-            description: p.description,
+            institute_name: p.institute_name || p.institution?.name || "DAKHLA Platform",
             category: p.category,
             duration: p.duration,
             deadline: p.deadline,
@@ -125,7 +133,6 @@ export async function GET(request: Request) {
                 id: p.institution.id,
                 name: p.institution.name,
                 city: p.institution.city,
-                category: p.institution.category,
                 profilePicture: p.institution.profile_picture_url,
                 uniqueId: p.institution.user?.unique_id || String(p.institution.id),
                 planTier: p.institution.payment_requests[0]?.plan?.name || "Starter",
@@ -133,30 +140,21 @@ export async function GET(request: Request) {
                 id: 0,
                 name: "DAKHLA Platform",
                 city: "Online/Global",
-                category: "Official",
-                profilePicture: null,
                 uniqueId: "admin",
                 planTier: "Premium"
             },
             applicants: p._count?.applications || 0,
         }));
 
-        // 5. FETCH ALL FILTERS DATA (Fix for .map error)
-        const [categoriesData, citiesData, institutionsData, scheduleTypesData] = await Promise.all([
-            prisma.program.findMany({ where: { is_active: true }, select: { category: true }, distinct: ["category"] }),
-            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { city: true }, distinct: ["city"] }),
-            prisma.institutionProfile.findMany({ where: { status: "approved" }, select: { name: true }, orderBy: { name: "asc" } }),
-            prisma.program.findMany({ where: { is_active: true }, select: { schedule_type: true }, distinct: ["schedule_type"] }),
-        ]);
-
         return NextResponse.json({
             programs,
-            filters: {
-                categories: categoriesData.map(c => c.category).filter(Boolean),
-                cities: citiesData.map(c => c.city).filter(Boolean),
-                companies: institutionsData.map(i => i.name).filter(Boolean),
-                scheduleTypes: scheduleTypesData.map(s => s.schedule_type).filter(Boolean),
-            },
+            // Filters sirf page 1 par bhej rahe hain taake pagination slow na ho
+            filters: fetchFilters ? {
+                categories: filterResults[0]?.map((c: any) => c.category).filter(Boolean) || [],
+                cities: filterResults[1]?.map((c: any) => c.city).filter(Boolean) || [],
+                companies: filterResults[2]?.map((i: any) => i.name).filter(Boolean) || [],
+                scheduleTypes: filterResults[3]?.map((s: any) => s.schedule_type).filter(Boolean) || [],
+            } : null,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
 
