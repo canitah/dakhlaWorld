@@ -517,7 +517,7 @@ export default function InstitutionBillingPage() {
                         <div className="p-6 space-y-5">
                             <div className="bg-accent/50 p-4 rounded-2xl text-center border border-dashed border-blue-200">
                                 <p className="text-lg font-bold">Total: PKR {selectedPlan?.price.toLocaleString()}</p>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold mt-1">Pay via JazzCash to {JAZZCASH_ACCOUNT}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold mt-1">Pay via QR code</p>
                             </div>
 
                             {selectedPlan && QR_IMAGES[selectedPlan.dbName] && (
@@ -529,7 +529,7 @@ export default function InstitutionBillingPage() {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className="text-xs font-bold uppercase">Transaction Reference *</Label>
-                                    <Input value={transRef} onChange={(e) => setTransRef(e.target.value)} placeholder="Enter JazzCash Transaction ID" className="h-11 rounded-xl" />
+                                    <Input value={transRef} onChange={(e) => setTransRef(e.target.value)} placeholder="Enter Transaction ID" className="h-11 rounded-xl" />
                                 </div>
 
                                 <div className="space-y-2">
