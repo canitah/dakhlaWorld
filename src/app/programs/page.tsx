@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { Suspense } from 'react'; // 1. Ye import add karein
 import { ThemeLogo } from "@/components/theme-logo";
 import {
   Search,
@@ -167,7 +168,7 @@ function FilterDropdown({
 }
 
 /* ─────────────── Main Page ─────────────── */
-export default function HomePage() {
+function ProgramsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
@@ -1059,5 +1060,12 @@ function DetailRow({
         </p>
       </div>
     </div>
+  );
+}
+export default function ProgramsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-gray-500">Loading...</div>}>
+      <ProgramsPage />
+    </Suspense>
   );
 }
