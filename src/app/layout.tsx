@@ -11,10 +11,17 @@ import Script from "next/script"; // 👈 Script import kiya
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Dakhla",
-  description: "Pakistan-first, global-ready admissions marketplace connecting students with institutions worldwide.",
+  // Title (Max 60 characters)
+  title: "Dakhla | Global Admissions Platform & Student Marketplace", 
+  
+  // Description (Max 155-160 characters)
+  description: "Dakhla is Pakistan's leading global admissions marketplace. Explore programs, connect with top institutions worldwide, and simplify your admission process today.",
+  
   icons: {
     icon: "/favicon.ico",
+  },
+  verification: {
+    google: "XWlCk895L8fFbK90iF5cGcHQDX30uMSByXvrQHp4Fh0",
   },
 };
 
