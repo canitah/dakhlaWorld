@@ -11,7 +11,7 @@ import Script from "next/script"; // 👈 Script import kiya
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Dakhla | Global Admissions Platform & Student Marketplace", 
+  title: "Dakhla | Global Admissions Platform", 
   description: "Dakhla is Pakistan's leading global admissions marketplace. Explore programs, connect with top institutions worldwide, and simplify your admission process today.",
   icons: {
     icon: "/favicon.ico",
