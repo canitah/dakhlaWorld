@@ -254,7 +254,6 @@ function ProgramsPage() {
           if (activeFeeRange.max !== null)
             params.set("fee_max", String(activeFeeRange.max));
         }
-        params.set("limit", "50");
 
         const res = await fetch(`/api/programs/public?${params.toString()}`);
         if (res.ok && isMounted) {
@@ -768,6 +767,44 @@ function ProgramsPage() {
                     </div>
                   </div>
                 ))}
+                <div className="flex justify-center items-center gap-2 mt-12 mb-8">
+  {/* Previous Button */}
+  <button
+    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+    disabled={currentPage === 1}
+    className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-400 hover:border-[#008cff] hover:text-[#008cff] transition-all duration-200 disabled:opacity-40 disabled:hover:border-gray-200 shadow-sm"
+    aria-label="Previous page"
+  >
+    <ChevronDown className="w-5 h-5 rotate-90" />
+  </button>
+
+  {/* Page Numbers */}
+  <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+      <button
+        key={page}
+        onClick={() => setCurrentPage(page)}
+        className={`min-w-[40px] h-10 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+          currentPage === page
+            ? "bg-[#008cff] text-white shadow-lg shadow-blue-500/30 scale-105"
+            : "text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-slate-700 hover:text-[#008cff]"
+        }`}
+      >
+        {page}
+      </button>
+    ))}
+  </div>
+
+  {/* Next Button */}
+  <button
+    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+    disabled={currentPage === totalPages}
+    className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-400 hover:border-[#008cff] hover:text-[#008cff] transition-all duration-200 disabled:opacity-40 disabled:hover:border-gray-200 shadow-sm"
+    aria-label="Next page"
+  >
+    <ChevronDown className="w-5 h-5 -rotate-90" />
+  </button>
+</div>
               </div>
 
               
@@ -979,7 +1016,6 @@ function ProgramsPage() {
                       
 
                       {/* Program Description - Block Alignment Fix */}
-{selectedProgram.description && (
   <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-800 w-full block text-left">
     <div className="flex items-center justify-start gap-2 mb-4 w-full">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -993,7 +1029,7 @@ function ProgramsPage() {
       </p>
     </div>
   </div>
-)}
+
                     </div>
                   </div>
                 ) : (
