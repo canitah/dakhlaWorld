@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import prisma from "@/lib/prisma";
-
+import { getPlanRank } from "@/lib/plan-utils";
 
 
 // GET /api/programs — List programs with filters (public for authenticated users)
