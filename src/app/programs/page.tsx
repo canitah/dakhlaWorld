@@ -53,6 +53,8 @@ interface Program {
     city: string | null;
     category: string | null;
     profilePicture: string | null;
+    description: string | null;
+    contact_email: string | null;
     uniqueId: string;
     planTier: string;
   };
@@ -1029,6 +1031,43 @@ function ProgramsPage() {
       </p>
     </div>
   </div>
+
+  
+                {/* Institution info */}
+                {selectedProgram.postedByPlatform ? (
+                    <div className="border-t pt-5">
+                        <h3 className="text-[15px] font-bold text-foreground mb-3">Posted by</h3>
+                        <p className="text-[13px] text-foreground font-medium">DAKHLA Platform</p>
+                        <p className="text-[13px] text-muted-foreground mt-1">This program is posted directly by the DAKHLA platform.</p>
+                    </div>
+                ) : (
+                    <div className="border-t pt-5">
+                        <h3 className="text-[15px] font-bold text-foreground mb-3">About the institution</h3>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Name</p>
+                                <p className="text-[13px] text-foreground font-medium">{selectedProgram.institution.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Type</p>
+                                <p className="text-[13px] text-foreground capitalize">{selectedProgram.institution.category || "—"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">City</p>
+                                <p className="text-[13px] text-foreground">{selectedProgram.institution.city || "—"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Contact</p>
+                                <p className="text-[13px] text-foreground truncate">{selectedProgram.institution.contact_email || "—"}</p>
+                            </div>
+                        </div>
+                        {selectedProgram.institution.description && (
+                            <p className="text-[13px] text-muted-foreground mt-3 leading-relaxed">
+                                {selectedProgram.institution.description}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                     </div>
                   </div>

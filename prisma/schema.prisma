@@ -103,6 +103,7 @@ model Program {
   questions          ProgramQuestion[]
   institution        InstitutionProfile? @relation(fields: [institution_id], references: [id], onDelete: Cascade)
   saved_admissions   SavedAdmission[]
+  
 
   @@index([institution_id])
   @@index([category])

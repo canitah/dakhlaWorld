@@ -189,6 +189,8 @@ export async function GET(request: Request) {
             name: p.institution.name,
             city: p.institution.city,
             profilePicture: p.institution.profile_picture_url,
+            description: p.institution.description,
+            contact_email: p.institution.contact_email,
             uniqueId:
               p.institution.user?.unique_id ||
               String(p.institution.id),
