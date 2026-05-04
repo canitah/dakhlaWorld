@@ -100,7 +100,7 @@ export default function AdminApplicationsPage() {
             limit: "20",
             ...(filter && { status: filter }),
         });
-        const res = await fetchWithAuth(`/admin/applications?${params}`)z;
+        const res = await fetchWithAuth(`/admin/applications?${params}`);
         if (res.ok) {
             const data = await res.json();
             setApplications(data.applications);
